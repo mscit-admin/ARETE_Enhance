@@ -15,6 +15,10 @@ class AppColors {
   static const Color gold = Color(0xFFD9A441);
   static const Color slate = Color(0xFF33404F);
 
+  /// Fixed deep ink used for high-contrast cards (e.g. the "Today" session
+  /// card) that stay dark in both light and dark themes.
+  static const Color ink = Color(0xFF12161B);
+
   // Semantic
   static const Color success = teal;
   static const Color warning = gold;

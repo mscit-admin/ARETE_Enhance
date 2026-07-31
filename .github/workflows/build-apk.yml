@@ -37,7 +37,11 @@ jobs:
       # The android/ platform folder is generated on the fly so the repo stays
       # lean. This preserves everything under lib/ and test/.
       - name: Generate Android platform files
-        run: flutter create --platforms=android --org fit.arete .
+        run: |
+          flutter create --platforms=android --org fit.arete .
+          # Remove the default template test that flutter create adds; the repo
+          # ships its own tests under test/.
+          rm -f test/widget_test.dart
 
       - name: Install dependencies
         run: flutter pub get
