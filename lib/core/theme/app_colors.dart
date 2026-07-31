@@ -24,6 +24,11 @@ class AppColors {
   static const Color warning = gold;
   static const Color danger = Color(0xFFE0483C);
 
+  // KPI ring accents (one hue per tracked metric)
+  static const Color water = Color(0xFF3BA7E0);
+  static const Color steps = teal;
+  static const Color move = ember;
+
   // ---- Light theme tokens ----
   static const _lightBg = Color(0xFFF4F2EE);
   static const _lightSurface = Color(0xFFFFFFFF);

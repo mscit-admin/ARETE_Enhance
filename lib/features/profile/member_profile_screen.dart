@@ -14,8 +14,8 @@ import 'edit_profile_screen.dart';
 import 'settings_screen.dart';
 import 'widgets/badges_row.dart';
 import 'widgets/goal_progress_card.dart';
+import 'widgets/kpi_ring.dart';
 import 'widgets/membership_card.dart';
-import 'widgets/profile_metrics_card.dart';
 
 /// Member home / profile — the first fully-built module of Phase 1.
 class MemberProfileScreen extends StatelessWidget {
@@ -90,12 +90,18 @@ class _ProfileBody extends StatelessWidget {
           ),
           const SizedBox(height: AppSpacing.lg),
 
-          // ---- Metrics ----
-          ProfileMetricsCard(member: member),
+          // ---- KPI ring: the home centrepiece ----
+          const SectionLabel('Today at a glance'),
+          const SizedBox(height: AppSpacing.md),
+          Center(child: _TodayKpiRing(member: member)),
           const SizedBox(height: AppSpacing.lg),
+          _RingLegend(member: member),
+          const SizedBox(height: AppSpacing.md),
+          const _LogWaterButton(),
+          const SizedBox(height: AppSpacing.xl),
 
           // ---- Today's session (visual entry to Workout Execution) ----
-          const SectionLabel('Today'),
+          const SectionLabel('Today\'s workout'),
           const SizedBox(height: AppSpacing.sm),
           _TodaySessionCard(),
           const SizedBox(height: AppSpacing.lg),
@@ -178,6 +184,188 @@ class _TodaySessionCard extends StatelessWidget {
           const Pill('Start ▸', tone: PillTone.ember),
         ],
       ),
+    );
+  }
+}
+
+/// The home centrepiece: three concentric activity rings (Move / Steps /
+/// Water) wrapped around a 2×2 grid of the member's key KPI numbers.
+class _TodayKpiRing extends StatelessWidget {
+  const _TodayKpiRing({required this.member});
+
+  final Member member;
+
+  @override
+  Widget build(BuildContext context) {
+    final ds = member.dailyStats;
+    final p = context.palette;
+
+    final rings = [
+      RingMetric(progress: ds.caloriesProgress, color: AppColors.move),
+      RingMetric(progress: ds.stepsProgress, color: AppColors.steps),
+      RingMetric(progress: ds.waterProgress, color: AppColors.water),
+    ];
+
+    final center = Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          'TODAY',
+          style: TextStyle(
+            fontSize: 9.5,
+            fontWeight: FontWeight.w700,
+            letterSpacing: 1.6,
+            color: p.muted,
+          ),
+        ),
+        const SizedBox(height: 10),
+        Row(
+          children: [
+            Expanded(
+              child: RingKpiTile(
+                icon: Icons.monitor_heart_outlined,
+                value: member.metrics.bmi.toStringAsFixed(1),
+                label: 'BMI',
+                color: AppColors.teal,
+              ),
+            ),
+            Expanded(
+              child: RingKpiTile(
+                icon: Icons.monitor_weight_outlined,
+                value: member.displayWeight.toStringAsFixed(1),
+                label: member.units.weightUnit,
+                color: AppColors.ember,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(
+              child: RingKpiTile(
+                icon: Icons.water_drop_outlined,
+                value: '${ds.waterGlasses}/${ds.waterTargetGlasses}',
+                label: 'Water',
+                color: AppColors.water,
+              ),
+            ),
+            Expanded(
+              child: RingKpiTile(
+                icon: Icons.local_fire_department_outlined,
+                value: '${ds.caloriesBurned}',
+                label: 'kcal',
+                color: AppColors.move,
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+
+    return KpiRing(rings: rings, center: center);
+  }
+}
+
+/// Colour key beneath the ring so each arc's metric is unambiguous.
+class _RingLegend extends StatelessWidget {
+  const _RingLegend({required this.member});
+
+  final Member member;
+
+  @override
+  Widget build(BuildContext context) {
+    final ds = member.dailyStats;
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceAround,
+      children: [
+        _LegendItem(
+          color: AppColors.move,
+          label: 'Move',
+          reading: '${ds.caloriesBurned}/${ds.caloriesTarget} kcal',
+        ),
+        _LegendItem(
+          color: AppColors.steps,
+          label: 'Steps',
+          reading: '${_compact(ds.steps)}/${_compact(ds.stepsTarget)}',
+        ),
+        _LegendItem(
+          color: AppColors.water,
+          label: 'Water',
+          reading: '${ds.waterGlasses}/${ds.waterTargetGlasses} glasses',
+        ),
+      ],
+    );
+  }
+
+  static String _compact(int n) {
+    if (n < 1000) return '$n';
+    final k = n / 1000;
+    return '${k.toStringAsFixed(k >= 10 ? 0 : 1)}k';
+  }
+}
+
+class _LegendItem extends StatelessWidget {
+  const _LegendItem(
+      {required this.color, required this.label, required this.reading});
+
+  final Color color;
+  final String label;
+  final String reading;
+
+  @override
+  Widget build(BuildContext context) {
+    final p = context.palette;
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 9,
+              height: 9,
+              decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+            ),
+            const SizedBox(width: 6),
+            Text(
+              label,
+              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
+            ),
+          ],
+        ),
+        const SizedBox(height: 3),
+        Text(
+          reading,
+          style: TextStyle(
+            fontSize: 11,
+            color: p.muted,
+            fontFeatures: const [FontFeature.tabularFigures()],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// Quick action to log a glass of water; updates the ring immediately.
+class _LogWaterButton extends StatelessWidget {
+  const _LogWaterButton();
+
+  @override
+  Widget build(BuildContext context) {
+    return OutlinedButton.icon(
+      onPressed: () {
+        context.read<ProfileController>().logWater();
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Logged a glass of water 💧'),
+            duration: Duration(seconds: 1),
+          ),
+        );
+      },
+      icon: const Icon(Icons.add, size: 18, color: AppColors.water),
+      label: const Text('Log a glass of water'),
     );
   }
 }

@@ -1,5 +1,6 @@
 import '../../core/constants/enums.dart';
 import '../models/body_metrics.dart';
+import '../models/daily_stats.dart';
 import '../models/member.dart';
 import '../models/membership.dart';
 import '../models/trainer.dart';
@@ -24,6 +25,16 @@ class MockData {
       heightCm: 180,
       bodyFatPercent: 18,
       waistCm: 82,
+    ),
+    dailyStats: const DailyStats(
+      waterGlasses: 6,
+      waterTargetGlasses: 8,
+      steps: 7240,
+      stepsTarget: 10000,
+      caloriesBurned: 480,
+      caloriesTarget: 600,
+      activeMinutes: 42,
+      activeMinutesTarget: 60,
     ),
     membership: Membership(
       tier: MembershipTier.gold,
@@ -66,6 +77,16 @@ class MockData {
       experience: ExperienceLevel.beginner,
       units: UnitSystem.metric,
       metrics: const BodyMetrics(weightKg: 64, heightCm: 165, bodyFatPercent: 28),
+      dailyStats: const DailyStats(
+        waterGlasses: 3,
+        waterTargetGlasses: 8,
+        steps: 4100,
+        stepsTarget: 8000,
+        caloriesBurned: 260,
+        caloriesTarget: 500,
+        activeMinutes: 18,
+        activeMinutesTarget: 45,
+      ),
       membership: Membership(
         tier: MembershipTier.silver,
         status: MembershipStatus.active,
@@ -87,6 +108,16 @@ class MockData {
       experience: ExperienceLevel.advanced,
       units: UnitSystem.imperial,
       metrics: const BodyMetrics(weightKg: 82, heightCm: 178, bodyFatPercent: 14),
+      dailyStats: const DailyStats(
+        waterGlasses: 8,
+        waterTargetGlasses: 8,
+        steps: 12400,
+        stepsTarget: 12000,
+        caloriesBurned: 720,
+        caloriesTarget: 700,
+        activeMinutes: 65,
+        activeMinutesTarget: 60,
+      ),
       membership: Membership(
         tier: MembershipTier.elite,
         status: MembershipStatus.active,
@@ -108,6 +139,16 @@ class MockData {
       experience: ExperienceLevel.intermediate,
       units: UnitSystem.metric,
       metrics: const BodyMetrics(weightKg: 59, heightCm: 170, bodyFatPercent: 22),
+      dailyStats: const DailyStats(
+        waterGlasses: 0,
+        waterTargetGlasses: 8,
+        steps: 0,
+        stepsTarget: 8000,
+        caloriesBurned: 0,
+        caloriesTarget: 500,
+        activeMinutes: 0,
+        activeMinutesTarget: 45,
+      ),
       membership: Membership(
         tier: MembershipTier.gold,
         status: MembershipStatus.frozen,

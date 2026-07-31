@@ -1,5 +1,6 @@
 import '../../core/constants/enums.dart';
 import 'body_metrics.dart';
+import 'daily_stats.dart';
 import 'membership.dart';
 
 /// The full member profile aggregate.
@@ -16,6 +17,7 @@ class Member {
     required this.experience,
     required this.units,
     required this.metrics,
+    required this.dailyStats,
     required this.membership,
     required this.currentStreakDays,
     required this.weeklyTargetSessions,
@@ -35,6 +37,7 @@ class Member {
   final ExperienceLevel experience;
   final UnitSystem units;
   final BodyMetrics metrics;
+  final DailyStats dailyStats;
   final Membership membership;
   final int currentStreakDays;
   final int weeklyTargetSessions;
@@ -77,6 +80,7 @@ class Member {
     ExperienceLevel? experience,
     UnitSystem? units,
     BodyMetrics? metrics,
+    DailyStats? dailyStats,
     Membership? membership,
     int? currentStreakDays,
     int? weeklyTargetSessions,
@@ -96,6 +100,7 @@ class Member {
       experience: experience ?? this.experience,
       units: units ?? this.units,
       metrics: metrics ?? this.metrics,
+      dailyStats: dailyStats ?? this.dailyStats,
       membership: membership ?? this.membership,
       currentStreakDays: currentStreakDays ?? this.currentStreakDays,
       weeklyTargetSessions: weeklyTargetSessions ?? this.weeklyTargetSessions,
