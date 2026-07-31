@@ -43,6 +43,37 @@ jobs:
           # ships its own tests under test/.
           rm -f test/widget_test.dart
 
+      # flutter_local_notifications requires Android core library desugaring and
+      # the POST_NOTIFICATIONS runtime permission. The android/ folder is
+      # generated fresh above, so patch it here.
+      - name: Configure Android for local notifications
+        run: |
+          GRADLE=android/app/build.gradle.kts
+          MANIFEST=android/app/src/main/AndroidManifest.xml
+
+          # 1) Enable core library desugaring inside the compileOptions block.
+          if ! grep -q "isCoreLibraryDesugaringEnabled" "$GRADLE"; then
+            sed -i 's/    compileOptions {/    compileOptions {\n        isCoreLibraryDesugaringEnabled = true/' "$GRADLE"
+          fi
+
+          # 2) Add the desugar_jdk_libs dependency (idempotent).
+          if ! grep -q "desugar_jdk_libs" "$GRADLE"; then
+            cat >> "$GRADLE" <<'GRADLE_EOF'
+
+dependencies {
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
+}
+GRADLE_EOF
+          fi
+
+          # 3) Declare the POST_NOTIFICATIONS permission (Android 13+).
+          if ! grep -q "POST_NOTIFICATIONS" "$MANIFEST"; then
+            sed -i 's#<application#<uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>\n    <application#' "$MANIFEST"
+          fi
+
+          echo "----- build.gradle.kts (tail) -----"; tail -n 12 "$GRADLE"
+          echo "----- AndroidManifest.xml (head) -----"; head -n 12 "$MANIFEST"
+
       - name: Install dependencies
         run: flutter pub get
 

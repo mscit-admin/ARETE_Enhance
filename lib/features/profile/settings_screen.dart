@@ -8,6 +8,7 @@ import '../../core/theme/app_theme.dart';
 import '../../shared/widgets/app_card.dart';
 import '../../shared/widgets/pill.dart';
 import '../../shared/widgets/section_label.dart';
+import '../../state/hydration_controller.dart';
 import '../../state/profile_controller.dart';
 import '../../state/session_controller.dart';
 import '../../state/trainer_controller.dart';
@@ -111,6 +112,12 @@ class SettingsScreen extends StatelessWidget {
           ),
           const SizedBox(height: AppSpacing.xl),
 
+          // ---- Hydration reminders ----
+          const SectionLabel('Hydration reminders'),
+          const SizedBox(height: AppSpacing.sm),
+          const _HydrationSection(),
+          const SizedBox(height: AppSpacing.xl),
+
           // ---- Preferences ----
           const SectionLabel('Preferences'),
           const SizedBox(height: AppSpacing.sm),
@@ -189,6 +196,168 @@ class SettingsScreen extends StatelessWidget {
   void _notImplemented(BuildContext context) {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Coming in a later phase')),
+    );
+  }
+}
+
+/// Hydration reminder controls: enable, cadence, window, permission and tests.
+class _HydrationSection extends StatelessWidget {
+  const _HydrationSection();
+
+  static String _fmtHour(int h) {
+    final period = h < 12 ? 'AM' : 'PM';
+    final hour12 = h % 12 == 0 ? 12 : h % 12;
+    return '$hour12 $period';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final h = context.watch<HydrationController>();
+    final p = context.palette;
+
+    return AppCard(
+      padding: EdgeInsets.zero,
+      child: Column(
+        children: [
+          SwitchListTile(
+            secondary: const Icon(Icons.water_drop_outlined),
+            title: const Text('Remind me to drink water'),
+            subtitle: Text(
+              h.enabled
+                  ? 'Every ${h.intervalHours}h · ${_fmtHour(h.startHour)}–${_fmtHour(h.endHour)}'
+                  : 'Off',
+            ),
+            value: h.enabled,
+            activeColor: AppColors.water,
+            onChanged: (v) => context.read<HydrationController>().setEnabled(v),
+          ),
+          if (h.enabled) ...[
+            const Divider(height: 1),
+            ListTile(
+              leading: const Icon(Icons.timelapse),
+              title: const Text('Reminder every'),
+              trailing: DropdownButton<int>(
+                value: h.intervalHours,
+                underline: const SizedBox.shrink(),
+                items: const [
+                  DropdownMenuItem(value: 1, child: Text('1 hour')),
+                  DropdownMenuItem(value: 2, child: Text('2 hours')),
+                  DropdownMenuItem(value: 3, child: Text('3 hours')),
+                ],
+                onChanged: (v) => v == null
+                    ? null
+                    : context.read<HydrationController>().setIntervalHours(v),
+              ),
+            ),
+            const Divider(height: 1),
+            ListTile(
+              leading: const Icon(Icons.schedule),
+              title: const Text('Active window'),
+              trailing: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _HourDropdown(
+                    value: h.startHour,
+                    options: const [6, 7, 8, 9, 10],
+                    onChanged: (v) => context
+                        .read<HydrationController>()
+                        .setWindow(startHour: v),
+                  ),
+                  Text('  –  ', style: TextStyle(color: p.muted)),
+                  _HourDropdown(
+                    value: h.endHour,
+                    options: const [17, 18, 19, 20, 21, 22],
+                    onChanged: (v) => context
+                        .read<HydrationController>()
+                        .setWindow(endHour: v),
+                  ),
+                ],
+              ),
+            ),
+            const Divider(height: 1),
+            ListTile(
+              leading: Icon(
+                h.permissionGranted
+                    ? Icons.notifications_active
+                    : Icons.notifications_off_outlined,
+                color: h.permissionGranted ? AppColors.teal : AppColors.warning,
+              ),
+              title: const Text('System notifications'),
+              subtitle: Text(h.permissionGranted ? 'Allowed' : 'Not allowed'),
+              trailing: h.permissionGranted
+                  ? null
+                  : TextButton(
+                      onPressed: () =>
+                          context.read<HydrationController>().requestPermission(),
+                      child: const Text('Enable'),
+                    ),
+            ),
+            const Divider(height: 1),
+            Padding(
+              padding: const EdgeInsets.all(AppSpacing.md),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: () {
+                        context.read<HydrationController>().sendTestNotification();
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Test notification sent'),
+                            duration: Duration(seconds: 1),
+                          ),
+                        );
+                      },
+                      icon: const Icon(Icons.notifications, size: 18),
+                      label: const Text('Test'),
+                    ),
+                  ),
+                  const SizedBox(width: AppSpacing.sm),
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: () {
+                        context
+                            .read<HydrationController>()
+                            .triggerInAppPromptNow();
+                        Navigator.of(context).maybePop();
+                      },
+                      icon: const Icon(Icons.touch_app, size: 18),
+                      label: const Text('In-app'),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _HourDropdown extends StatelessWidget {
+  const _HourDropdown({
+    required this.value,
+    required this.options,
+    required this.onChanged,
+  });
+
+  final int value;
+  final List<int> options;
+  final ValueChanged<int> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    // Guarantee the current value is selectable even if outside the presets.
+    final items = {...options, value}.toList()..sort();
+    return DropdownButton<int>(
+      value: value,
+      underline: const SizedBox.shrink(),
+      items: [
+        for (final h in items)
+          DropdownMenuItem(value: h, child: Text(_HydrationSection._fmtHour(h))),
+      ],
+      onChanged: (v) => v == null ? null : onChanged(v),
     );
   }
 }

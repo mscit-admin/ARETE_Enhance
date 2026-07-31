@@ -11,6 +11,7 @@ import '../../data/models/member.dart';
 import '../../shared/widgets/gradient_avatar.dart';
 import '../../shared/widgets/pill.dart';
 import '../../shared/widgets/section_label.dart';
+import '../../state/hydration_controller.dart';
 import '../../state/profile_controller.dart';
 import 'edit_profile_screen.dart';
 import 'settings_screen.dart';
@@ -52,6 +53,7 @@ class _ProfileBody extends StatelessWidget {
   Widget build(BuildContext context) {
     final p = context.palette;
     final firstName = member.fullName.split(' ').first;
+    final hydrationDue = context.watch<HydrationController>().promptDue;
 
     return RefreshIndicator(
       onRefresh: context.read<ProfileController>().load,
@@ -59,6 +61,12 @@ class _ProfileBody extends StatelessWidget {
         padding: const EdgeInsets.fromLTRB(
             AppSpacing.screen, AppSpacing.lg, AppSpacing.screen, AppSpacing.xxxl),
         children: [
+          // ---- Hydration reminder prompt (when due) ----
+          if (hydrationDue) ...[
+            const _HydrationPrompt(),
+            const SizedBox(height: AppSpacing.lg),
+          ],
+
           // ---- Header ----
           Row(
             children: [
@@ -478,6 +486,75 @@ class _LegendItem extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+/// In-app hydration reminder. Appears when a reminder slot is due; confirming
+/// logs a glass of water (which fills the water ring).
+class _HydrationPrompt extends StatelessWidget {
+  const _HydrationPrompt();
+
+  @override
+  Widget build(BuildContext context) {
+    final controller = context.read<HydrationController>();
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.lg),
+      decoration: BoxDecoration(
+        color: AppColors.water.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
+        border: Border.all(color: AppColors.water.withValues(alpha: 0.4)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.water_drop, color: AppColors.water, size: 22),
+              const SizedBox(width: AppSpacing.sm),
+              Expanded(
+                child: Text(
+                  'Time to hydrate 💧',
+                  style: context.textStyles.titleMedium,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'Grab a glass of water and confirm below to keep your streak going.',
+            style: context.textStyles.bodySmall,
+          ),
+          const SizedBox(height: AppSpacing.md),
+          Row(
+            children: [
+              Expanded(
+                child: ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.water,
+                  ),
+                  onPressed: () {
+                    controller.confirmDrank();
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Nice — glass logged 💧'),
+                        duration: Duration(seconds: 1),
+                      ),
+                    );
+                  },
+                  icon: const Icon(Icons.check, size: 18),
+                  label: const Text('I drank water'),
+                ),
+              ),
+              const SizedBox(width: AppSpacing.sm),
+              OutlinedButton(
+                onPressed: controller.snooze,
+                child: const Text('Snooze'),
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 }
