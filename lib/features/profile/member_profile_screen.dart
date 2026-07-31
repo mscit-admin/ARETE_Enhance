@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -198,7 +200,6 @@ class _TodayKpiRing extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final ds = member.dailyStats;
-    final p = context.palette;
 
     final rings = [
       RingMetric(progress: ds.caloriesProgress, color: AppColors.move),
@@ -206,65 +207,198 @@ class _TodayKpiRing extends StatelessWidget {
       RingMetric(progress: ds.waterProgress, color: AppColors.water),
     ];
 
-    final center = Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Text(
-          'TODAY',
-          style: TextStyle(
-            fontSize: 9.5,
-            fontWeight: FontWeight.w700,
-            letterSpacing: 1.6,
-            color: p.muted,
-          ),
-        ),
-        const SizedBox(height: 10),
-        Row(
-          children: [
-            Expanded(
-              child: RingKpiTile(
-                icon: Icons.monitor_heart_outlined,
-                value: member.metrics.bmi.toStringAsFixed(1),
-                label: 'BMI',
-                color: AppColors.teal,
-              ),
-            ),
-            Expanded(
-              child: RingKpiTile(
-                icon: Icons.monitor_weight_outlined,
-                value: member.displayWeight.toStringAsFixed(1),
-                label: member.units.weightUnit,
-                color: AppColors.ember,
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 12),
-        Row(
-          children: [
-            Expanded(
-              child: RingKpiTile(
-                icon: Icons.water_drop_outlined,
-                value: '${ds.waterGlasses}/${ds.waterTargetGlasses}',
-                label: 'Water',
-                color: AppColors.water,
-              ),
-            ),
-            Expanded(
-              child: RingKpiTile(
-                icon: Icons.local_fire_department_outlined,
-                value: '${ds.caloriesBurned}',
-                label: 'kcal',
-                color: AppColors.move,
-              ),
-            ),
-          ],
-        ),
-      ],
+    return KpiRing(
+      rings: rings,
+      center: _RotatingKpiCenter(member: member),
     );
-
-    return KpiRing(rings: rings, center: center);
   }
+}
+
+/// The centre of the ring: shows ONE KPI large at a time, auto-advancing every
+/// few seconds and also advancing on tap. Page dots show position.
+class _RotatingKpiCenter extends StatefulWidget {
+  const _RotatingKpiCenter({required this.member});
+
+  final Member member;
+
+  @override
+  State<_RotatingKpiCenter> createState() => _RotatingKpiCenterState();
+}
+
+class _RotatingKpiCenterState extends State<_RotatingKpiCenter> {
+  int _index = 0;
+  Timer? _timer;
+
+  @override
+  void initState() {
+    super.initState();
+    _startAutoRotate();
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  void _startAutoRotate() {
+    _timer?.cancel();
+    _timer = Timer.periodic(const Duration(seconds: 4), (_) {
+      if (mounted) setState(() => _index++);
+    });
+  }
+
+  void _next() {
+    setState(() => _index++);
+    _startAutoRotate(); // reset the clock after a manual tap
+  }
+
+  List<_KpiSpec> _buildSpecs() {
+    final m = widget.member;
+    final ds = m.dailyStats;
+    return [
+      _KpiSpec(
+        label: 'Water',
+        value: '${ds.waterGlasses}',
+        unit: 'of ${ds.waterTargetGlasses} glasses',
+        icon: Icons.water_drop,
+        color: AppColors.water,
+      ),
+      _KpiSpec(
+        label: 'BMI',
+        value: m.metrics.bmi.toStringAsFixed(1),
+        unit: m.metrics.bmiCategory,
+        icon: Icons.monitor_heart,
+        color: AppColors.teal,
+      ),
+      _KpiSpec(
+        label: 'Weight',
+        value: m.displayWeight.toStringAsFixed(1),
+        unit: m.units.weightUnit,
+        icon: Icons.monitor_weight,
+        color: AppColors.ember,
+      ),
+      _KpiSpec(
+        label: 'Calories',
+        value: '${ds.caloriesBurned}',
+        unit: 'of ${ds.caloriesTarget} kcal',
+        icon: Icons.local_fire_department,
+        color: AppColors.move,
+      ),
+      _KpiSpec(
+        label: 'Steps',
+        value: _RingLegend._compact(ds.steps),
+        unit: 'of ${_RingLegend._compact(ds.stepsTarget)}',
+        icon: Icons.directions_walk,
+        color: AppColors.steps,
+      ),
+    ];
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final p = context.palette;
+    final specs = _buildSpecs();
+    final i = _index % specs.length;
+    final spec = specs[i];
+
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: _next,
+      child: SizedBox(
+        width: 150,
+        height: 138,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            AnimatedSwitcher(
+              duration: const Duration(milliseconds: 380),
+              transitionBuilder: (child, anim) => FadeTransition(
+                opacity: anim,
+                child: ScaleTransition(
+                  scale: Tween<double>(begin: 0.85, end: 1).animate(anim),
+                  child: child,
+                ),
+              ),
+              child: Column(
+                key: ValueKey(i),
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(spec.icon, color: spec.color, size: 22),
+                  const SizedBox(height: 6),
+                  Text(
+                    spec.label.toUpperCase(),
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 1.3,
+                      color: p.muted,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    spec.value,
+                    style: TextStyle(
+                      fontSize: 46,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: -1.5,
+                      height: 1.0,
+                      color: p.text,
+                      fontFeatures: const [FontFeature.tabularFigures()],
+                    ),
+                  ),
+                  if (spec.unit != null)
+                    Text(
+                      spec.unit!,
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: p.muted,
+                      ),
+                    ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                for (int d = 0; d < specs.length; d++)
+                  AnimatedContainer(
+                    duration: const Duration(milliseconds: 250),
+                    margin: const EdgeInsets.symmetric(horizontal: 2.5),
+                    width: d == i ? 16 : 6,
+                    height: 6,
+                    decoration: BoxDecoration(
+                      color: d == i ? spec.color : p.line,
+                      borderRadius: BorderRadius.circular(3),
+                    ),
+                  ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _KpiSpec {
+  const _KpiSpec({
+    required this.label,
+    required this.value,
+    required this.icon,
+    required this.color,
+    this.unit,
+  });
+
+  final String label;
+  final String value;
+  final String? unit;
+  final IconData icon;
+  final Color color;
 }
 
 /// Colour key beneath the ring so each arc's metric is unambiguous.
