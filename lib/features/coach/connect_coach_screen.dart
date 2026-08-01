@@ -19,13 +19,12 @@ class ConnectCoachScreen extends StatefulWidget {
 
 class _ConnectCoachScreenState extends State<ConnectCoachScreen>
     with WidgetsBindingObserver {
-  // autoStart is disabled so we only start the camera *after* the runtime
-  // permission is granted — otherwise the first start fails and the platform
-  // reports the camera as "unavailable".
+  // Default controller (autoStart = true): the MobileScanner widget starts the
+  // camera when it mounts. We only mount it *after* the permission is granted,
+  // so the start happens at the right time.
   final _controller = MobileScannerController(
     detectionSpeed: DetectionSpeed.noDuplicates,
     facing: CameraFacing.back,
-    autoStart: false,
   );
   final _codeField = TextEditingController();
   bool _handling = false;
@@ -63,7 +62,6 @@ class _ConnectCoachScreenState extends State<ConnectCoachScreen>
       _cameraStatus = status;
       _checkingPermission = false;
     });
-    if (status.isGranted) await _startScanner();
   }
 
   /// Button action: request the permission; if that doesn't grant it (denied
@@ -73,19 +71,15 @@ class _ConnectCoachScreenState extends State<ConnectCoachScreen>
     final status = await Permission.camera.request();
     if (!mounted) return;
     setState(() => _cameraStatus = status);
-    if (status.isGranted) {
-      await _startScanner();
-    } else {
-      await openAppSettings();
-    }
+    if (!status.isGranted) await openAppSettings();
   }
 
-  /// Start (or restart) the camera. Safe to call more than once.
-  Future<void> _startScanner() async {
+  /// Retry starting the camera (used by the error state's Retry button).
+  Future<void> _restart() async {
     try {
       await _controller.start();
     } catch (_) {
-      // Already running, or a transient start error — ignore.
+      // Ignore — the errorBuilder will surface any persistent failure.
     }
   }
 
@@ -166,9 +160,19 @@ class _ConnectCoachScreenState extends State<ConnectCoachScreen>
                                           style: const TextStyle(
                                               color: Colors.white70),
                                         ),
+                                        const SizedBox(height: 6),
+                                        // Real error code/message for diagnosis.
+                                        Text(
+                                          '${error.errorCode.name}'
+                                          '${error.errorDetails?.message != null ? ' · ${error.errorDetails!.message}' : ''}',
+                                          textAlign: TextAlign.center,
+                                          style: const TextStyle(
+                                              color: Colors.white38,
+                                              fontSize: 11),
+                                        ),
                                         const SizedBox(height: AppSpacing.md),
                                         ElevatedButton.icon(
-                                          onPressed: _startScanner,
+                                          onPressed: _restart,
                                           icon: const Icon(Icons.refresh,
                                               size: 18),
                                           label: Text(l.actionRetry),
