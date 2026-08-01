@@ -5,6 +5,7 @@ import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_theme.dart';
 import '../../l10n/app_localizations.dart';
+import '../../shared/widgets/language_menu_button.dart';
 import '../../state/auth_controller.dart';
 
 /// Combined sign-in / sign-up screen shown when no session exists.
@@ -57,7 +58,18 @@ class _AuthScreenState extends State<AuthScreen> {
 
     return Scaffold(
       body: SafeArea(
-        child: Center(
+        child: Column(
+          children: [
+            // Language switcher — top corner (follows text direction).
+            Align(
+              alignment: AlignmentDirectional.centerEnd,
+              child: Padding(
+                padding: const EdgeInsetsDirectional.only(top: 4, end: 4),
+                child: LanguageMenuButton(color: p.muted),
+              ),
+            ),
+            Expanded(
+              child: Center(
           child: SingleChildScrollView(
             padding: const EdgeInsets.all(AppSpacing.xxl),
             child: ConstrainedBox(
@@ -222,6 +234,9 @@ class _AuthScreenState extends State<AuthScreen> {
               ),
             ),
           ),
+        ),
+              ),
+          ],
         ),
       ),
     );

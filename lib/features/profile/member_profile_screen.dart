@@ -11,6 +11,7 @@ import '../../core/theme/app_theme.dart';
 import '../../data/models/member.dart';
 import '../../l10n/app_localizations.dart';
 import '../../shared/widgets/gradient_avatar.dart';
+import '../../shared/widgets/language_menu_button.dart';
 import '../../shared/widgets/pill.dart';
 import '../../shared/widgets/section_label.dart';
 import '../../state/assessment_controller.dart';
@@ -107,6 +108,7 @@ class _ProfileBody extends StatelessWidget {
                   icon: const Icon(Icons.sports_gymnastics,
                       color: AppColors.teal),
                 ),
+              LanguageMenuButton(color: p.text),
               IconButton(
                 onPressed: () => Navigator.of(context).push(
                   MaterialPageRoute(

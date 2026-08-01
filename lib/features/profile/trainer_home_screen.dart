@@ -8,6 +8,7 @@ import '../../core/theme/app_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../shared/widgets/app_card.dart';
 import '../../shared/widgets/gradient_avatar.dart';
+import '../../shared/widgets/language_menu_button.dart';
 import '../../shared/widgets/pill.dart';
 import '../../shared/widgets/section_label.dart';
 import '../../shared/widgets/stat_tile.dart';
@@ -95,6 +96,7 @@ class _TrainerHomeScreenState extends State<TrainerHomeScreen> {
                       .setRole(UserRole.member),
                   icon: const Icon(Icons.swap_horiz, color: AppColors.ember),
                 ),
+                LanguageMenuButton(color: p.text),
                 IconButton(
                   onPressed: () => Navigator.of(context).push(
                     MaterialPageRoute(builder: (_) => const SettingsScreen()),
