@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../core/theme/app_theme.dart';
-import '../features/shell/app_shell.dart';
+import '../features/auth/auth_gate.dart';
 import '../state/session_controller.dart';
 
 class AreteApp extends StatelessWidget {
@@ -22,7 +22,7 @@ class AreteApp extends StatelessWidget {
       theme: AppTheme.light(),
       darkTheme: AppTheme.dark(),
       themeMode: themeMode,
-      home: const AppShell(),
+      home: const AuthGate(),
     );
   }
 }

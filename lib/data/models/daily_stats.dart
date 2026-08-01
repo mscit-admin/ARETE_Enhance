@@ -43,6 +43,28 @@ class DailyStats {
     return v;
   }
 
+  Map<String, dynamic> toJson() => {
+        'waterGlasses': waterGlasses,
+        'waterTargetGlasses': waterTargetGlasses,
+        'steps': steps,
+        'stepsTarget': stepsTarget,
+        'caloriesBurned': caloriesBurned,
+        'caloriesTarget': caloriesTarget,
+        'activeMinutes': activeMinutes,
+        'activeMinutesTarget': activeMinutesTarget,
+      };
+
+  factory DailyStats.fromJson(Map<String, dynamic> json) => DailyStats(
+        waterGlasses: json['waterGlasses'] as int,
+        waterTargetGlasses: json['waterTargetGlasses'] as int,
+        steps: json['steps'] as int,
+        stepsTarget: json['stepsTarget'] as int,
+        caloriesBurned: json['caloriesBurned'] as int,
+        caloriesTarget: json['caloriesTarget'] as int,
+        activeMinutes: json['activeMinutes'] as int,
+        activeMinutesTarget: json['activeMinutesTarget'] as int,
+      );
+
   DailyStats copyWith({
     int? waterGlasses,
     int? waterTargetGlasses,

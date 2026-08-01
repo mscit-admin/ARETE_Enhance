@@ -49,6 +49,22 @@ class ProfileController extends ChangeNotifier {
     );
   }
 
+  /// Bind the signed-in account to the profile (name & email come from auth).
+  Future<void> applyAccount({required String name, required String email}) async {
+    final m = _member;
+    if (m == null) return;
+    if (m.fullName == name && m.email == email) return;
+    await save(m.copyWith(fullName: name, email: email));
+  }
+
+  /// Drop the loaded profile on sign-out.
+  void clear() {
+    _member = null;
+    _assignedTrainer = null;
+    _status = LoadStatus.idle;
+    notifyListeners();
+  }
+
   Future<void> save(Member updated) async {
     // Optimistic update for a snappy UI.
     final previous = _member;

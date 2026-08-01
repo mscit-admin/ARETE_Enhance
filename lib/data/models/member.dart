@@ -69,6 +69,51 @@ class Member {
       ? metrics.weightKg
       : metrics.weightKg * 2.2046226218;
 
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'fullName': fullName,
+        'email': email,
+        'phone': phone,
+        'photoUrl': photoUrl,
+        'gender': gender.name,
+        'dateOfBirth': dateOfBirth.toIso8601String(),
+        'goal': goal.name,
+        'experience': experience.name,
+        'units': units.name,
+        'metrics': metrics.toJson(),
+        'dailyStats': dailyStats.toJson(),
+        'membership': membership.toJson(),
+        'currentStreakDays': currentStreakDays,
+        'weeklyTargetSessions': weeklyTargetSessions,
+        'sessionsThisWeek': sessionsThisWeek,
+        'assignedTrainerId': assignedTrainerId,
+        'badges': badges,
+      };
+
+  factory Member.fromJson(Map<String, dynamic> json) => Member(
+        id: json['id'] as String,
+        fullName: json['fullName'] as String,
+        email: json['email'] as String,
+        phone: json['phone'] as String?,
+        photoUrl: json['photoUrl'] as String?,
+        gender: Gender.values.byName(json['gender'] as String),
+        dateOfBirth: DateTime.parse(json['dateOfBirth'] as String),
+        goal: FitnessGoal.values.byName(json['goal'] as String),
+        experience: ExperienceLevel.values.byName(json['experience'] as String),
+        units: UnitSystem.values.byName(json['units'] as String),
+        metrics:
+            BodyMetrics.fromJson(json['metrics'] as Map<String, dynamic>),
+        dailyStats:
+            DailyStats.fromJson(json['dailyStats'] as Map<String, dynamic>),
+        membership:
+            Membership.fromJson(json['membership'] as Map<String, dynamic>),
+        currentStreakDays: json['currentStreakDays'] as int,
+        weeklyTargetSessions: json['weeklyTargetSessions'] as int,
+        sessionsThisWeek: json['sessionsThisWeek'] as int,
+        assignedTrainerId: json['assignedTrainerId'] as String?,
+        badges: (json['badges'] as List<dynamic>).cast<String>(),
+      );
+
   Member copyWith({
     String? fullName,
     String? email,

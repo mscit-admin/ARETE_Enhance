@@ -8,6 +8,7 @@ import '../../core/theme/app_theme.dart';
 import '../../shared/widgets/app_card.dart';
 import '../../shared/widgets/pill.dart';
 import '../../shared/widgets/section_label.dart';
+import '../../state/auth_controller.dart';
 import '../../state/hydration_controller.dart';
 import '../../state/profile_controller.dart';
 import '../../state/session_controller.dart';
@@ -178,7 +179,7 @@ class SettingsScreen extends StatelessWidget {
                   leading: const Icon(Icons.logout, color: AppColors.danger),
                   title: const Text('Log out',
                       style: TextStyle(color: AppColors.danger)),
-                  onTap: () => _notImplemented(context),
+                  onTap: () => _logout(context),
                 ),
               ],
             ),
@@ -197,6 +198,29 @@ class SettingsScreen extends StatelessWidget {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Coming in a later phase')),
     );
+  }
+
+  Future<void> _logout(BuildContext context) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Log out?'),
+        content: const Text('You can sign back in anytime.'),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Cancel')),
+          TextButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Log out')),
+        ],
+      ),
+    );
+    if (confirmed != true || !context.mounted) return;
+    await context.read<AuthController>().signOut();
+    if (context.mounted) {
+      Navigator.of(context).popUntil((r) => r.isFirst);
+    }
   }
 }
 

@@ -25,7 +25,8 @@ the running app.
 Decisions locked for Phase 1:
 
 - **Framework:** Flutter (one codebase → Android + iOS)
-- **Backend:** Local-first — a mock repository stands in for the API; swap it later with no UI change
+- **Backend:** Local-first — repositories persist to on-device storage; swap for Firebase/REST later with no UI change
+- **Auth:** Email/password sign-up & sign-in with a persisted session (local, hashed passwords). `AuthRepository` is the seam for a real backend.
 - **Roles:** One app with Member ↔ Trainer role switching (see **Settings → Viewing as**)
 
 ---
