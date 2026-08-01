@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_theme.dart';
 import '../../data/models/trainer_plan.dart';
@@ -68,14 +67,17 @@ class _PlansScreenState extends State<PlansScreen> {
     final controller = context.watch<PlansController>();
 
     return Scaffold(
-      appBar: AppBar(title: Text(l.navPlans)),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => Navigator.of(context).push(
-          MaterialPageRoute(builder: (_) => const CreatePlanScreen()),
-        ),
-        backgroundColor: AppColors.ember,
-        icon: const Icon(Icons.add),
-        label: Text(l.plansNewPlan),
+      appBar: AppBar(
+        title: Text(l.navPlans),
+        actions: [
+          IconButton(
+            tooltip: l.plansNewPlan,
+            icon: const Icon(Icons.add),
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const CreatePlanScreen()),
+            ),
+          ),
+        ],
       ),
       body: SafeArea(
         child: controller.loading && controller.plans.isEmpty
