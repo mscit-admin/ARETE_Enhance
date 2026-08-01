@@ -12,8 +12,10 @@ import '../../shared/widgets/gradient_avatar.dart';
 import '../../shared/widgets/pill.dart';
 import '../../shared/widgets/section_label.dart';
 import '../../state/assessment_controller.dart';
+import '../../state/auth_controller.dart';
 import '../../state/hydration_controller.dart';
 import '../../state/profile_controller.dart';
+import '../../state/session_controller.dart';
 import '../assessment/assessment_flow_screen.dart';
 import 'edit_profile_screen.dart';
 import 'settings_screen.dart';
@@ -56,6 +58,8 @@ class _ProfileBody extends StatelessWidget {
     final p = context.palette;
     final firstName = member.fullName.split(' ').first;
     final hydrationDue = context.watch<HydrationController>().promptDue;
+    final isTrainerAccount =
+        context.watch<AuthController>().user?.isTrainer ?? false;
 
     return RefreshIndicator(
       onRefresh: context.read<ProfileController>().load,
@@ -90,6 +94,15 @@ class _ProfileBody extends StatelessWidget {
                   ],
                 ),
               ),
+              if (isTrainerAccount)
+                IconButton(
+                  tooltip: 'Switch to trainer mode',
+                  onPressed: () => context
+                      .read<SessionController>()
+                      .setRole(UserRole.trainer),
+                  icon: const Icon(Icons.sports_gymnastics,
+                      color: AppColors.teal),
+                ),
               IconButton(
                 onPressed: () => Navigator.of(context).push(
                   MaterialPageRoute(

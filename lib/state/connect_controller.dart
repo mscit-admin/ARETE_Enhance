@@ -11,10 +11,12 @@ class ConnectController extends ChangeNotifier {
 
   String? _trainerCode;
   Map<String, dynamic>? _coach;
+  List<Map<String, dynamic>> _clients = [];
   bool _busy = false;
 
   String? get trainerCode => _trainerCode;
   Map<String, dynamic>? get coach => _coach;
+  List<Map<String, dynamic>> get clients => _clients;
   bool get busy => _busy;
 
   /// QR payload the trainer displays and the member scans.
@@ -31,6 +33,18 @@ class ConnectController extends ChangeNotifier {
       return _trainerCode;
     } catch (_) {
       return null;
+    }
+  }
+
+  /// Load the signed-in trainer's linked clients.
+  Future<void> loadClients() async {
+    try {
+      final json =
+          await _client.get('/api/app/trainer/clients') as Map<String, dynamic>;
+      _clients = (json['rows'] as List).cast<Map<String, dynamic>>();
+      notifyListeners();
+    } catch (_) {
+      // Non-trainer or offline — leave the list empty.
     }
   }
 

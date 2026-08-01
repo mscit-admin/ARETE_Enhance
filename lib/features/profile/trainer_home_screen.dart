@@ -5,20 +5,19 @@ import '../../core/constants/enums.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_theme.dart';
-import '../../data/models/member.dart';
-import '../../data/models/trainer.dart';
 import '../../shared/widgets/app_card.dart';
 import '../../shared/widgets/gradient_avatar.dart';
 import '../../shared/widgets/pill.dart';
 import '../../shared/widgets/section_label.dart';
 import '../../shared/widgets/stat_tile.dart';
+import '../../state/connect_controller.dart';
 import '../../state/profile_controller.dart';
-import '../../state/trainer_controller.dart';
+import '../../state/session_controller.dart';
 import '../coach/trainer_qr_screen.dart';
 import 'settings_screen.dart';
 
-/// Trainer-role home: the coach's own profile summary plus their client roster.
-/// Demonstrates that the same app serves both roles (role switching).
+/// Trainer-role home: the signed-in trainer's own identity, their QR code and
+/// their real linked clients. A quick icon switches back to trainee mode.
 class TrainerHomeScreen extends StatefulWidget {
   const TrainerHomeScreen({super.key});
 
@@ -30,122 +29,143 @@ class _TrainerHomeScreenState extends State<TrainerHomeScreen> {
   @override
   void initState() {
     super.initState();
-    // Ensure roster is loaded when landing here directly.
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final c = context.read<TrainerController>();
-      if (c.status == LoadStatus.idle) c.load();
+      final c = context.read<ConnectController>();
+      c.loadClients();
+      c.loadTrainerCode();
     });
   }
 
+  static String _pretty(String? s) {
+    if (s == null || s.isEmpty) return '—';
+    final words = s.replaceAll('_', ' ').split(' ');
+    return words
+        .map((w) => w.isEmpty ? w : '${w[0].toUpperCase()}${w.substring(1)}')
+        .join(' ');
+  }
+
   @override
   Widget build(BuildContext context) {
-    final controller = context.watch<TrainerController>();
+    final profile = context.watch<ProfileController>();
+    final connect = context.watch<ConnectController>();
+    final member = profile.member;
+    final p = context.palette;
+
+    if (member == null) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+
+    final firstName = member.fullName.split(' ').first;
+    final clients = connect.clients;
 
     return Scaffold(
       body: SafeArea(
-        child: switch (controller.status) {
-          LoadStatus.loading || LoadStatus.idle =>
-            const Center(child: CircularProgressIndicator()),
-          LoadStatus.error =>
-            const Center(child: Text('Could not load clients.')),
-          LoadStatus.ready => _TrainerBody(
-              trainer: controller.trainer!,
-              clients: controller.clients,
-            ),
-        },
-      ),
-    );
-  }
-}
-
-class _TrainerBody extends StatelessWidget {
-  const _TrainerBody({required this.trainer, required this.clients});
-
-  final Trainer trainer;
-  final List<Member> clients;
-
-  @override
-  Widget build(BuildContext context) {
-    final p = context.palette;
-    final active = clients
-        .where((c) => c.membership.status == MembershipStatus.active)
-        .length;
-
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(
-          AppSpacing.screen, AppSpacing.lg, AppSpacing.screen, AppSpacing.xxxl),
-      children: [
-        Row(
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(AppSpacing.screen, AppSpacing.lg,
+              AppSpacing.screen, AppSpacing.xxxl),
           children: [
-            GradientAvatar(
-              initials: initialsFrom(trainer.fullName),
-              size: 50,
-              tone: AvatarTone.ember,
+            // ---- Header: the trainer's own name ----
+            Row(
+              children: [
+                GradientAvatar(
+                  initials: initialsFrom(member.fullName),
+                  size: 50,
+                  tone: AvatarTone.ember,
+                ),
+                const SizedBox(width: AppSpacing.md),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Coach $firstName',
+                          style: context.textStyles.headlineSmall),
+                      Text('Trainer workspace',
+                          style: context.textStyles.bodySmall
+                              ?.copyWith(color: p.muted)),
+                    ],
+                  ),
+                ),
+                // Quick switch to trainee mode.
+                IconButton(
+                  tooltip: 'Switch to trainee mode',
+                  onPressed: () => context
+                      .read<SessionController>()
+                      .setRole(UserRole.member),
+                  icon: const Icon(Icons.swap_horiz, color: AppColors.ember),
+                ),
+                IconButton(
+                  onPressed: () => Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => const SettingsScreen()),
+                  ),
+                  icon: Icon(Icons.settings_outlined, color: p.text),
+                ),
+              ],
             ),
-            const SizedBox(width: AppSpacing.md),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+            const SizedBox(height: AppSpacing.lg),
+
+            // ---- Share QR ----
+            _ShareCodeCard(code: connect.trainerCode),
+            const SizedBox(height: AppSpacing.lg),
+
+            // ---- Stats ----
+            AppCard(
+              padding: const EdgeInsets.symmetric(
+                  vertical: 16, horizontal: 8),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
                 children: [
-                  Text('Coach ${trainer.fullName.split(' ').first}',
-                      style: context.textStyles.headlineSmall),
-                  Text(trainer.specialty,
-                      style: context.textStyles.bodySmall
-                          ?.copyWith(color: p.muted)),
+                  StatTile(value: '${clients.length}', label: 'Clients'),
+                  StatTile(
+                      value: '${clients.length}',
+                      label: 'Active',
+                      valueColor: AppColors.teal),
+                  const StatTile(value: 'Set', label: 'Packages'),
                 ],
               ),
             ),
-            IconButton(
-              tooltip: 'My QR code',
-              onPressed: () => Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const TrainerQrScreen()),
-              ),
-              icon: const Icon(Icons.qr_code_2, color: AppColors.teal),
-            ),
-            IconButton(
-              onPressed: () => Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const SettingsScreen()),
-              ),
-              icon: Icon(Icons.settings_outlined, color: p.text),
-            ),
+            const SizedBox(height: AppSpacing.lg),
+
+            SectionLabel('Your clients · ${clients.length}'),
+            const SizedBox(height: AppSpacing.sm),
+            if (clients.isEmpty)
+              AppCard(
+                child: Column(
+                  children: [
+                    Icon(Icons.group_add_outlined, color: p.muted, size: 34),
+                    const SizedBox(height: AppSpacing.sm),
+                    Text('No clients yet',
+                        style: context.textStyles.titleMedium),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Share your QR code — trainees scan it to connect with you.',
+                      textAlign: TextAlign.center,
+                      style: context.textStyles.bodySmall
+                          ?.copyWith(color: p.muted),
+                    ),
+                  ],
+                ),
+              )
+            else
+              for (final c in clients) ...[
+                _ClientTile(
+                  name: (c['full_name'] as String?) ?? 'Client',
+                  subtitle:
+                      '${_pretty(c['goal'] as String?)} · ${_pretty(c['experience'] as String?)}',
+                ),
+                const SizedBox(height: AppSpacing.sm),
+              ],
           ],
         ),
-        const SizedBox(height: AppSpacing.lg),
-        _ShareCodeCard(),
-        const SizedBox(height: AppSpacing.lg),
-
-        AppCard(
-          padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              StatTile(value: '${trainer.clientCount}', label: 'Clients'),
-              StatTile(
-                  value: '$active',
-                  label: 'Active',
-                  valueColor: AppColors.teal),
-              StatTile(
-                  value: trainer.rating.toStringAsFixed(1), label: 'Rating'),
-              StatTile(
-                  value: '~${trainer.avgResponseHours}h', label: 'Reply'),
-            ],
-          ),
-        ),
-        const SizedBox(height: AppSpacing.lg),
-
-        SectionLabel('Your clients · ${clients.length}'),
-        const SizedBox(height: AppSpacing.sm),
-        for (final c in clients) ...[
-          _ClientTile(member: c),
-          const SizedBox(height: AppSpacing.sm),
-        ],
-      ],
+      ),
     );
   }
 }
 
 /// Prompt for the trainer to open their shareable QR code.
 class _ShareCodeCard extends StatelessWidget {
+  const _ShareCodeCard({this.code});
+  final String? code;
+
   @override
   Widget build(BuildContext context) {
     return AppCard(
@@ -166,17 +186,21 @@ class _ShareCodeCard extends StatelessWidget {
             child: const Icon(Icons.qr_code_2, color: AppColors.brandGreen),
           ),
           const SizedBox(width: AppSpacing.md),
-          const Expanded(
+          Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Your coach QR code',
+                const Text('Your coach QR code',
                     style: TextStyle(
                         color: Colors.white,
                         fontWeight: FontWeight.w700,
                         fontSize: 15)),
-                Text('Clients scan it to connect with you',
-                    style: TextStyle(color: Colors.white70, fontSize: 12)),
+                Text(
+                  code == null
+                      ? 'Clients scan it to connect with you'
+                      : 'Code: $code · tap to show QR',
+                  style: const TextStyle(color: Colors.white70, fontSize: 12),
+                ),
               ],
             ),
           ),
@@ -188,45 +212,32 @@ class _ShareCodeCard extends StatelessWidget {
 }
 
 class _ClientTile extends StatelessWidget {
-  const _ClientTile({required this.member});
+  const _ClientTile({required this.name, required this.subtitle});
 
-  final Member member;
+  final String name;
+  final String subtitle;
 
   @override
   Widget build(BuildContext context) {
     final p = context.palette;
-    final onTrack = member.weeklyProgress >= 0.5;
-    final tone = switch (member.membership.status) {
-      MembershipStatus.active => onTrack ? PillTone.teal : PillTone.gold,
-      MembershipStatus.frozen => PillTone.neutral,
-      MembershipStatus.expired => PillTone.ember,
-    };
-    final statusText = member.membership.status == MembershipStatus.active
-        ? '${member.sessionsThisWeek}/${member.weeklyTargetSessions} this week'
-        : member.membership.status.label;
-
     return AppCard(
-      onTap: () => ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Client detail — coming next')),
-      ),
       padding: const EdgeInsets.all(AppSpacing.md),
       child: Row(
         children: [
-          GradientAvatar(initials: initialsFrom(member.fullName), size: 42),
+          GradientAvatar(initials: initialsFrom(name), size: 42),
           const SizedBox(width: AppSpacing.md),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(member.fullName, style: context.textStyles.titleMedium),
-                Text(
-                  '${member.goal.label} · ${member.experience.label}',
-                  style: context.textStyles.bodySmall?.copyWith(color: p.muted),
-                ),
+                Text(name, style: context.textStyles.titleMedium),
+                Text(subtitle,
+                    style: context.textStyles.bodySmall
+                        ?.copyWith(color: p.muted)),
               ],
             ),
           ),
-          Pill(statusText, tone: tone),
+          const Pill('Active', tone: PillTone.teal),
         ],
       ),
     );
