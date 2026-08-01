@@ -54,7 +54,15 @@ hr
 say "${BOLD}1) Network${RESET}"
 HTTP_PORT="$(ask "HTTP port to serve the admin on" "4000")"
 BIND_HOST="$(ask "Bind address (0.0.0.0 = all interfaces)" "0.0.0.0")"
-PUBLIC_IP="$(ask "Public IP for the printed URL" "$DETECTED_IP")"
+say "${DIM}How will people reach this server? Enter an IP address (e.g. 161.97.78.116) or a domain name (e.g. admin.myclub.com).${RESET}"
+PUBLIC_ADDR="$(ask "Public IP or domain name" "$DETECTED_IP")"
+
+# Build the public URL: omit :port for 80/443, use https for 443.
+case "$HTTP_PORT" in
+  80)  BASE_URL="http://${PUBLIC_ADDR}" ;;
+  443) BASE_URL="https://${PUBLIC_ADDR}" ;;
+  *)   BASE_URL="http://${PUBLIC_ADDR}:${HTTP_PORT}" ;;
+esac
 
 hr
 say "${BOLD}2) PostgreSQL connection${RESET}"
@@ -89,6 +97,7 @@ else
   cat > .env <<EOF
 PORT=${HTTP_PORT}
 HOST=${BIND_HOST}
+PUBLIC_URL=${BASE_URL}
 DATABASE_URL=${DATABASE_URL}
 JWT_SECRET=${JWT_SECRET}
 JWT_EXPIRES_IN=${JWT_EXPIRES}
@@ -184,7 +193,7 @@ fi
 # ---------- done ----------
 hr
 say "${GREEN}${BOLD}Done!${RESET}"
-say "Admin console:  ${BOLD}http://${PUBLIC_IP}:${HTTP_PORT}${RESET}"
+say "Admin console:  ${BOLD}${BASE_URL}${RESET}"
 say "Sign in with:   ${BOLD}${ADMIN_EMAIL}${RESET}"
 if [ "$SERVICE_INSTALLED" -eq 1 ]; then
   say "Service:        ${DIM}systemctl status arete-admin | journalctl -u arete-admin -f${RESET}"

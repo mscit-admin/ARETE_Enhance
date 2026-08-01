@@ -31,7 +31,8 @@ sudo bash install.sh      # sudo enables the systemd + firewall steps
 The installer **asks you** for everything and does the rest:
 
 1. **HTTP port** (e.g. `4000`) and bind address (`0.0.0.0` = reachable on the public IP)
-2. **PostgreSQL** host / port / database / user / **password**
+2. **Public IP or domain name** — how clients reach the server (used for the printed URL and `PUBLIC_URL`)
+3. **PostgreSQL** host / port / database / user / **password**
 3. **JWT secret** (press Enter to auto-generate a strong one) + token lifetime
 4. **Admin email + password** (the account you'll log in with)
 
