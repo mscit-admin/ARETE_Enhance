@@ -13,6 +13,7 @@ import 'state/auth_controller.dart';
 import 'state/coach_controller.dart';
 import 'state/connect_controller.dart';
 import 'state/hydration_controller.dart';
+import 'state/locale_controller.dart';
 import 'state/profile_controller.dart';
 import 'state/progress_controller.dart';
 import 'state/session_controller.dart';
@@ -46,6 +47,7 @@ void main() {
     MultiProvider(
       providers: [
         ChangeNotifierProvider.value(value: authController),
+        ChangeNotifierProvider(create: (_) => LocaleController()),
         ChangeNotifierProvider(create: (_) => SessionController()),
         ChangeNotifierProvider.value(value: profileController),
         ChangeNotifierProvider(

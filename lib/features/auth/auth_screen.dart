@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_theme.dart';
+import '../../l10n/app_localizations.dart';
 import '../../state/auth_controller.dart';
 
 /// Combined sign-in / sign-up screen shown when no session exists.
@@ -52,6 +53,7 @@ class _AuthScreenState extends State<AuthScreen> {
   Widget build(BuildContext context) {
     final auth = context.watch<AuthController>();
     final p = context.palette;
+    final l = AppLocalizations.of(context);
 
     return Scaffold(
       body: SafeArea(
@@ -81,7 +83,7 @@ class _AuthScreenState extends State<AuthScreen> {
                                 fontWeight: FontWeight.w800,
                                 letterSpacing: 6,
                                 color: p.text)),
-                        Text('STRENGTH BEYOND LIMITS',
+                        Text(l.appTagline,
                             style: TextStyle(
                                 fontSize: 10,
                                 fontWeight: FontWeight.w700,
@@ -90,14 +92,12 @@ class _AuthScreenState extends State<AuthScreen> {
                       ],
                     ),
                     const SizedBox(height: AppSpacing.xl),
-                    Text(_isSignUp ? 'Create your account' : 'Welcome back',
+                    Text(_isSignUp ? l.authCreateAccount : l.authWelcomeBack,
                         textAlign: TextAlign.center,
                         style: context.textStyles.headlineSmall),
                     const SizedBox(height: 4),
                     Text(
-                      _isSignUp
-                          ? 'Start training with intent.'
-                          : 'Sign in to continue your training.',
+                      _isSignUp ? l.authSignUpSubtitle : l.authSignInSubtitle,
                       textAlign: TextAlign.center,
                       style: context.textStyles.bodyMedium
                           ?.copyWith(color: p.muted),
@@ -105,18 +105,18 @@ class _AuthScreenState extends State<AuthScreen> {
                     const SizedBox(height: AppSpacing.xxl),
 
                     if (_isSignUp) ...[
-                      Text('I am a', style: context.textStyles.labelSmall),
+                      Text(l.authIAmA, style: context.textStyles.labelSmall),
                       const SizedBox(height: AppSpacing.sm),
                       SegmentedButton<String>(
-                        segments: const [
+                        segments: [
                           ButtonSegment(
                               value: 'member',
-                              label: Text('Trainee'),
-                              icon: Icon(Icons.directions_run)),
+                              label: Text(l.roleTrainee),
+                              icon: const Icon(Icons.directions_run)),
                           ButtonSegment(
                               value: 'trainer',
-                              label: Text('Trainer'),
-                              icon: Icon(Icons.sports_gymnastics)),
+                              label: Text(l.roleTrainer),
+                              icon: const Icon(Icons.sports_gymnastics)),
                         ],
                         selected: {_role},
                         onSelectionChanged: (s) =>
@@ -126,11 +126,11 @@ class _AuthScreenState extends State<AuthScreen> {
                       TextFormField(
                         controller: _name,
                         textCapitalization: TextCapitalization.words,
-                        decoration: const InputDecoration(
-                            labelText: 'Full name',
-                            prefixIcon: Icon(Icons.person_outline)),
+                        decoration: InputDecoration(
+                            labelText: l.fieldFullName,
+                            prefixIcon: const Icon(Icons.person_outline)),
                         validator: (v) => (v == null || v.trim().isEmpty)
-                            ? 'Enter your name'
+                            ? l.validatorEnterName
                             : null,
                       ),
                       const SizedBox(height: AppSpacing.md),
@@ -139,14 +139,14 @@ class _AuthScreenState extends State<AuthScreen> {
                       controller: _email,
                       keyboardType: TextInputType.emailAddress,
                       autofillHints: const [AutofillHints.email],
-                      decoration: const InputDecoration(
-                          labelText: 'Email',
-                          prefixIcon: Icon(Icons.mail_outline)),
+                      decoration: InputDecoration(
+                          labelText: l.fieldEmail,
+                          prefixIcon: const Icon(Icons.mail_outline)),
                       validator: (v) {
                         final t = v?.trim() ?? '';
-                        if (t.isEmpty) return 'Enter your email';
+                        if (t.isEmpty) return l.validatorEnterEmail;
                         if (!t.contains('@') || !t.contains('.')) {
-                          return 'Enter a valid email';
+                          return l.validatorValidEmail;
                         }
                         return null;
                       },
@@ -155,11 +155,11 @@ class _AuthScreenState extends State<AuthScreen> {
                     TextFormField(
                       controller: _password,
                       obscureText: true,
-                      decoration: const InputDecoration(
-                          labelText: 'Password',
-                          prefixIcon: Icon(Icons.lock_outline)),
+                      decoration: InputDecoration(
+                          labelText: l.fieldPassword,
+                          prefixIcon: const Icon(Icons.lock_outline)),
                       validator: (v) => (v == null || v.length < 6)
-                          ? 'At least 6 characters'
+                          ? l.validatorPasswordLength
                           : null,
                     ),
 
@@ -196,22 +196,24 @@ class _AuthScreenState extends State<AuthScreen> {
                               height: 20,
                               child: CircularProgressIndicator(
                                   strokeWidth: 2, color: Colors.white))
-                          : Text(_isSignUp ? 'Create account' : 'Sign in'),
+                          : Text(_isSignUp
+                              ? l.actionCreateAccount
+                              : l.actionSignIn),
                     ),
                     const SizedBox(height: AppSpacing.md),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Text(
-                          _isSignUp
-                              ? 'Already have an account?'
-                              : 'New to ARETE?',
+                          _isSignUp ? l.authHaveAccount : l.authNewToArete,
                           style: context.textStyles.bodySmall
                               ?.copyWith(color: p.muted),
                         ),
                         TextButton(
                           onPressed: auth.busy ? null : _switchMode,
-                          child: Text(_isSignUp ? 'Sign in' : 'Create account'),
+                          child: Text(_isSignUp
+                              ? l.actionSignIn
+                              : l.actionCreateAccount),
                         ),
                       ],
                     ),

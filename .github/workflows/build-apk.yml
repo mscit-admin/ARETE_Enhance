@@ -103,6 +103,12 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
+      # Generate the localized string classes (app_localizations*.dart) from the
+      # ARB files before analyze/build. pub get normally triggers this, but run
+      # it explicitly so a failure here is obvious.
+      - name: Generate localizations
+        run: flutter gen-l10n
+
       # Generate launcher icons (adaptive + legacy) from assets/branding into
       # the freshly-created android/ project.
       - name: Generate launcher icons

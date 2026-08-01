@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/constants/enums.dart';
+import '../../l10n/app_localizations.dart';
 import '../profile/member_profile_screen.dart';
 import '../profile/trainer_home_screen.dart';
 import '../placeholder/coming_soon_screen.dart';
@@ -28,8 +29,9 @@ class _AppShellState extends State<AppShell> {
   Widget build(BuildContext context) {
     final session = context.watch<SessionController>();
     final isTrainer = session.role == UserRole.trainer;
+    final l = AppLocalizations.of(context);
 
-    final tabs = isTrainer ? _trainerTabs : _memberTabs;
+    final tabs = isTrainer ? _trainerTabs(l) : _memberTabs(l);
     // Guard against an out-of-range index when the role (and tab count) changes.
     final safeIndex = _index.clamp(0, tabs.length - 1).toInt();
 
@@ -53,45 +55,45 @@ class _AppShellState extends State<AppShell> {
     );
   }
 
-  List<_TabDef> get _memberTabs => const [
+  List<_TabDef> _memberTabs(AppLocalizations l) => [
         _TabDef(
-          label: 'Home',
+          label: l.navHome,
           icon: Icons.home_outlined,
           activeIcon: Icons.home_rounded,
-          screen: MemberProfileScreen(),
+          screen: const MemberProfileScreen(),
         ),
         _TabDef(
-          label: 'Train',
+          label: l.navTrain,
           icon: Icons.fitness_center_outlined,
           activeIcon: Icons.fitness_center,
-          screen: WorkoutHomeScreen(),
+          screen: const WorkoutHomeScreen(),
         ),
         _TabDef(
-          label: 'Progress',
+          label: l.navProgress,
           icon: Icons.insights_outlined,
           activeIcon: Icons.insights_rounded,
-          screen: ProgressScreen(),
+          screen: const ProgressScreen(),
         ),
         _TabDef(
-          label: 'Coach',
+          label: l.navCoach,
           icon: Icons.chat_bubble_outline,
           activeIcon: Icons.chat_bubble,
-          screen: CoachScreen(),
+          screen: const CoachScreen(),
         ),
       ];
 
-  List<_TabDef> get _trainerTabs => const [
+  List<_TabDef> _trainerTabs(AppLocalizations l) => [
         _TabDef(
-          label: 'Clients',
+          label: l.navClients,
           icon: Icons.groups_outlined,
           activeIcon: Icons.groups_rounded,
-          screen: TrainerHomeScreen(),
+          screen: const TrainerHomeScreen(),
         ),
         _TabDef(
-          label: 'Plans',
+          label: l.navPlans,
           icon: Icons.assignment_outlined,
           activeIcon: Icons.assignment,
-          screen: ComingSoonScreen(
+          screen: const ComingSoonScreen(
             title: 'Plans',
             moduleName: 'Plan Assignment',
             description:
@@ -101,10 +103,10 @@ class _AppShellState extends State<AppShell> {
           ),
         ),
         _TabDef(
-          label: 'Messages',
+          label: l.navMessages,
           icon: Icons.chat_bubble_outline,
           activeIcon: Icons.chat_bubble,
-          screen: ComingSoonScreen(
+          screen: const ComingSoonScreen(
             title: 'Messages',
             moduleName: 'Client Messaging',
             description: 'One-on-one chat with each of your clients.',

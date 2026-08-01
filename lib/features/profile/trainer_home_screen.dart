@@ -5,6 +5,7 @@ import '../../core/constants/enums.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_theme.dart';
+import '../../l10n/app_localizations.dart';
 import '../../shared/widgets/app_card.dart';
 import '../../shared/widgets/gradient_avatar.dart';
 import '../../shared/widgets/pill.dart';
@@ -50,6 +51,7 @@ class _TrainerHomeScreenState extends State<TrainerHomeScreen> {
     final connect = context.watch<ConnectController>();
     final member = profile.member;
     final p = context.palette;
+    final l = AppLocalizations.of(context);
 
     if (member == null) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
@@ -77,9 +79,9 @@ class _TrainerHomeScreenState extends State<TrainerHomeScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Coach $firstName',
+                      Text(l.trainerCoachName(firstName),
                           style: context.textStyles.headlineSmall),
-                      Text('Trainer workspace',
+                      Text(l.trainerWorkspace,
                           style: context.textStyles.bodySmall
                               ?.copyWith(color: p.muted)),
                     ],
@@ -87,7 +89,7 @@ class _TrainerHomeScreenState extends State<TrainerHomeScreen> {
                 ),
                 // Quick switch to trainee mode.
                 IconButton(
-                  tooltip: 'Switch to trainee mode',
+                  tooltip: l.trainerSwitchToTrainee,
                   onPressed: () => context
                       .read<SessionController>()
                       .setRole(UserRole.member),
@@ -114,18 +116,22 @@ class _TrainerHomeScreenState extends State<TrainerHomeScreen> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceAround,
                 children: [
-                  StatTile(value: '${clients.length}', label: 'Clients'),
                   StatTile(
                       value: '${clients.length}',
-                      label: 'Active',
+                      label: l.trainerStatClients),
+                  StatTile(
+                      value: '${clients.length}',
+                      label: l.trainerStatActive,
                       valueColor: AppColors.teal),
-                  const StatTile(value: 'Set', label: 'Packages'),
+                  StatTile(
+                      value: l.trainerPackagesSet,
+                      label: l.trainerStatPackages),
                 ],
               ),
             ),
             const SizedBox(height: AppSpacing.lg),
 
-            SectionLabel('Your clients · ${clients.length}'),
+            SectionLabel(l.trainerYourClients(clients.length)),
             const SizedBox(height: AppSpacing.sm),
             if (clients.isEmpty)
               AppCard(
@@ -133,11 +139,11 @@ class _TrainerHomeScreenState extends State<TrainerHomeScreen> {
                   children: [
                     Icon(Icons.group_add_outlined, color: p.muted, size: 34),
                     const SizedBox(height: AppSpacing.sm),
-                    Text('No clients yet',
+                    Text(l.trainerNoClients,
                         style: context.textStyles.titleMedium),
                     const SizedBox(height: 4),
                     Text(
-                      'Share your QR code — trainees scan it to connect with you.',
+                      l.trainerShareQrHint,
                       textAlign: TextAlign.center,
                       style: context.textStyles.bodySmall
                           ?.copyWith(color: p.muted),
@@ -168,6 +174,7 @@ class _ShareCodeCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
     return AppCard(
       color: AppColors.ink,
       borderColor: AppColors.ink,
@@ -190,15 +197,15 @@ class _ShareCodeCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('Your coach QR code',
-                    style: TextStyle(
+                Text(l.trainerYourCoachQr,
+                    style: const TextStyle(
                         color: Colors.white,
                         fontWeight: FontWeight.w700,
                         fontSize: 15)),
                 Text(
                   code == null
-                      ? 'Clients scan it to connect with you'
-                      : 'Code: $code · tap to show QR',
+                      ? l.trainerClientsScan
+                      : l.trainerCodeShow(code!),
                   style: const TextStyle(color: Colors.white70, fontSize: 12),
                 ),
               ],
@@ -237,7 +244,7 @@ class _ClientTile extends StatelessWidget {
               ],
             ),
           ),
-          const Pill('Active', tone: PillTone.teal),
+          Pill(AppLocalizations.of(context).trainerActive, tone: PillTone.teal),
         ],
       ),
     );

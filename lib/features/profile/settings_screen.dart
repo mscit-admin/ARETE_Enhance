@@ -5,11 +5,12 @@ import '../../core/constants/enums.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_theme.dart';
+import '../../l10n/app_localizations.dart';
 import '../../shared/widgets/app_card.dart';
-import '../../shared/widgets/pill.dart';
 import '../../shared/widgets/section_label.dart';
 import '../../state/auth_controller.dart';
 import '../../state/hydration_controller.dart';
+import '../../state/locale_controller.dart';
 import '../../state/profile_controller.dart';
 import '../../state/session_controller.dart';
 import '../../state/trainer_controller.dart';
@@ -22,18 +23,19 @@ class SettingsScreen extends StatelessWidget {
     final session = context.watch<SessionController>();
     final profile = context.watch<ProfileController>();
     final member = profile.member;
+    final l = AppLocalizations.of(context);
     // Only trainer accounts may switch into trainer mode.
     final isTrainerAccount =
         context.watch<AuthController>().user?.isTrainer ?? false;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Settings')),
+      appBar: AppBar(title: Text(l.settingsTitle)),
       body: ListView(
         padding: const EdgeInsets.all(AppSpacing.screen),
         children: [
           // ---- Role switch (trainer accounts only) ----
           if (isTrainerAccount) ...[
-            const SectionLabel('Viewing as'),
+            SectionLabel(l.settingsViewingAs),
             const SizedBox(height: AppSpacing.sm),
             AppCard(
               child: Column(
@@ -51,12 +53,15 @@ class SettingsScreen extends StatelessWidget {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(session.role.label,
+                            Text(
+                                session.isTrainer
+                                    ? l.roleTrainer
+                                    : l.roleTrainee,
                                 style: context.textStyles.titleMedium),
                             Text(
                               session.isTrainer
-                                  ? 'Coach view — clients & QR'
-                                  : 'Your training experience',
+                                  ? l.settingsCoachView
+                                  : l.settingsTraineeView,
                               style: context.textStyles.bodySmall,
                             ),
                           ],
@@ -66,15 +71,15 @@ class SettingsScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: AppSpacing.md),
                   SegmentedButton<UserRole>(
-                    segments: const [
+                    segments: [
                       ButtonSegment(
                           value: UserRole.member,
-                          label: Text('Trainee'),
-                          icon: Icon(Icons.directions_run)),
+                          label: Text(l.roleTrainee),
+                          icon: const Icon(Icons.directions_run)),
                       ButtonSegment(
                           value: UserRole.trainer,
-                          label: Text('Trainer'),
-                          icon: Icon(Icons.sports_gymnastics)),
+                          label: Text(l.roleTrainer),
+                          icon: const Icon(Icons.sports_gymnastics)),
                     ],
                     selected: {session.role},
                     onSelectionChanged: (s) {
@@ -90,8 +95,14 @@ class SettingsScreen extends StatelessWidget {
             const SizedBox(height: AppSpacing.xl),
           ],
 
+          // ---- Language ----
+          SectionLabel(l.settingsLanguage),
+          const SizedBox(height: AppSpacing.sm),
+          const _LanguageSection(),
+          const SizedBox(height: AppSpacing.xl),
+
           // ---- Appearance ----
-          const SectionLabel('Appearance'),
+          SectionLabel(l.settingsAppearance),
           const SizedBox(height: AppSpacing.sm),
           AppCard(
             padding: EdgeInsets.zero,
@@ -101,7 +112,7 @@ class SettingsScreen extends StatelessWidget {
                   value: session.followSystemTheme,
                   onChanged: (v) =>
                       context.read<SessionController>().setFollowSystemTheme(v),
-                  title: const Text('Match system theme'),
+                  title: Text(l.settingsMatchSystemTheme),
                   activeColor: AppColors.ember,
                 ),
                 if (!session.followSystemTheme)
@@ -109,7 +120,7 @@ class SettingsScreen extends StatelessWidget {
                     value: session.isDark,
                     onChanged: (v) =>
                         context.read<SessionController>().setDark(v),
-                    title: const Text('Dark mode'),
+                    title: Text(l.settingsDarkMode),
                     activeColor: AppColors.ember,
                   ),
               ],
@@ -118,13 +129,13 @@ class SettingsScreen extends StatelessWidget {
           const SizedBox(height: AppSpacing.xl),
 
           // ---- Hydration reminders ----
-          const SectionLabel('Hydration reminders'),
+          SectionLabel(l.settingsHydration),
           const SizedBox(height: AppSpacing.sm),
           const _HydrationSection(),
           const SizedBox(height: AppSpacing.xl),
 
           // ---- Preferences ----
-          const SectionLabel('Preferences'),
+          SectionLabel(l.settingsPreferences),
           const SizedBox(height: AppSpacing.sm),
           AppCard(
             padding: EdgeInsets.zero,
@@ -132,26 +143,26 @@ class SettingsScreen extends StatelessWidget {
               children: [
                 ListTile(
                   leading: const Icon(Icons.straighten),
-                  title: const Text('Units'),
+                  title: Text(l.settingsUnits),
                   trailing: Text(
                     member?.units.label ?? UnitSystem.metric.label,
                     style: context.textStyles.bodySmall,
                   ),
                 ),
                 const Divider(height: 1),
-                const _ToggleTile(
+                _ToggleTile(
                     icon: Icons.notifications_outlined,
-                    title: 'Workout reminders',
+                    title: l.settingsWorkoutReminders,
                     initial: true),
                 const Divider(height: 1),
-                const _ToggleTile(
+                _ToggleTile(
                     icon: Icons.chat_outlined,
-                    title: 'Coach messages',
+                    title: l.settingsCoachMessages,
                     initial: true),
                 const Divider(height: 1),
-                const _ToggleTile(
+                _ToggleTile(
                     icon: Icons.lock_outline,
-                    title: 'Private progress photos',
+                    title: l.settingsPrivatePhotos,
                     initial: true),
               ],
             ),
@@ -159,7 +170,7 @@ class SettingsScreen extends StatelessWidget {
           const SizedBox(height: AppSpacing.xl),
 
           // ---- Account ----
-          const SectionLabel('Account'),
+          SectionLabel(l.settingsAccount),
           const SizedBox(height: AppSpacing.sm),
           AppCard(
             padding: EdgeInsets.zero,
@@ -167,22 +178,22 @@ class SettingsScreen extends StatelessWidget {
               children: [
                 ListTile(
                   leading: const Icon(Icons.shield_outlined),
-                  title: const Text('Privacy & data'),
+                  title: Text(l.settingsPrivacyData),
                   trailing: const Icon(Icons.chevron_right),
                   onTap: () => _notImplemented(context),
                 ),
                 const Divider(height: 1),
                 ListTile(
                   leading: const Icon(Icons.help_outline),
-                  title: const Text('Help & support'),
+                  title: Text(l.settingsHelpSupport),
                   trailing: const Icon(Icons.chevron_right),
                   onTap: () => _notImplemented(context),
                 ),
                 const Divider(height: 1),
                 ListTile(
                   leading: const Icon(Icons.logout, color: AppColors.danger),
-                  title: const Text('Log out',
-                      style: TextStyle(color: AppColors.danger)),
+                  title: Text(l.settingsLogout,
+                      style: const TextStyle(color: AppColors.danger)),
                   onTap: () => _logout(context),
                 ),
               ],
@@ -200,23 +211,24 @@ class SettingsScreen extends StatelessWidget {
 
   void _notImplemented(BuildContext context) {
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Coming in a later phase')),
+      SnackBar(content: Text(AppLocalizations.of(context).settingsComingLater)),
     );
   }
 
   Future<void> _logout(BuildContext context) async {
+    final l = AppLocalizations.of(context);
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
-        title: const Text('Log out?'),
-        content: const Text('You can sign back in anytime.'),
+        title: Text(l.logoutConfirmTitle),
+        content: Text(l.logoutConfirmBody),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(context, false),
-              child: const Text('Cancel')),
+              child: Text(l.actionCancel)),
           TextButton(
               onPressed: () => Navigator.pop(context, true),
-              child: const Text('Log out')),
+              child: Text(l.settingsLogout)),
         ],
       ),
     );
@@ -225,6 +237,44 @@ class SettingsScreen extends StatelessWidget {
     if (context.mounted) {
       Navigator.of(context).popUntil((r) => r.isFirst);
     }
+  }
+}
+
+/// Language picker — English, العربية, Français. Selecting Arabic flips the
+/// whole app to RTL automatically. "System default" clears the override.
+class _LanguageSection extends StatelessWidget {
+  const _LanguageSection();
+
+  @override
+  Widget build(BuildContext context) {
+    final controller = context.watch<LocaleController>();
+    final l = AppLocalizations.of(context);
+    final current = controller.locale?.languageCode;
+
+    Widget tile(String? code, String label) {
+      return RadioListTile<String?>(
+        value: code,
+        groupValue: current,
+        activeColor: AppColors.ember,
+        onChanged: (v) => context
+            .read<LocaleController>()
+            .setLocale(v == null ? null : Locale(v)),
+        title: Text(label),
+      );
+    }
+
+    return AppCard(
+      padding: EdgeInsets.zero,
+      child: Column(
+        children: [
+          tile('en', l.langEnglish),
+          const Divider(height: 1),
+          tile('ar', l.langArabic),
+          const Divider(height: 1),
+          tile('fr', l.langFrench),
+        ],
+      ),
+    );
   }
 }
 
