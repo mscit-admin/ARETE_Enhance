@@ -17,27 +17,31 @@ class AccountDrawer extends StatelessWidget {
 
   Future<void> _logout(BuildContext context) async {
     final l = AppLocalizations.of(context);
-    Navigator.of(context).pop(); // close the drawer first
+    // Capture the pieces we need up front — closing the drawer/overlays later
+    // would otherwise leave this widget's context defunct.
+    final auth = context.read<AuthController>();
+    final rootNav = Navigator.of(context, rootNavigator: true);
+
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (_) => AlertDialog(
+      builder: (dialogCtx) => AlertDialog(
         title: Text(l.logoutConfirmTitle),
         content: Text(l.logoutConfirmBody),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(context, false),
+              onPressed: () => Navigator.pop(dialogCtx, false),
               child: Text(l.actionCancel)),
           TextButton(
-              onPressed: () => Navigator.pop(context, true),
+              onPressed: () => Navigator.pop(dialogCtx, true),
               child: Text(l.settingsLogout)),
         ],
       ),
     );
-    if (confirmed != true || !context.mounted) return;
-    await context.read<AuthController>().signOut();
-    if (context.mounted) {
-      Navigator.of(context).popUntil((r) => r.isFirst);
-    }
+    if (confirmed != true) return;
+    await auth.signOut();
+    // Close the drawer, any pushed screens and dialogs — the AuthGate then
+    // swaps in the sign-in screen automatically.
+    rootNav.popUntil((r) => r.isFirst);
   }
 
   @override
