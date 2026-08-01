@@ -65,32 +65,27 @@ class _AuthScreenState extends State<AuthScreen> {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     // Brand mark
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
+                    Column(
                       children: [
-                        Container(
-                          width: 44,
-                          height: 44,
-                          alignment: Alignment.center,
-                          decoration: BoxDecoration(
-                            gradient: const LinearGradient(
-                              colors: [AppColors.ember, AppColors.emberDark],
-                            ),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: const Text('A',
-                              style: TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.w800,
-                                  fontSize: 22)),
+                        Image.asset(
+                          'assets/branding/arete_mark.png',
+                          width: 84,
+                          height: 84,
+                          filterQuality: FilterQuality.high,
                         ),
-                        const SizedBox(width: 10),
+                        const SizedBox(height: 10),
                         Text('ARETE',
                             style: TextStyle(
                                 fontSize: 20,
                                 fontWeight: FontWeight.w800,
-                                letterSpacing: 4,
+                                letterSpacing: 6,
                                 color: p.text)),
+                        Text('STRENGTH BEYOND LIMITS',
+                            style: TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.w700,
+                                letterSpacing: 3,
+                                color: AppColors.brandGreen)),
                       ],
                     ),
                     const SizedBox(height: AppSpacing.xl),

@@ -22,6 +22,18 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^4.0.0
+  flutter_launcher_icons: ^0.14.1
+
+# App launcher icon (generated from the brand art in assets/branding).
+flutter_launcher_icons:
+  android: true
+  ios: false
+  image_path: "assets/branding/arete_icon.png"
+  adaptive_icon_background: "#0E1216"
+  adaptive_icon_foreground: "assets/branding/arete_icon_fg.png"
+  min_sdk_android: 21
 
 flutter:
   uses-material-design: true
+  assets:
+    - assets/branding/

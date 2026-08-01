@@ -99,6 +99,12 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
+      # Generate launcher icons (adaptive + legacy) from assets/branding into
+      # the freshly-created android/ project.
+      - name: Generate launcher icons
+        run: dart run flutter_launcher_icons
+        continue-on-error: true
+
       # Quality gates run but do not block the APK build, so you always get an
       # artifact to try. Tighten to fatal once the codebase settles.
       - name: Analyze

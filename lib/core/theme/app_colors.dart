@@ -19,6 +19,9 @@ class AppColors {
   /// card) that stay dark in both light and dark themes.
   static const Color ink = Color(0xFF12161B);
 
+  /// The logo's lime green ("Strength Beyond Limits").
+  static const Color brandGreen = Color(0xFFA4D233);
+
   // Semantic
   static const Color success = teal;
   static const Color warning = gold;
