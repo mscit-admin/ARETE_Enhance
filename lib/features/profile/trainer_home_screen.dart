@@ -18,7 +18,7 @@ import '../../state/connect_controller.dart';
 import '../../state/profile_controller.dart';
 import '../../state/session_controller.dart';
 import '../coach/trainer_qr_screen.dart';
-import 'account_drawer.dart';
+import '../shell/root_scaffold_key.dart';
 
 /// Trainer-role home: the signed-in trainer's own identity, their QR code and
 /// their real linked clients. A quick icon switches back to trainee mode.
@@ -75,7 +75,6 @@ class _TrainerHomeScreenState extends State<TrainerHomeScreen> {
     final clients = connect.clients;
 
     return Scaffold(
-      endDrawer: const AccountDrawer(),
       body: SafeArea(
         child: ListView(
           padding: const EdgeInsets.fromLTRB(AppSpacing.screen, AppSpacing.lg,
@@ -111,13 +110,11 @@ class _TrainerHomeScreenState extends State<TrainerHomeScreen> {
                   icon: const Icon(Icons.swap_horiz, color: AppColors.ember),
                 ),
                 LanguageMenuButton(color: p.text),
-                Builder(
-                  builder: (ctx) => IconButton(
-                    tooltip: l.profileSettingsTooltip,
-                    onPressed: () => Scaffold.of(ctx).openEndDrawer(),
-                    icon:
-                        Icon(Icons.account_circle_outlined, color: p.text),
-                  ),
+                IconButton(
+                  tooltip: l.profileSettingsTooltip,
+                  onPressed: () =>
+                      rootScaffoldKey.currentState?.openEndDrawer(),
+                  icon: Icon(Icons.account_circle_outlined, color: p.text),
                 ),
               ],
             ),

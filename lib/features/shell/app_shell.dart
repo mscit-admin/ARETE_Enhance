@@ -5,8 +5,10 @@ import '../../core/constants/enums.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_theme.dart';
 import '../../l10n/app_localizations.dart';
+import '../profile/account_drawer.dart';
 import '../profile/member_profile_screen.dart';
 import '../profile/trainer_home_screen.dart';
+import 'root_scaffold_key.dart';
 import '../trainer/plans_screen.dart';
 import '../trainer/trainer_messages_screen.dart';
 import '../workout/workout_home_screen.dart';
@@ -58,6 +60,8 @@ class _AppShellState extends State<AppShell> {
     }
 
     return Scaffold(
+      key: rootScaffoldKey,
+      endDrawer: const AccountDrawer(),
       body: IndexedStack(
         index: safeIndex,
         children: [for (final t in tabs) t.screen],

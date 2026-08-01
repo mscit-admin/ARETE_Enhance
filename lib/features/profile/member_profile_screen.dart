@@ -20,7 +20,7 @@ import '../../state/hydration_controller.dart';
 import '../../state/profile_controller.dart';
 import '../../state/session_controller.dart';
 import '../assessment/assessment_flow_screen.dart';
-import 'account_drawer.dart';
+import '../shell/root_scaffold_key.dart';
 import 'widgets/badges_row.dart';
 import 'widgets/goal_progress_card.dart';
 import 'widgets/kpi_ring.dart';
@@ -36,7 +36,6 @@ class MemberProfileScreen extends StatelessWidget {
     final l = AppLocalizations.of(context);
 
     return Scaffold(
-      endDrawer: const AccountDrawer(),
       body: SafeArea(
         child: switch (controller.status) {
           LoadStatus.loading || LoadStatus.idle =>
@@ -109,12 +108,10 @@ class _ProfileBody extends StatelessWidget {
                       color: AppColors.teal),
                 ),
               LanguageMenuButton(color: p.text),
-              Builder(
-                builder: (ctx) => IconButton(
-                  tooltip: l.profileSettingsTooltip,
-                  onPressed: () => Scaffold.of(ctx).openEndDrawer(),
-                  icon: Icon(Icons.account_circle_outlined, color: p.text),
-                ),
+              IconButton(
+                tooltip: l.profileSettingsTooltip,
+                onPressed: () => rootScaffoldKey.currentState?.openEndDrawer(),
+                icon: Icon(Icons.account_circle_outlined, color: p.text),
               ),
             ],
           ),
