@@ -19,6 +19,46 @@ admin/
     ├── app.js styles.css
 ```
 
+## Deploy to your server (interactive installer)
+
+On the target server (e.g. `161.97.78.116`, no domain needed), clone the repo and run:
+
+```bash
+cd admin/server
+sudo bash install.sh      # sudo enables the systemd + firewall steps
+```
+
+The installer **asks you** for everything and does the rest:
+
+1. **HTTP port** (e.g. `4000`) and bind address (`0.0.0.0` = reachable on the public IP)
+2. **PostgreSQL** host / port / database / user / **password**
+3. **JWT secret** (press Enter to auto-generate a strong one) + token lifetime
+4. **Admin email + password** (the account you'll log in with)
+
+Then it writes `.env` (chmod 600), runs `npm install`, optionally **creates the database & role**
+(asks for a PostgreSQL superuser), applies the schema, creates the admin user, optionally loads demo
+data, and optionally installs a **systemd service** (`arete-admin`) so it starts on boot — and opens the
+port in `ufw`.
+
+When it finishes you'll see:
+
+```
+Admin console:  http://161.97.78.116:4000
+Sign in with:   admin@arete.fit
+```
+
+Manage the service:
+
+```bash
+systemctl status arete-admin
+journalctl -u arete-admin -f      # live logs
+sudo systemctl restart arete-admin
+```
+
+> Prerequisite: Node 18+ and a reachable PostgreSQL. If PostgreSQL isn't installed:
+> `sudo apt install -y postgresql`. The installer can create the DB and role for you.
+> Plain HTTP over an IP is fine to start; add HTTPS via a reverse proxy once you have a domain.
+
 ## Run it locally
 
 Requires Node 18+ and Docker (for PostgreSQL).
