@@ -5,6 +5,7 @@ import '../../core/constants/enums.dart';
 import '../profile/member_profile_screen.dart';
 import '../profile/trainer_home_screen.dart';
 import '../placeholder/coming_soon_screen.dart';
+import '../workout/workout_home_screen.dart';
 import '../../state/session_controller.dart';
 
 /// Root scaffold with bottom navigation. The tab set adapts to the active
@@ -61,14 +62,7 @@ class _AppShellState extends State<AppShell> {
           label: 'Train',
           icon: Icons.fitness_center_outlined,
           activeIcon: Icons.fitness_center,
-          screen: ComingSoonScreen(
-            title: 'Train',
-            moduleName: 'Workout Execution',
-            description:
-                'Today\'s session, set-by-set logging, rest timer, form videos '
-                'and live PR detection — the daily driver, coming next.',
-            icon: Icons.fitness_center,
-          ),
+          screen: WorkoutHomeScreen(),
         ),
         _TabDef(
           label: 'Progress',
