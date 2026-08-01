@@ -59,6 +59,36 @@ extension UnitSystemX on UnitSystem {
   String get label => this == UnitSystem.metric ? 'Metric (kg, cm)' : 'Imperial (lb, in)';
 }
 
+enum EquipmentAccess { bodyweight, dumbbells, fullGym, bands }
+
+extension EquipmentAccessX on EquipmentAccess {
+  String get label => switch (this) {
+        EquipmentAccess.bodyweight => 'Bodyweight only',
+        EquipmentAccess.dumbbells => 'Dumbbells',
+        EquipmentAccess.fullGym => 'Full gym',
+        EquipmentAccess.bands => 'Resistance bands',
+      };
+}
+
+enum ActivityLevel { sedentary, light, moderate, high }
+
+extension ActivityLevelX on ActivityLevel {
+  String get label => switch (this) {
+        ActivityLevel.sedentary => 'Sedentary (desk job)',
+        ActivityLevel.light => 'Lightly active',
+        ActivityLevel.moderate => 'Moderately active',
+        ActivityLevel.high => 'Very active',
+      };
+
+  /// TDEE multiplier applied to BMR.
+  double get factor => switch (this) {
+        ActivityLevel.sedentary => 1.2,
+        ActivityLevel.light => 1.375,
+        ActivityLevel.moderate => 1.55,
+        ActivityLevel.high => 1.725,
+      };
+}
+
 enum Gender { male, female, other, preferNotToSay }
 
 extension GenderX on Gender {

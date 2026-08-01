@@ -8,6 +8,7 @@ import 'data/repositories/mock_workout_repository.dart';
 import 'data/repositories/profile_repository.dart';
 import 'data/repositories/progress_repository.dart';
 import 'data/repositories/workout_repository.dart';
+import 'state/assessment_controller.dart';
 import 'state/hydration_controller.dart';
 import 'state/profile_controller.dart';
 import 'state/progress_controller.dart';
@@ -41,6 +42,9 @@ void main() {
         ),
         ChangeNotifierProvider(
           create: (_) => ProgressController(progressRepository),
+        ),
+        ChangeNotifierProvider(
+          create: (_) => AssessmentController(),
         ),
       ],
       child: const AreteApp(),

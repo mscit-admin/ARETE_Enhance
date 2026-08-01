@@ -12,7 +12,7 @@ A member-facing training app and trainer console, built as **one Flutter codebas
 | # | Module | Status in this slice |
 |---|--------|----------------------|
 | 01 | **Member Profile** | ✅ Built end-to-end (profile, edit, settings, membership, badges) |
-| 02 | Health Assessment & Starter Plans | ⏳ Placeholder — next |
+| 02 | **Health Assessment & Starter Plans** | ✅ Built (questionnaire, PAR-Q, matched plan + alternatives) |
 | 03 | **Workout Execution** | ✅ Built (today's session, set logging, rest timer, PR detection, summary) |
 | 04 | **Progress Tracking** | ✅ Built (weight trend, volume, PRs, measurements, photos) |
 | 05 | Trainer Management | ✅ Trainer role home + client roster; messaging/plans next |

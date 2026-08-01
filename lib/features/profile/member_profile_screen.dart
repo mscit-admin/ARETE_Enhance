@@ -11,8 +11,10 @@ import '../../data/models/member.dart';
 import '../../shared/widgets/gradient_avatar.dart';
 import '../../shared/widgets/pill.dart';
 import '../../shared/widgets/section_label.dart';
+import '../../state/assessment_controller.dart';
 import '../../state/hydration_controller.dart';
 import '../../state/profile_controller.dart';
+import '../assessment/assessment_flow_screen.dart';
 import 'edit_profile_screen.dart';
 import 'settings_screen.dart';
 import 'widgets/badges_row.dart';
@@ -98,6 +100,10 @@ class _ProfileBody extends StatelessWidget {
               ),
             ],
           ),
+          const SizedBox(height: AppSpacing.lg),
+
+          // ---- Assessment / plan entry ----
+          const _AssessmentEntry(),
           const SizedBox(height: AppSpacing.lg),
 
           // ---- KPI ring: the home centrepiece ----
@@ -486,6 +492,82 @@ class _LegendItem extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+/// Entry point to the Health Assessment. Shows the selected plan once chosen.
+class _AssessmentEntry extends StatelessWidget {
+  const _AssessmentEntry();
+
+  @override
+  Widget build(BuildContext context) {
+    final assessment = context.watch<AssessmentController>();
+    final plan = assessment.selectedPlan;
+    final p = context.palette;
+
+    return Material(
+      color: plan == null ? AppColors.ink : p.surface,
+      borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
+        onTap: () => Navigator.of(context).push(
+          MaterialPageRoute(builder: (_) => const AssessmentFlowScreen()),
+        ),
+        child: Container(
+          padding: const EdgeInsets.all(AppSpacing.lg),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
+            border: plan == null ? null : Border.all(color: p.line),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: plan == null
+                      ? Colors.white.withValues(alpha: 0.12)
+                      : p.emberSoft,
+                  borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+                ),
+                child: Icon(
+                  plan == null ? Icons.assignment_outlined : Icons.check_circle,
+                  color: plan == null ? Colors.white : AppColors.ember,
+                ),
+              ),
+              const SizedBox(width: AppSpacing.md),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      plan == null ? 'Get your starter plan' : 'Your plan',
+                      style: context.textStyles.titleMedium?.copyWith(
+                          color: plan == null ? Colors.white : p.text),
+                    ),
+                    Text(
+                      plan == null
+                          ? 'Take the 2-minute health assessment'
+                          : plan.name,
+                      style: TextStyle(
+                        fontSize: 12.5,
+                        color: plan == null
+                            ? Colors.white.withValues(alpha: 0.6)
+                            : p.muted,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Icon(Icons.chevron_right,
+                  color: plan == null
+                      ? Colors.white.withValues(alpha: 0.6)
+                      : p.muted),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
