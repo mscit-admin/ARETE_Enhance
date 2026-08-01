@@ -32,6 +32,8 @@
   "validatorEnterEmail": "Entrez votre e-mail",
   "validatorValidEmail": "Entrez un e-mail valide",
   "validatorPasswordLength": "Au moins 6 caractères",
+  "passwordShow": "Afficher le mot de passe",
+  "passwordHide": "Masquer le mot de passe",
   "actionSignIn": "Se connecter",
   "actionCreateAccount": "Créer un compte",
   "authHaveAccount": "Vous avez déjà un compte ?",

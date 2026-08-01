@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -30,15 +32,19 @@ class CoachScreen extends StatefulWidget {
 
 class _CoachScreenState extends State<CoachScreen> {
   final _input = TextEditingController();
+  Timer? _poll;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) => _refresh());
+    // Keep the plan and conversation live while the tab is open.
+    _poll = Timer.periodic(const Duration(seconds: 10), (_) => _refresh());
   }
 
   @override
   void dispose() {
+    _poll?.cancel();
     _input.dispose();
     super.dispose();
   }

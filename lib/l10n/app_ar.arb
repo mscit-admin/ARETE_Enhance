@@ -32,6 +32,8 @@
   "validatorEnterEmail": "أدخل بريدك الإلكتروني",
   "validatorValidEmail": "أدخل بريدًا إلكترونيًا صحيحًا",
   "validatorPasswordLength": "6 أحرف على الأقل",
+  "passwordShow": "إظهار كلمة المرور",
+  "passwordHide": "إخفاء كلمة المرور",
   "actionSignIn": "تسجيل الدخول",
   "actionCreateAccount": "إنشاء حساب",
   "authHaveAccount": "هل لديك حساب بالفعل؟",

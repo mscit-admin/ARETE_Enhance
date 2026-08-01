@@ -23,6 +23,7 @@ class _AuthScreenState extends State<AuthScreen> {
   final _password = TextEditingController();
 
   bool _isSignUp = false;
+  bool _obscurePassword = true;
   String _role = 'member'; // 'member' or 'trainer'
 
   @override
@@ -166,10 +167,21 @@ class _AuthScreenState extends State<AuthScreen> {
                     const SizedBox(height: AppSpacing.md),
                     TextFormField(
                       controller: _password,
-                      obscureText: true,
+                      obscureText: _obscurePassword,
                       decoration: InputDecoration(
-                          labelText: l.fieldPassword,
-                          prefixIcon: const Icon(Icons.lock_outline)),
+                        labelText: l.fieldPassword,
+                        prefixIcon: const Icon(Icons.lock_outline),
+                        suffixIcon: IconButton(
+                          tooltip: _obscurePassword
+                              ? l.passwordShow
+                              : l.passwordHide,
+                          icon: Icon(_obscurePassword
+                              ? Icons.visibility_outlined
+                              : Icons.visibility_off_outlined),
+                          onPressed: () => setState(
+                              () => _obscurePassword = !_obscurePassword),
+                        ),
+                      ),
                       validator: (v) => (v == null || v.length < 6)
                           ? l.validatorPasswordLength
                           : null,

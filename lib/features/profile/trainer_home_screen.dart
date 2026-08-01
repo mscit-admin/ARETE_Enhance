@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -16,6 +18,7 @@ import '../../state/connect_controller.dart';
 import '../../state/profile_controller.dart';
 import '../../state/session_controller.dart';
 import '../coach/trainer_qr_screen.dart';
+import 'account_drawer.dart';
 import 'settings_screen.dart';
 
 /// Trainer-role home: the signed-in trainer's own identity, their QR code and
@@ -28,6 +31,8 @@ class TrainerHomeScreen extends StatefulWidget {
 }
 
 class _TrainerHomeScreenState extends State<TrainerHomeScreen> {
+  Timer? _poll;
+
   @override
   void initState() {
     super.initState();
@@ -36,6 +41,15 @@ class _TrainerHomeScreenState extends State<TrainerHomeScreen> {
       c.loadClients();
       c.loadTrainerCode();
     });
+    // Newly-linked clients appear without a re-login.
+    _poll = Timer.periodic(const Duration(seconds: 15),
+        (_) => context.read<ConnectController>().loadClients());
+  }
+
+  @override
+  void dispose() {
+    _poll?.cancel();
+    super.dispose();
   }
 
   static String _pretty(String? s) {
@@ -62,6 +76,7 @@ class _TrainerHomeScreenState extends State<TrainerHomeScreen> {
     final clients = connect.clients;
 
     return Scaffold(
+      endDrawer: const AccountDrawer(),
       body: SafeArea(
         child: ListView(
           padding: const EdgeInsets.fromLTRB(AppSpacing.screen, AppSpacing.lg,
@@ -97,6 +112,14 @@ class _TrainerHomeScreenState extends State<TrainerHomeScreen> {
                   icon: const Icon(Icons.swap_horiz, color: AppColors.ember),
                 ),
                 LanguageMenuButton(color: p.text),
+                Builder(
+                  builder: (ctx) => IconButton(
+                    tooltip: l.profileSettingsTooltip,
+                    onPressed: () => Scaffold.of(ctx).openEndDrawer(),
+                    icon:
+                        Icon(Icons.account_circle_outlined, color: p.text),
+                  ),
+                ),
                 IconButton(
                   onPressed: () => Navigator.of(context).push(
                     MaterialPageRoute(builder: (_) => const SettingsScreen()),

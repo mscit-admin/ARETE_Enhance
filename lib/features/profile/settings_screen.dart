@@ -11,7 +11,6 @@ import '../../shared/widgets/app_card.dart';
 import '../../shared/widgets/section_label.dart';
 import '../../state/auth_controller.dart';
 import '../../state/hydration_controller.dart';
-import '../../state/locale_controller.dart';
 import '../../state/profile_controller.dart';
 import '../../state/session_controller.dart';
 import '../../state/trainer_controller.dart';
@@ -95,12 +94,6 @@ class SettingsScreen extends StatelessWidget {
             ),
             const SizedBox(height: AppSpacing.xl),
           ],
-
-          // ---- Language ----
-          SectionLabel(l.settingsLanguage),
-          const SizedBox(height: AppSpacing.sm),
-          const _LanguageSection(),
-          const SizedBox(height: AppSpacing.xl),
 
           // ---- Appearance ----
           SectionLabel(l.settingsAppearance),
@@ -190,13 +183,6 @@ class SettingsScreen extends StatelessWidget {
                   trailing: const Icon(Icons.chevron_right),
                   onTap: () => _notImplemented(context),
                 ),
-                const Divider(height: 1),
-                ListTile(
-                  leading: const Icon(Icons.logout, color: AppColors.danger),
-                  title: Text(l.settingsLogout,
-                      style: const TextStyle(color: AppColors.danger)),
-                  onTap: () => _logout(context),
-                ),
               ],
             ),
           ),
@@ -213,68 +199,6 @@ class SettingsScreen extends StatelessWidget {
   void _notImplemented(BuildContext context) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(AppLocalizations.of(context).settingsComingLater)),
-    );
-  }
-
-  Future<void> _logout(BuildContext context) async {
-    final l = AppLocalizations.of(context);
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (_) => AlertDialog(
-        title: Text(l.logoutConfirmTitle),
-        content: Text(l.logoutConfirmBody),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(context, false),
-              child: Text(l.actionCancel)),
-          TextButton(
-              onPressed: () => Navigator.pop(context, true),
-              child: Text(l.settingsLogout)),
-        ],
-      ),
-    );
-    if (confirmed != true || !context.mounted) return;
-    await context.read<AuthController>().signOut();
-    if (context.mounted) {
-      Navigator.of(context).popUntil((r) => r.isFirst);
-    }
-  }
-}
-
-/// Language picker — English, العربية, Français. Selecting Arabic flips the
-/// whole app to RTL automatically. "System default" clears the override.
-class _LanguageSection extends StatelessWidget {
-  const _LanguageSection();
-
-  @override
-  Widget build(BuildContext context) {
-    final controller = context.watch<LocaleController>();
-    final l = AppLocalizations.of(context);
-    final current = controller.locale?.languageCode;
-
-    Widget tile(String? code, String label) {
-      return RadioListTile<String?>(
-        value: code,
-        groupValue: current,
-        activeColor: AppColors.ember,
-        onChanged: (v) => context
-            .read<LocaleController>()
-            .setLocale(v == null ? null : Locale(v)),
-        title: Text(label),
-      );
-    }
-
-    return AppCard(
-      padding: EdgeInsets.zero,
-      child: Column(
-        children: [
-          tile('en', l.langEnglish),
-          const Divider(height: 1),
-          tile('ar', l.langArabic),
-          const Divider(height: 1),
-          tile('fr', l.langFrench),
-        ],
-      ),
     );
   }
 }

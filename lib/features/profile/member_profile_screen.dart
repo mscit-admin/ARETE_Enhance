@@ -20,7 +20,7 @@ import '../../state/hydration_controller.dart';
 import '../../state/profile_controller.dart';
 import '../../state/session_controller.dart';
 import '../assessment/assessment_flow_screen.dart';
-import 'edit_profile_screen.dart';
+import 'account_drawer.dart';
 import 'settings_screen.dart';
 import 'widgets/badges_row.dart';
 import 'widgets/goal_progress_card.dart';
@@ -37,6 +37,7 @@ class MemberProfileScreen extends StatelessWidget {
     final l = AppLocalizations.of(context);
 
     return Scaffold(
+      endDrawer: const AccountDrawer(),
       body: SafeArea(
         child: switch (controller.status) {
           LoadStatus.loading || LoadStatus.idle =>
@@ -109,6 +110,13 @@ class _ProfileBody extends StatelessWidget {
                       color: AppColors.teal),
                 ),
               LanguageMenuButton(color: p.text),
+              Builder(
+                builder: (ctx) => IconButton(
+                  tooltip: l.profileSettingsTooltip,
+                  onPressed: () => Scaffold.of(ctx).openEndDrawer(),
+                  icon: Icon(Icons.account_circle_outlined, color: p.text),
+                ),
+              ),
               IconButton(
                 onPressed: () => Navigator.of(context).push(
                   MaterialPageRoute(
@@ -160,15 +168,6 @@ class _ProfileBody extends StatelessWidget {
           const SizedBox(height: AppSpacing.lg),
 
           // ---- Actions ----
-          _ActionRow(
-            icon: Icons.person_outline,
-            label: l.profileEditProfile,
-            onTap: () => Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (_) => EditProfileScreen(member: member),
-              ),
-            ),
-          ),
           _ActionRow(
             icon: Icons.settings_outlined,
             label: l.profileSettingsPrefs,

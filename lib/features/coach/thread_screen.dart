@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -31,16 +33,20 @@ class ThreadScreen extends StatefulWidget {
 
 class _ThreadScreenState extends State<ThreadScreen> {
   final _input = TextEditingController();
+  Timer? _poll;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback(
         (_) => context.read<MessagingController>().load(widget.peerId));
+    _poll = Timer.periodic(const Duration(seconds: 8),
+        (_) => context.read<MessagingController>().load(widget.peerId));
   }
 
   @override
   void dispose() {
+    _poll?.cancel();
     _input.dispose();
     super.dispose();
   }

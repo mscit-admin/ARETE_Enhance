@@ -12,6 +12,11 @@ import '../trainer/trainer_messages_screen.dart';
 import '../workout/workout_home_screen.dart';
 import '../progress/progress_screen.dart';
 import '../coach/coach_screen.dart';
+import '../../state/connect_controller.dart';
+import '../../state/messaging_controller.dart';
+import '../../state/my_plan_controller.dart';
+import '../../state/plans_controller.dart';
+import '../../state/profile_controller.dart';
 import '../../state/session_controller.dart';
 
 /// Root scaffold with bottom navigation. The tab set adapts to the active
@@ -47,7 +52,10 @@ class _AppShellState extends State<AppShell> {
     final leftIndices = isTrainer ? const [2] : const [3];
     final rightIndices = isTrainer ? const [1] : const [1, 2];
 
-    void select(int i) => setState(() => _index = i);
+    void select(int i) {
+      setState(() => _index = i);
+      _refreshTab(i, isTrainer);
+    }
 
     return Scaffold(
       body: IndexedStack(
@@ -107,6 +115,35 @@ class _AppShellState extends State<AppShell> {
         ),
       ),
     );
+  }
+
+  /// Pull fresh data for the tab the user just opened, so newly-linked clients,
+  /// assigned plans and messages appear without a re-login.
+  void _refreshTab(int i, bool isTrainer) {
+    if (isTrainer) {
+      final connect = context.read<ConnectController>();
+      if (i == 0) {
+        connect.loadClients();
+        connect.loadTrainerCode();
+      } else if (i == 1) {
+        context.read<PlansController>().load();
+        connect.loadClients();
+      } else if (i == 2) {
+        connect.loadClients();
+      }
+    } else {
+      final profile = context.read<ProfileController>();
+      if (i == 0) {
+        profile.load();
+      } else if (i == 3) {
+        profile.load();
+        context.read<MyPlanController>().load();
+        final coach = profile.assignedTrainer;
+        if (coach != null) {
+          context.read<MessagingController>().load(coach.id);
+        }
+      }
+    }
   }
 
   List<_TabDef> _memberTabs(AppLocalizations l) => [

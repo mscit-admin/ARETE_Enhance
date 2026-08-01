@@ -33,6 +33,8 @@
   "validatorEnterEmail": "Enter your email",
   "validatorValidEmail": "Enter a valid email",
   "validatorPasswordLength": "At least 6 characters",
+  "passwordShow": "Show password",
+  "passwordHide": "Hide password",
   "actionSignIn": "Sign in",
   "actionCreateAccount": "Create account",
   "authHaveAccount": "Already have an account?",
