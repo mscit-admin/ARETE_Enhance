@@ -70,21 +70,21 @@ class HydrationController extends ChangeNotifier {
   Future<void> setEnabled(bool value) async {
     _enabled = value;
     if (!value) _promptDue = false;
+    notifyListeners(); // reflect the switch immediately
     await _applySchedule();
-    notifyListeners();
   }
 
   Future<void> setIntervalHours(int hours) async {
     _intervalHours = hours;
-    await _applySchedule();
     notifyListeners();
+    await _applySchedule();
   }
 
   Future<void> setWindow({int? startHour, int? endHour}) async {
     if (startHour != null) _startHour = startHour;
     if (endHour != null) _endHour = endHour;
-    await _applySchedule();
     notifyListeners();
+    await _applySchedule();
   }
 
   Future<void> _applySchedule() async {
