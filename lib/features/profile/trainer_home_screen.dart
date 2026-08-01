@@ -19,7 +19,6 @@ import '../../state/profile_controller.dart';
 import '../../state/session_controller.dart';
 import '../coach/trainer_qr_screen.dart';
 import 'account_drawer.dart';
-import 'settings_screen.dart';
 
 /// Trainer-role home: the signed-in trainer's own identity, their QR code and
 /// their real linked clients. A quick icon switches back to trainee mode.
@@ -119,12 +118,6 @@ class _TrainerHomeScreenState extends State<TrainerHomeScreen> {
                     icon:
                         Icon(Icons.account_circle_outlined, color: p.text),
                   ),
-                ),
-                IconButton(
-                  onPressed: () => Navigator.of(context).push(
-                    MaterialPageRoute(builder: (_) => const SettingsScreen()),
-                  ),
-                  icon: Icon(Icons.settings_outlined, color: p.text),
                 ),
               ],
             ),

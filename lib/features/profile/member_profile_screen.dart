@@ -21,7 +21,6 @@ import '../../state/profile_controller.dart';
 import '../../state/session_controller.dart';
 import '../assessment/assessment_flow_screen.dart';
 import 'account_drawer.dart';
-import 'settings_screen.dart';
 import 'widgets/badges_row.dart';
 import 'widgets/goal_progress_card.dart';
 import 'widgets/kpi_ring.dart';
@@ -117,14 +116,6 @@ class _ProfileBody extends StatelessWidget {
                   icon: Icon(Icons.account_circle_outlined, color: p.text),
                 ),
               ),
-              IconButton(
-                onPressed: () => Navigator.of(context).push(
-                  MaterialPageRoute(
-                      builder: (_) => const SettingsScreen()),
-                ),
-                icon: Icon(Icons.settings_outlined, color: p.text),
-                tooltip: l.profileSettingsTooltip,
-              ),
             ],
           ),
           const SizedBox(height: AppSpacing.lg),
@@ -168,13 +159,6 @@ class _ProfileBody extends StatelessWidget {
           const SizedBox(height: AppSpacing.lg),
 
           // ---- Actions ----
-          _ActionRow(
-            icon: Icons.settings_outlined,
-            label: l.profileSettingsPrefs,
-            onTap: () => Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => const SettingsScreen()),
-            ),
-          ),
         ],
       ),
     );
@@ -682,40 +666,6 @@ class _LogWaterButton extends StatelessWidget {
       },
       icon: const Icon(Icons.add, size: 18, color: AppColors.water),
       label: Text(l.hydrateLogGlass),
-    );
-  }
-}
-
-class _ActionRow extends StatelessWidget {
-  const _ActionRow(
-      {required this.icon, required this.label, required this.onTap});
-
-  final IconData icon;
-  final String label;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final p = context.palette;
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 14),
-          child: Row(
-            children: [
-              Icon(icon, size: 20, color: p.text),
-              const SizedBox(width: AppSpacing.md),
-              Expanded(
-                child: Text(label, style: context.textStyles.titleMedium),
-              ),
-              Icon(Icons.chevron_right, color: p.muted),
-            ],
-          ),
-        ),
-      ),
     );
   }
 }

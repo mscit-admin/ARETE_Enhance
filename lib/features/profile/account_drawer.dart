@@ -9,6 +9,7 @@ import '../../shared/widgets/gradient_avatar.dart';
 import '../../state/auth_controller.dart';
 import '../../state/profile_controller.dart';
 import 'edit_profile_screen.dart';
+import 'settings_screen.dart';
 
 /// Side menu opened from the account icon in a screen header. Holds the
 /// account actions — edit profile and log out.
@@ -103,6 +104,17 @@ class AccountDrawer extends StatelessWidget {
                         ),
                       );
                     },
+            ),
+            const Divider(height: 1),
+            ListTile(
+              leading: const Icon(Icons.settings_outlined),
+              title: Text(l.settingsTitle),
+              onTap: () {
+                Navigator.of(context).pop();
+                Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const SettingsScreen()),
+                );
+              },
             ),
             const Spacer(),
             const Divider(height: 1),
