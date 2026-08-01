@@ -17,7 +17,8 @@ class ConnectCoachScreen extends StatefulWidget {
   State<ConnectCoachScreen> createState() => _ConnectCoachScreenState();
 }
 
-class _ConnectCoachScreenState extends State<ConnectCoachScreen> {
+class _ConnectCoachScreenState extends State<ConnectCoachScreen>
+    with WidgetsBindingObserver {
   // autoStart is disabled so we only start the camera *after* the runtime
   // permission is granted — otherwise the first start fails and the platform
   // reports the camera as "unavailable".
@@ -29,39 +30,54 @@ class _ConnectCoachScreenState extends State<ConnectCoachScreen> {
   final _codeField = TextEditingController();
   bool _handling = false;
   String? _error;
-  bool _cameraGranted = false;
+  PermissionStatus _cameraStatus = PermissionStatus.denied;
   bool _checkingPermission = true;
+
+  bool get _cameraGranted => _cameraStatus.isGranted;
 
   @override
   void initState() {
     super.initState();
-    _ensureCameraPermission();
+    WidgetsBinding.instance.addObserver(this);
+    _refreshPermission(request: true);
   }
 
-  /// Ask for the camera permission up front; the scanner only mounts once it
-  /// is granted (otherwise Android reports the camera as "unavailable").
-  Future<void> _ensureCameraPermission() async {
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // Re-check after the user comes back from the system settings screen —
+    // if they granted the permission there, start the camera automatically.
+    if (state == AppLifecycleState.resumed && !_cameraGranted) {
+      _refreshPermission(request: false);
+    }
+  }
+
+  /// Read the permission (optionally requesting it) and start the camera when
+  /// it is granted.
+  Future<void> _refreshPermission({required bool request}) async {
     var status = await Permission.camera.status;
-    if (!status.isGranted) {
+    if (!status.isGranted && request) {
       status = await Permission.camera.request();
     }
     if (!mounted) return;
     setState(() {
-      _cameraGranted = status.isGranted;
+      _cameraStatus = status;
       _checkingPermission = false;
     });
     if (status.isGranted) await _startScanner();
   }
 
+  /// Button action: request the permission; if that doesn't grant it (denied
+  /// or permanently denied), open the system settings so it can be granted
+  /// there — that path always works even when the in-app dialog won't show.
   Future<void> _enableCamera() async {
     final status = await Permission.camera.request();
-    if (status.isPermanentlyDenied) {
-      await openAppSettings();
-      return;
-    }
     if (!mounted) return;
-    setState(() => _cameraGranted = status.isGranted);
-    if (status.isGranted) await _startScanner();
+    setState(() => _cameraStatus = status);
+    if (status.isGranted) {
+      await _startScanner();
+    } else {
+      await openAppSettings();
+    }
   }
 
   /// Start (or restart) the camera. Safe to call more than once.
@@ -75,6 +91,7 @@ class _ConnectCoachScreenState extends State<ConnectCoachScreen> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _controller.dispose();
     _codeField.dispose();
     super.dispose();
@@ -122,7 +139,10 @@ class _ConnectCoachScreenState extends State<ConnectCoachScreen> {
                 child: _checkingPermission
                     ? const Center(child: CircularProgressIndicator())
                     : !_cameraGranted
-                        ? _CameraPrompt(l: l, onEnable: _enableCamera)
+                        ? _CameraPrompt(
+                            l: l,
+                            status: _cameraStatus,
+                            onEnable: _enableCamera)
                         : Stack(
                             fit: StackFit.expand,
                             children: [
@@ -240,8 +260,10 @@ class _ConnectCoachScreenState extends State<ConnectCoachScreen> {
 
 /// Shown inside the scanner frame when the camera permission isn't granted.
 class _CameraPrompt extends StatelessWidget {
-  const _CameraPrompt({required this.l, required this.onEnable});
+  const _CameraPrompt(
+      {required this.l, required this.status, required this.onEnable});
   final AppLocalizations l;
+  final PermissionStatus status;
   final Future<void> Function() onEnable;
 
   @override
@@ -265,6 +287,12 @@ class _CameraPrompt extends StatelessWidget {
               onPressed: onEnable,
               icon: const Icon(Icons.camera_alt_outlined, size: 18),
               label: Text(l.connectEnableCamera),
+            ),
+            const SizedBox(height: AppSpacing.sm),
+            // Small diagnostic line (permission state) — helps pinpoint issues.
+            Text(
+              'camera: ${status.name}',
+              style: const TextStyle(color: Colors.white38, fontSize: 11),
             ),
           ],
         ),

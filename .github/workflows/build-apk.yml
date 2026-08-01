@@ -98,7 +98,8 @@ jobs:
           fi
           echo "----- network_security_config.xml -----"
           cat android/app/src/main/res/xml/network_security_config.xml
-          echo "----- AndroidManifest.xml (head) -----"; head -n 14 "$MANIFEST"
+          echo "----- AndroidManifest.xml permissions -----"
+          grep -n "uses-permission" "$MANIFEST" || echo "NO uses-permission found!"
 
       - name: Install dependencies
         run: flutter pub get
