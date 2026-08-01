@@ -183,6 +183,8 @@
 
   "connectTitle": "Connect a coach",
   "connectCameraUnavailable": "Camera unavailable. Enter the code below instead.",
+  "connectCameraPermission": "Allow camera access to scan your coach's QR code — or enter the code below.",
+  "connectEnableCamera": "Enable camera",
   "connectPointAtQr": "Point at your coach's QR code",
   "connectOrEnterCode": "Or enter the code",
   "connectCodeHint": "e.g. P8EW2B",

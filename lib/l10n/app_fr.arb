@@ -159,6 +159,8 @@
 
   "connectTitle": "Connecter un coach",
   "connectCameraUnavailable": "Caméra indisponible. Saisissez plutôt le code ci-dessous.",
+  "connectCameraPermission": "Autorisez l'accès à la caméra pour scanner le code QR de votre coach — ou saisissez le code ci-dessous.",
+  "connectEnableCamera": "Activer la caméra",
   "connectPointAtQr": "Visez le code QR de votre coach",
   "connectOrEnterCode": "Ou saisissez le code",
   "connectCodeHint": "ex. P8EW2B",

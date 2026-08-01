@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/theme/app_colors.dart';
@@ -24,6 +25,38 @@ class _ConnectCoachScreenState extends State<ConnectCoachScreen> {
   final _codeField = TextEditingController();
   bool _handling = false;
   String? _error;
+  bool _cameraGranted = false;
+  bool _checkingPermission = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _ensureCameraPermission();
+  }
+
+  /// Ask for the camera permission up front; the scanner only mounts once it
+  /// is granted (otherwise Android reports the camera as "unavailable").
+  Future<void> _ensureCameraPermission() async {
+    var status = await Permission.camera.status;
+    if (!status.isGranted) {
+      status = await Permission.camera.request();
+    }
+    if (!mounted) return;
+    setState(() {
+      _cameraGranted = status.isGranted;
+      _checkingPermission = false;
+    });
+  }
+
+  Future<void> _enableCamera() async {
+    final status = await Permission.camera.request();
+    if (status.isPermanentlyDenied) {
+      await openAppSettings();
+      return;
+    }
+    if (!mounted) return;
+    setState(() => _cameraGranted = status.isGranted);
+  }
 
   @override
   void dispose() {
@@ -71,51 +104,58 @@ class _ConnectCoachScreenState extends State<ConnectCoachScreen> {
                   border: Border.all(color: p.line),
                   color: Colors.black,
                 ),
-                child: Stack(
-                  fit: StackFit.expand,
-                  children: [
-                    MobileScanner(
-                      controller: _controller,
-                      onDetect: (capture) {
-                        final raw = capture.barcodes.isNotEmpty
-                            ? capture.barcodes.first.rawValue
-                            : null;
-                        if (raw != null) _submit(raw);
-                      },
-                      errorBuilder: (context, error, child) => Center(
-                        child: Padding(
-                          padding: const EdgeInsets.all(AppSpacing.xl),
-                          child: Text(
-                            l.connectCameraUnavailable,
-                            textAlign: TextAlign.center,
-                            style: const TextStyle(color: Colors.white70),
+                child: _checkingPermission
+                    ? const Center(child: CircularProgressIndicator())
+                    : !_cameraGranted
+                        ? _CameraPrompt(l: l, onEnable: _enableCamera)
+                        : Stack(
+                            fit: StackFit.expand,
+                            children: [
+                              MobileScanner(
+                                controller: _controller,
+                                onDetect: (capture) {
+                                  final raw = capture.barcodes.isNotEmpty
+                                      ? capture.barcodes.first.rawValue
+                                      : null;
+                                  if (raw != null) _submit(raw);
+                                },
+                                errorBuilder: (context, error, child) => Center(
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(AppSpacing.xl),
+                                    child: Text(
+                                      l.connectCameraUnavailable,
+                                      textAlign: TextAlign.center,
+                                      style:
+                                          const TextStyle(color: Colors.white70),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              // viewfinder frame
+                              Center(
+                                child: Container(
+                                  width: 210,
+                                  height: 210,
+                                  decoration: BoxDecoration(
+                                    border: Border.all(
+                                        color: AppColors.brandGreen, width: 3),
+                                    borderRadius: BorderRadius.circular(16),
+                                  ),
+                                ),
+                              ),
+                              Positioned(
+                                left: 0,
+                                right: 0,
+                                bottom: 12,
+                                child: Text(
+                                  l.connectPointAtQr,
+                                  textAlign: TextAlign.center,
+                                  style: const TextStyle(
+                                      color: Colors.white70, fontSize: 12),
+                                ),
+                              ),
+                            ],
                           ),
-                        ),
-                      ),
-                    ),
-                    // viewfinder frame
-                    Center(
-                      child: Container(
-                        width: 210,
-                        height: 210,
-                        decoration: BoxDecoration(
-                          border: Border.all(color: AppColors.brandGreen, width: 3),
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                      ),
-                    ),
-                    Positioned(
-                      left: 0,
-                      right: 0,
-                      bottom: 12,
-                      child: Text(
-                        l.connectPointAtQr,
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(color: Colors.white70, fontSize: 12),
-                      ),
-                    ),
-                  ],
-                ),
               ),
             ),
             // ---- Manual entry ----
@@ -163,6 +203,41 @@ class _ConnectCoachScreenState extends State<ConnectCoachScreen> {
                   ],
                 ],
               ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Shown inside the scanner frame when the camera permission isn't granted.
+class _CameraPrompt extends StatelessWidget {
+  const _CameraPrompt({required this.l, required this.onEnable});
+  final AppLocalizations l;
+  final Future<void> Function() onEnable;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(AppSpacing.xl),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.no_photography_outlined,
+                color: Colors.white70, size: 40),
+            const SizedBox(height: AppSpacing.md),
+            Text(
+              l.connectCameraPermission,
+              textAlign: TextAlign.center,
+              style: const TextStyle(color: Colors.white70),
+            ),
+            const SizedBox(height: AppSpacing.lg),
+            ElevatedButton.icon(
+              onPressed: onEnable,
+              icon: const Icon(Icons.camera_alt_outlined, size: 18),
+              label: Text(l.connectEnableCamera),
             ),
           ],
         ),

@@ -159,6 +159,8 @@
 
   "connectTitle": "الربط مع مدرب",
   "connectCameraUnavailable": "الكاميرا غير متاحة. أدخل الرمز أدناه بدلاً من ذلك.",
+  "connectCameraPermission": "اسمح بالوصول إلى الكاميرا لمسح رمز QR الخاص بمدربك — أو أدخل الرمز أدناه.",
+  "connectEnableCamera": "تفعيل الكاميرا",
   "connectPointAtQr": "وجّه الكاميرا نحو رمز QR الخاص بمدربك",
   "connectOrEnterCode": "أو أدخل الرمز",
   "connectCodeHint": "مثال: P8EW2B",
