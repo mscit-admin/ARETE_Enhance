@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ARETE Admin — Sign in</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="login-wrap">
+    <form class="login-card" id="loginForm">
+      <div class="brand"><div class="mk">A</div><b>ARETE</b></div>
+      <h1>Admin console</h1>
+      <p class="sub">Sign in to manage members, trainers and billing.</p>
+
+      <label for="email">Email</label>
+      <input id="email" type="email" autocomplete="username" value="admin@arete.fit" required />
+
+      <label for="password">Password</label>
+      <input id="password" type="password" autocomplete="current-password" value="admin123" required />
+
+      <div class="error" id="err"></div>
+      <button class="btn" id="submit" type="submit">Sign in</button>
+      <p class="hint">Seed default: admin@arete.fit / admin123</p>
+    </form>
+  </div>
+
+  <script>
+    const form = document.getElementById('loginForm');
+    const err = document.getElementById('err');
+    const btn = document.getElementById('submit');
+
+    // Already signed in? Go to the dashboard.
+    if (localStorage.getItem('arete_token')) {
+      location.replace('dashboard.html');
+    }
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      err.classList.remove('show');
+      btn.disabled = true;
+      btn.textContent = 'Signing in…';
+      try {
+        const res = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            email: document.getElementById('email').value,
+            password: document.getElementById('password').value,
+          }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Login failed');
+        localStorage.setItem('arete_token', data.token);
+        localStorage.setItem('arete_user', JSON.stringify(data.user));
+        location.replace('dashboard.html');
+      } catch (ex) {
+        err.textContent = ex.message;
+        err.classList.add('show');
+        btn.disabled = false;
+        btn.textContent = 'Sign in';
+      }
+    });
+  </script>
+</body>
+</html>

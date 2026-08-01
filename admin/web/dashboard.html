@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ARETE Admin — Dashboard</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="app">
+    <aside class="side">
+      <div class="brand"><div class="mk">A</div><b>ARETE</b></div>
+      <nav class="nav">
+        <a data-section="overview" class="active">Overview</a>
+        <a data-section="members">Members</a>
+        <a data-section="trainers">Trainers</a>
+        <a data-section="plans">Plans</a>
+        <div class="grp">System</div>
+        <a class="logout" id="logout">Log out</a>
+      </nav>
+    </aside>
+
+    <main class="main">
+      <div class="head">
+        <h2 id="pageTitle">Overview</h2>
+        <div class="who"><span id="whoName">Admin</span><div class="av" id="whoAv">A</div></div>
+      </div>
+
+      <!-- Overview -->
+      <section class="section active" id="section-overview">
+        <div class="kpis" id="kpis"></div>
+        <div class="panels">
+          <div class="card">
+            <h3>Member growth <span>new sign-ups · last 12 weeks</span></h3>
+            <div class="bars" id="growth"></div>
+          </div>
+          <div class="card">
+            <h3>By tier</h3>
+            <table id="tiers"></table>
+          </div>
+        </div>
+      </section>
+
+      <!-- Members -->
+      <section class="section" id="section-members">
+        <div class="toolbar">
+          <input id="q" placeholder="Search members by name or email…" />
+          <select id="statusFilter">
+            <option value="">All statuses</option>
+            <option value="active">Active</option>
+            <option value="frozen">Frozen</option>
+            <option value="expired">Expired</option>
+          </select>
+        </div>
+        <div class="card">
+          <table id="membersTable"></table>
+          <div class="pager">
+            <button id="prev">Prev</button>
+            <span id="pageInfo" class="muted"></span>
+            <button id="next">Next</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Trainers -->
+      <section class="section" id="section-trainers">
+        <div class="card"><table id="trainersTable"></table></div>
+      </section>
+
+      <!-- Plans -->
+      <section class="section" id="section-plans">
+        <div class="card"><table id="plansTable"></table></div>
+      </section>
+    </main>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

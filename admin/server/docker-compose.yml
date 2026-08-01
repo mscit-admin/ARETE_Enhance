@@ -1,0 +1,17 @@
+# Spin up PostgreSQL for local development:  docker compose up -d
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: arete-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: arete
+      POSTGRES_PASSWORD: arete
+      POSTGRES_DB: arete
+    ports:
+      - "5432:5432"
+    volumes:
+      - arete_pgdata:/var/lib/postgresql/data
+
+volumes:
+  arete_pgdata:
