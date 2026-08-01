@@ -16,6 +16,13 @@ async function main() {
 
 main().catch((e) => {
   // eslint-disable-next-line no-console
-  console.error('Migration failed:', e.message);
+  console.error('Migration failed:', e.message || e.code || String(e));
+  if (e.code) console.error('Error code:', e.code);
+  if (e.code === 'ECONNREFUSED') {
+    console.error(
+      'PostgreSQL is not reachable at the configured host/port. ' +
+        'Check DATABASE_URL in .env (default port is 5432).',
+    );
+  }
   process.exit(1);
 });

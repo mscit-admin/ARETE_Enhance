@@ -66,6 +66,7 @@ esac
 
 hr
 say "${BOLD}2) PostgreSQL connection${RESET}"
+say "${DIM}This is PostgreSQL's own port (default 5432) — NOT the HTTP port above.${RESET}"
 DB_HOST="$(ask "PostgreSQL host" "localhost")"
 DB_PORT="$(ask "PostgreSQL port" "5432")"
 DB_NAME="$(ask "Database name" "arete")"
@@ -117,22 +118,39 @@ npm install --omit=dev --no-audit --no-fund || { say "${RED}npm install failed${
 hr
 if yesno "${BOLD}Create the database and role now?${RESET} ${DIM}(needs a PostgreSQL superuser)${RESET}" "N"; then
   SUPER="$(ask "PostgreSQL superuser" "postgres")"
-  PSQL_BASE=""
   if command -v sudo >/dev/null 2>&1 && id "$SUPER" >/dev/null 2>&1; then
-    PSQL_BASE="sudo -u $SUPER psql -h $DB_HOST -p $DB_PORT"
+    # Local peer auth over the unix socket — most reliable on a fresh install.
+    PSQL_BASE="sudo -u $SUPER psql -p $DB_PORT"
+    # Fall back to TCP if the socket isn't where psql expects it.
+    if ! $PSQL_BASE -d postgres -tAc "SELECT 1" >/dev/null 2>&1; then
+      PSQL_BASE="sudo -u $SUPER psql -h $DB_HOST -p $DB_PORT"
+    fi
   else
     SUPER_PW="$(ask_secret "Password for $SUPER")"
     export PGPASSWORD="$SUPER_PW"
     PSQL_BASE="psql -U $SUPER -h $DB_HOST -p $DB_PORT"
   fi
-  say "Creating role and database (existing ones are left as-is)…"
-  $PSQL_BASE -v ON_ERROR_STOP=0 -d postgres -c \
-    "DO \$\$ BEGIN CREATE ROLE \"${DB_USER}\" LOGIN PASSWORD '${DB_PASS}'; EXCEPTION WHEN duplicate_object THEN RAISE NOTICE 'role exists'; END \$\$;" || true
-  $PSQL_BASE -v ON_ERROR_STOP=0 -d postgres -tc \
-    "SELECT 1 FROM pg_database WHERE datname='${DB_NAME}'" | grep -q 1 \
-    || $PSQL_BASE -d postgres -c "CREATE DATABASE \"${DB_NAME}\" OWNER \"${DB_USER}\";"
-  unset PGPASSWORD
-  say "${GREEN}Database ready.${RESET}"
+
+  if ! $PSQL_BASE -d postgres -tAc "SELECT 1" >/dev/null 2>&1; then
+    say "${RED}Cannot reach PostgreSQL as ${SUPER} on port ${DB_PORT}.${RESET}"
+    say "  • Is it installed and running?   sudo systemctl status postgresql"
+    say "  • Is the port right? Default is 5432:  sudo -u postgres psql -c 'SHOW port;'"
+    say "  ${YELLOW}Fix the PostgreSQL port above and re-run.${RESET}"
+  else
+    say "Creating role and database…"
+    $PSQL_BASE -v ON_ERROR_STOP=0 -d postgres -c \
+      "DO \$\$ BEGIN CREATE ROLE \"${DB_USER}\" LOGIN PASSWORD '${DB_PASS}'; EXCEPTION WHEN duplicate_object THEN NULL; END \$\$;" >/dev/null 2>&1
+    # Keep the password in sync if the role already existed.
+    $PSQL_BASE -d postgres -c "ALTER ROLE \"${DB_USER}\" LOGIN PASSWORD '${DB_PASS}';" >/dev/null 2>&1 || true
+    if $PSQL_BASE -d postgres -tAc "SELECT 1 FROM pg_database WHERE datname='${DB_NAME}'" | grep -q 1; then
+      say "${GREEN}Database ${DB_NAME} already exists.${RESET}"
+    elif $PSQL_BASE -d postgres -c "CREATE DATABASE \"${DB_NAME}\" OWNER \"${DB_USER}\";" >/dev/null 2>&1; then
+      say "${GREEN}Created database ${DB_NAME}.${RESET}"
+    else
+      say "${RED}Failed to create database ${DB_NAME} — check the superuser and port.${RESET}"
+    fi
+  fi
+  unset PGPASSWORD 2>/dev/null || true
 else
   say "Skipping DB creation — make sure ${BOLD}${DB_NAME}${RESET} exists and ${BOLD}${DB_USER}${RESET} can connect."
 fi
@@ -140,7 +158,12 @@ fi
 # ---------- migrate + admin ----------
 hr
 say "${BOLD}Applying schema…${RESET}"
-npm run migrate || { say "${RED}Migration failed — check the DB connection.${RESET}"; exit 1; }
+npm run migrate || {
+  say "${RED}Migration failed — could not connect to PostgreSQL.${RESET}"
+  say "  Check host/port/user/password. Current: ${BOLD}${DB_HOST}:${DB_PORT}/${DB_NAME}${RESET} as ${BOLD}${DB_USER}${RESET}"
+  say "  Test manually:  PGPASSWORD='<pw>' psql -h ${DB_HOST} -p ${DB_PORT} -U ${DB_USER} -d ${DB_NAME} -c 'SELECT 1;'"
+  exit 1
+}
 
 say "${BOLD}Creating the admin user…${RESET}"
 ADMIN_EMAIL="$ADMIN_EMAIL" ADMIN_PASSWORD="$ADMIN_PASS" npm run create-admin || exit 1
