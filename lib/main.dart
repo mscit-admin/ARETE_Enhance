@@ -2,8 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import 'app/arete_app.dart';
-import 'data/repositories/local_auth_repository.dart';
-import 'data/repositories/local_profile_repository.dart';
+import 'data/api/api_client.dart';
+import 'data/repositories/api_auth_repository.dart';
+import 'data/repositories/api_profile_repository.dart';
 import 'data/repositories/mock_coach_repository.dart';
 import 'data/repositories/mock_progress_repository.dart';
 import 'data/repositories/mock_workout_repository.dart';
@@ -20,13 +21,14 @@ import 'state/workout_controller.dart';
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Local-first with real on-device persistence. Each repository implements an
-  // interface, so a Firebase/REST backend can replace these with no UI change.
-  final profileRepository = LocalProfileRepository();
+  // Auth + profile now talk to the ARETE server (address is hard-coded and
+  // obfuscated in ApiConfig). Workouts/progress/coach remain local for now.
+  final apiClient = ApiClient();
+  final profileRepository = ApiProfileRepository(apiClient);
   final workoutRepository = MockWorkoutRepository();
   final progressRepository = MockProgressRepository();
   final coachRepository = MockCoachRepository();
-  final authRepository = LocalAuthRepository();
+  final authRepository = ApiAuthRepository(apiClient);
 
   final profileController = ProfileController(profileRepository);
 

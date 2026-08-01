@@ -1,0 +1,233 @@
+// App-facing API for the mobile app (members).
+// Endpoints return a Member-shaped JSON that the Flutter Member.fromJson parses.
+const express = require('express');
+const bcrypt = require('bcryptjs');
+const db = require('../db');
+const { signToken, requireAuth } = require('../middleware/auth');
+
+const router = express.Router();
+
+// ---- enum mapping between DB (snake_case) and the app (camelCase) ----
+const GOAL_TO_APP = {
+  lose_weight: 'loseWeight',
+  build_muscle: 'buildMuscle',
+  endurance: 'endurance',
+  general_fitness: 'generalFitness',
+};
+const GOAL_TO_DB = Object.fromEntries(
+  Object.entries(GOAL_TO_APP).map(([k, v]) => [v, k]),
+);
+const norm = (s) => String(s || '').trim().toLowerCase();
+
+// Build the full Member JSON the app expects for a given user id.
+async function loadProfile(userId) {
+  const { rows } = await db.query(
+    `SELECT u.id, u.full_name, u.email, u.phone, u.photo_url,
+            m.gender, m.date_of_birth, m.goal, m.experience, m.units,
+            m.height_cm, m.weight_kg, m.body_fat_pct,
+            m.current_streak_days, m.weekly_target_sessions, m.trainer_id
+       FROM users u JOIN members m ON m.user_id = u.id
+      WHERE u.id = $1`,
+    [userId],
+  );
+  const r = rows[0];
+  if (!r) return null;
+
+  const ms = await db.query(
+    `SELECT tier, status, started_on, renews_on FROM memberships
+      WHERE member_id = $1 ORDER BY renews_on DESC LIMIT 1`,
+    [userId],
+  );
+  const sessions = await db.query(
+    `SELECT count(*)::int AS n FROM workout_sessions
+      WHERE member_id = $1 AND started_at >= date_trunc('week', now())`,
+    [userId],
+  );
+
+  const membership = ms.rows[0] || {
+    tier: 'basic',
+    status: 'active',
+    started_on: new Date().toISOString(),
+    renews_on: new Date(Date.now() + 365 * 864e5).toISOString(),
+  };
+
+  const dob = r.date_of_birth
+    ? new Date(r.date_of_birth).toISOString()
+    : new Date(Date.UTC(1995, 0, 1)).toISOString();
+
+  return {
+    id: r.id,
+    fullName: r.full_name,
+    email: r.email,
+    phone: r.phone,
+    photoUrl: r.photo_url,
+    gender: r.gender || 'preferNotToSay',
+    dateOfBirth: dob,
+    goal: GOAL_TO_APP[r.goal] || 'generalFitness',
+    experience: r.experience || 'beginner',
+    units: r.units || 'metric',
+    metrics: {
+      weightKg: Number(r.weight_kg ?? 75),
+      heightCm: Number(r.height_cm ?? 175),
+      bodyFatPercent: r.body_fat_pct == null ? null : Number(r.body_fat_pct),
+      waistCm: null,
+    },
+    dailyStats: {
+      waterGlasses: 0,
+      waterTargetGlasses: 8,
+      steps: 0,
+      stepsTarget: 8000,
+      caloriesBurned: 0,
+      caloriesTarget: 500,
+      activeMinutes: 0,
+      activeMinutesTarget: 45,
+    },
+    membership: {
+      tier: membership.tier,
+      status: membership.status,
+      joinedOn: new Date(membership.started_on).toISOString(),
+      renewsOn: new Date(membership.renews_on).toISOString(),
+    },
+    currentStreakDays: r.current_streak_days ?? 0,
+    weeklyTargetSessions: r.weekly_target_sessions ?? 3,
+    sessionsThisWeek: sessions.rows[0].n,
+    assignedTrainerId: r.trainer_id,
+    badges: [],
+  };
+}
+
+// POST /api/app/auth/register  { name, email, password }
+router.post('/auth/register', async (req, res) => {
+  const name = String(req.body?.name || '').trim();
+  const email = norm(req.body?.email);
+  const password = req.body?.password || '';
+  if (!name || !email || password.length < 6) {
+    return res
+      .status(400)
+      .json({ error: 'Name, email and a 6+ char password are required' });
+  }
+  const client = await db.pool.connect();
+  try {
+    const exists = await client.query('SELECT 1 FROM users WHERE email = $1', [
+      email,
+    ]);
+    if (exists.rowCount) {
+      return res.status(409).json({ error: 'That email is already registered' });
+    }
+    await client.query('BEGIN');
+    const hash = await bcrypt.hash(password, 10);
+    const u = await client.query(
+      `INSERT INTO users (email, password_hash, full_name, role)
+       VALUES ($1, $2, $3, 'member') RETURNING id, email, full_name, role`,
+      [email, hash, name],
+    );
+    const uid = u.rows[0].id;
+    await client.query(
+      `INSERT INTO members (user_id, goal, experience, units, height_cm, weight_kg)
+       VALUES ($1, 'general_fitness', 'beginner', 'metric', 175, 75)`,
+      [uid],
+    );
+    await client.query(
+      `INSERT INTO memberships (member_id, tier, status, renews_on, price)
+       VALUES ($1, 'basic', 'active', current_date + interval '365 days', 0)`,
+      [uid],
+    );
+    await client.query('COMMIT');
+
+    const token = signToken(u.rows[0]);
+    const profile = await loadProfile(uid);
+    return res.status(201).json({ token, profile });
+  } catch (e) {
+    await client.query('ROLLBACK');
+    return res.status(500).json({ error: 'Registration failed' });
+  } finally {
+    client.release();
+  }
+});
+
+// POST /api/app/auth/login  { email, password }
+router.post('/auth/login', async (req, res) => {
+  const email = norm(req.body?.email);
+  const password = req.body?.password || '';
+  if (!email || !password) {
+    return res.status(400).json({ error: 'Email and password are required' });
+  }
+  try {
+    const { rows } = await db.query(
+      `SELECT id, email, full_name, role, password_hash FROM users WHERE email = $1`,
+      [email],
+    );
+    const user = rows[0];
+    if (!user || !(await bcrypt.compare(password, user.password_hash))) {
+      return res.status(401).json({ error: 'Invalid email or password' });
+    }
+    if (user.role !== 'member') {
+      return res.status(403).json({ error: 'Use the admin console for this account' });
+    }
+    const token = signToken(user);
+    const profile = await loadProfile(user.id);
+    return res.json({ token, profile });
+  } catch (e) {
+    return res.status(500).json({ error: 'Login failed' });
+  }
+});
+
+// GET /api/app/profile  (member JWT)
+router.get('/profile', requireAuth, async (req, res) => {
+  try {
+    const profile = await loadProfile(req.user.sub);
+    if (!profile) return res.status(404).json({ error: 'Profile not found' });
+    return res.json(profile);
+  } catch (e) {
+    return res.status(500).json({ error: 'Failed to load profile' });
+  }
+});
+
+// PUT /api/app/profile  (member JWT) — updates the editable fields.
+router.put('/profile', requireAuth, async (req, res) => {
+  const b = req.body || {};
+  const uid = req.user.sub;
+  try {
+    // users: name + phone
+    if (b.fullName !== undefined || b.phone !== undefined) {
+      await db.query(
+        `UPDATE users SET
+            full_name = COALESCE($1, full_name),
+            phone = COALESCE($2, phone),
+            updated_at = now()
+          WHERE id = $3`,
+        [b.fullName ? String(b.fullName).trim() : null, b.phone ?? null, uid],
+      );
+    }
+    // members: profile + metrics
+    await db.query(
+      `UPDATE members SET
+          gender = COALESCE($1, gender),
+          date_of_birth = COALESCE($2::date, date_of_birth),
+          goal = COALESCE($3, goal),
+          experience = COALESCE($4, experience),
+          units = COALESCE($5, units),
+          height_cm = COALESCE($6, height_cm),
+          weight_kg = COALESCE($7, weight_kg)
+        WHERE user_id = $8`,
+      [
+        b.gender ?? null,
+        b.dateOfBirth
+          ? new Date(b.dateOfBirth).toISOString().slice(0, 10)
+          : null,
+        b.goal ? GOAL_TO_DB[b.goal] || null : null,
+        b.experience ?? null,
+        b.units ?? null,
+        b.heightCm ?? null,
+        b.weightKg ?? null,
+        uid,
+      ],
+    );
+    const profile = await loadProfile(uid);
+    return res.json(profile);
+  } catch (e) {
+    return res.status(500).json({ error: 'Failed to update profile' });
+  }
+});
+
+module.exports = router;

@@ -5,6 +5,7 @@ require('dotenv').config();
 
 const authRoutes = require('./routes/auth');
 const adminRoutes = require('./routes/admin');
+const appRoutes = require('./routes/app');
 
 const app = express();
 
@@ -17,6 +18,7 @@ app.get('/api/health', (_req, res) => res.json({ ok: true }));
 // API
 app.use('/api/auth', authRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/app', appRoutes);
 
 // Serve the static admin web dashboard from ../../web
 const webDir = path.join(__dirname, '..', '..', 'web');

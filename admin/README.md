@@ -104,6 +104,36 @@ admin@arete.fit / admin123
 | GET   | `/admin/stats/growth` | Weekly sign-ups |
 | GET   | `/admin/stats/revenue` | Monthly revenue |
 
+## Mobile app connection
+
+The Flutter app talks to this server for **auth and profile** via `/api/app/*`:
+
+| Method | Path | Purpose |
+|--------|------|---------|
+| POST | `/app/auth/register` | Member sign-up → JWT + profile |
+| POST | `/app/auth/login` | Member sign-in → JWT + profile |
+| GET  | `/app/profile` | Current member profile (JWT) |
+| PUT  | `/app/profile` | Update profile fields (JWT) |
+
+The server address is **hard-coded and obfuscated** in the app at
+`lib/core/config/api_config.dart` (currently `http://161.97.78.116:2955`). To
+point the app at a new address, regenerate the obfuscated string with the same
+key:
+
+```bash
+python3 - <<'PY'
+import base64
+url = "http://YOUR_NEW_HOST:PORT"          # or https://api.yourdomain.com
+key = [0x5A,0x3C,0x7E,0x11,0x2D,0x69,0x84,0xB3]
+enc = bytes(b ^ key[i%len(key)] for i,b in enumerate(url.encode()))
+print(base64.b64encode(enc).decode())
+PY
+```
+
+Paste the output into `_encoded` in `api_config.dart`, rebuild the APK. While on
+plain HTTP, the CI build allows cleartext to the server IP via an Android
+network-security config.
+
 ## Next steps
 
 - Member detail drawer + inline edit actions in the UI.
