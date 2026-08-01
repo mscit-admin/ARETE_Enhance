@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../../../core/constants/enums.dart';
+import '../../../core/l10n/enum_labels.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../data/models/member.dart';
+import '../../../l10n/app_localizations.dart';
 import '../../../shared/widgets/pill.dart';
 
 /// The dark "membership" hero card: tier, status and renewal date.
@@ -22,6 +24,7 @@ class MembershipCard extends StatelessWidget {
       MembershipStatus.frozen => PillTone.gold,
       MembershipStatus.expired => PillTone.ember,
     };
+    final l = AppLocalizations.of(context);
 
     return Container(
       width: double.infinity,
@@ -41,7 +44,7 @@ class MembershipCard extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                'MEMBERSHIP',
+                l.membershipTitle,
                 style: TextStyle(
                   color: Colors.white.withValues(alpha: 0.55),
                   fontSize: 11,
@@ -49,7 +52,7 @@ class MembershipCard extends StatelessWidget {
                   letterSpacing: 1.4,
                 ),
               ),
-              Pill(m.status.label, tone: statusTone),
+              Pill(m.status.localized(l), tone: statusTone),
             ],
           ),
           const SizedBox(height: AppSpacing.md),
@@ -58,7 +61,7 @@ class MembershipCard extends StatelessWidget {
             textBaseline: TextBaseline.alphabetic,
             children: [
               Text(
-                m.tier.label,
+                m.tier.localized(l),
                 style: const TextStyle(
                   color: Colors.white,
                   fontSize: 26,
@@ -74,9 +77,9 @@ class MembershipCard extends StatelessWidget {
           const SizedBox(height: AppSpacing.lg),
           Row(
             children: [
-              _meta('Member since', df.format(m.joinedOn)),
+              _meta(l.membershipSince, df.format(m.joinedOn)),
               const SizedBox(width: AppSpacing.xl),
-              _meta('Renews', df.format(m.renewsOn)),
+              _meta(l.membershipRenews, df.format(m.renewsOn)),
             ],
           ),
         ],

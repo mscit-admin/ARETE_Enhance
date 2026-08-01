@@ -3,10 +3,12 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/constants/enums.dart';
+import '../../core/l10n/enum_labels.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_theme.dart';
 import '../../data/models/body_metrics.dart';
 import '../../data/models/member.dart';
+import '../../l10n/app_localizations.dart';
 import '../../shared/widgets/section_label.dart';
 import '../../state/profile_controller.dart';
 
@@ -49,6 +51,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   }
 
   Future<void> _save() async {
+    final l = AppLocalizations.of(context);
     if (!_formKey.currentState!.validate()) return;
     setState(() => _saving = true);
 
@@ -70,33 +73,34 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     if (!mounted) return;
     setState(() => _saving = false);
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Profile updated')),
+      SnackBar(content: Text(l.editProfileUpdated)),
     );
     Navigator.of(context).pop();
   }
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
     return Scaffold(
-      appBar: AppBar(title: const Text('Edit profile')),
+      appBar: AppBar(title: Text(l.editTitle)),
       body: Form(
         key: _formKey,
         child: ListView(
           padding: const EdgeInsets.all(AppSpacing.screen),
           children: [
-            const SectionLabel('Personal'),
+            SectionLabel(l.editPersonal),
             const SizedBox(height: AppSpacing.md),
             TextFormField(
               controller: _name,
-              decoration: const InputDecoration(labelText: 'Full name'),
+              decoration: InputDecoration(labelText: l.fieldFullName),
               textCapitalization: TextCapitalization.words,
               validator: (v) =>
-                  (v == null || v.trim().isEmpty) ? 'Name is required' : null,
+                  (v == null || v.trim().isEmpty) ? l.editNameRequired : null,
             ),
             const SizedBox(height: AppSpacing.md),
             TextFormField(
               controller: _phone,
-              decoration: const InputDecoration(labelText: 'Phone (optional)'),
+              decoration: InputDecoration(labelText: l.editPhoneOptional),
               keyboardType: TextInputType.phone,
             ),
             const SizedBox(height: AppSpacing.md),
@@ -111,41 +115,41 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             ),
 
             const SizedBox(height: AppSpacing.xl),
-            const SectionLabel('Body metrics'),
+            SectionLabel(l.editBodyMetrics),
             const SizedBox(height: AppSpacing.md),
             Row(
               children: [
                 Expanded(
                   child: TextFormField(
                     controller: _weight,
-                    decoration: const InputDecoration(
-                        labelText: 'Weight (kg)', suffixText: 'kg'),
+                    decoration: InputDecoration(
+                        labelText: l.editWeightKg, suffixText: 'kg'),
                     keyboardType:
                         const TextInputType.numberWithOptions(decimal: true),
                     inputFormatters: [
                       FilteringTextInputFormatter.allow(RegExp(r'[0-9.]')),
                     ],
-                    validator: _positiveNumber,
+                    validator: (v) => _positiveNumber(v, l),
                   ),
                 ),
                 const SizedBox(width: AppSpacing.md),
                 Expanded(
                   child: TextFormField(
                     controller: _height,
-                    decoration: const InputDecoration(
-                        labelText: 'Height (cm)', suffixText: 'cm'),
+                    decoration: InputDecoration(
+                        labelText: l.editHeightCm, suffixText: 'cm'),
                     keyboardType: TextInputType.number,
                     inputFormatters: [
                       FilteringTextInputFormatter.allow(RegExp(r'[0-9.]')),
                     ],
-                    validator: _positiveNumber,
+                    validator: (v) => _positiveNumber(v, l),
                   ),
                 ),
               ],
             ),
 
             const SizedBox(height: AppSpacing.xl),
-            const SectionLabel('Training'),
+            SectionLabel(l.editTraining),
             const SizedBox(height: AppSpacing.md),
             _GoalDropdown(
               value: _goal,
@@ -167,7 +171,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                       child: CircularProgressIndicator(
                           strokeWidth: 2, color: Colors.white),
                     )
-                  : const Text('Save changes'),
+                  : Text(l.editSaveChanges),
             ),
           ],
         ),
@@ -175,9 +179,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     );
   }
 
-  String? _positiveNumber(String? v) {
+  String? _positiveNumber(String? v, AppLocalizations l) {
     final n = double.tryParse(v ?? '');
-    if (n == null || n <= 0) return 'Enter a valid number';
+    if (n == null || n <= 0) return l.editValidNumber;
     return null;
   }
 }
@@ -189,12 +193,13 @@ class _GenderDropdown extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
     return DropdownButtonFormField<Gender>(
       value: value,
-      decoration: const InputDecoration(labelText: 'Gender'),
+      decoration: InputDecoration(labelText: l.editGender),
       items: [
         for (final g in Gender.values)
-          DropdownMenuItem(value: g, child: Text(g.label)),
+          DropdownMenuItem(value: g, child: Text(g.localized(l))),
       ],
       onChanged: (g) => g == null ? null : onChanged(g),
     );
@@ -208,12 +213,13 @@ class _GoalDropdown extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
     return DropdownButtonFormField<FitnessGoal>(
       value: value,
-      decoration: const InputDecoration(labelText: 'Primary goal'),
+      decoration: InputDecoration(labelText: l.editPrimaryGoal),
       items: [
         for (final g in FitnessGoal.values)
-          DropdownMenuItem(value: g, child: Text(g.label)),
+          DropdownMenuItem(value: g, child: Text(g.localized(l))),
       ],
       onChanged: (g) => g == null ? null : onChanged(g),
     );
@@ -227,12 +233,13 @@ class _ExperienceDropdown extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
     return DropdownButtonFormField<ExperienceLevel>(
       value: value,
-      decoration: const InputDecoration(labelText: 'Experience level'),
+      decoration: InputDecoration(labelText: l.editExperienceLevel),
       items: [
         for (final e in ExperienceLevel.values)
-          DropdownMenuItem(value: e, child: Text(e.label)),
+          DropdownMenuItem(value: e, child: Text(e.localized(l))),
       ],
       onChanged: (e) => e == null ? null : onChanged(e),
     );
@@ -247,6 +254,7 @@ class _DobField extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final p = context.palette;
+    final l = AppLocalizations.of(context);
     return InkWell(
       borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
       onTap: () async {
@@ -259,7 +267,7 @@ class _DobField extends StatelessWidget {
         if (picked != null) onChanged(picked);
       },
       child: InputDecorator(
-        decoration: const InputDecoration(labelText: 'Date of birth'),
+        decoration: InputDecoration(labelText: l.editDob),
         child: Text(
           '${value.year}-${value.month.toString().padLeft(2, '0')}-${value.day.toString().padLeft(2, '0')}',
           style: context.textStyles.bodyLarge?.copyWith(color: p.text),

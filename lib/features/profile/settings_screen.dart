@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/constants/enums.dart';
+import '../../core/l10n/enum_labels.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_theme.dart';
@@ -145,7 +146,7 @@ class SettingsScreen extends StatelessWidget {
                   leading: const Icon(Icons.straighten),
                   title: Text(l.settingsUnits),
                   trailing: Text(
-                    member?.units.label ?? UnitSystem.metric.label,
+                    (member?.units ?? UnitSystem.metric).localized(l),
                     style: context.textStyles.bodySmall,
                   ),
                 ),
@@ -292,6 +293,7 @@ class _HydrationSection extends StatelessWidget {
   Widget build(BuildContext context) {
     final h = context.watch<HydrationController>();
     final p = context.palette;
+    final l = AppLocalizations.of(context);
 
     return AppCard(
       padding: EdgeInsets.zero,
@@ -299,11 +301,11 @@ class _HydrationSection extends StatelessWidget {
         children: [
           SwitchListTile(
             secondary: const Icon(Icons.water_drop_outlined),
-            title: const Text('Remind me to drink water'),
+            title: Text(l.hydrationRemindTitle),
             subtitle: Text(
               h.enabled
-                  ? 'Every ${h.intervalHours}h · ${_fmtHour(h.startHour)}–${_fmtHour(h.endHour)}'
-                  : 'Off',
+                  ? l.hydrationCadence(h.intervalHours, _fmtHour(h.startHour), _fmtHour(h.endHour))
+                  : l.hydrationOff,
             ),
             value: h.enabled,
             activeColor: AppColors.water,
@@ -313,14 +315,14 @@ class _HydrationSection extends StatelessWidget {
             const Divider(height: 1),
             ListTile(
               leading: const Icon(Icons.timelapse),
-              title: const Text('Reminder every'),
+              title: Text(l.hydrationEvery),
               trailing: DropdownButton<int>(
                 value: h.intervalHours,
                 underline: const SizedBox.shrink(),
-                items: const [
-                  DropdownMenuItem(value: 1, child: Text('1 hour')),
-                  DropdownMenuItem(value: 2, child: Text('2 hours')),
-                  DropdownMenuItem(value: 3, child: Text('3 hours')),
+                items: [
+                  DropdownMenuItem(value: 1, child: Text(l.hydrationHour)),
+                  DropdownMenuItem(value: 2, child: Text(l.hydrationHours(2))),
+                  DropdownMenuItem(value: 3, child: Text(l.hydrationHours(3))),
                 ],
                 onChanged: (v) => v == null
                     ? null
@@ -330,7 +332,7 @@ class _HydrationSection extends StatelessWidget {
             const Divider(height: 1),
             ListTile(
               leading: const Icon(Icons.schedule),
-              title: const Text('Active window'),
+              title: Text(l.hydrationActiveWindow),
               trailing: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -360,14 +362,14 @@ class _HydrationSection extends StatelessWidget {
                     : Icons.notifications_off_outlined,
                 color: h.permissionGranted ? AppColors.teal : AppColors.warning,
               ),
-              title: const Text('System notifications'),
-              subtitle: Text(h.permissionGranted ? 'Allowed' : 'Not allowed'),
+              title: Text(l.hydrationSystemNotifs),
+              subtitle: Text(h.permissionGranted ? l.hydrationAllowed : l.hydrationNotAllowed),
               trailing: h.permissionGranted
                   ? null
                   : TextButton(
                       onPressed: () =>
                           context.read<HydrationController>().requestPermission(),
-                      child: const Text('Enable'),
+                      child: Text(l.hydrationEnable),
                     ),
             ),
             const Divider(height: 1),
@@ -380,14 +382,14 @@ class _HydrationSection extends StatelessWidget {
                       onPressed: () {
                         context.read<HydrationController>().sendTestNotification();
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Test notification sent'),
-                            duration: Duration(seconds: 1),
+                          SnackBar(
+                            content: Text(l.hydrationTestSent),
+                            duration: const Duration(seconds: 1),
                           ),
                         );
                       },
                       icon: const Icon(Icons.notifications, size: 18),
-                      label: const Text('Test'),
+                      label: Text(l.hydrationTest),
                     ),
                   ),
                   const SizedBox(width: AppSpacing.sm),
@@ -400,7 +402,7 @@ class _HydrationSection extends StatelessWidget {
                         Navigator.of(context).maybePop();
                       },
                       icon: const Icon(Icons.touch_app, size: 18),
-                      label: const Text('In-app'),
+                      label: Text(l.hydrationInApp),
                     ),
                   ),
                 ],

@@ -4,10 +4,12 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/constants/enums.dart';
+import '../../core/l10n/enum_labels.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_theme.dart';
 import '../../data/models/member.dart';
+import '../../l10n/app_localizations.dart';
 import '../../shared/widgets/gradient_avatar.dart';
 import '../../shared/widgets/pill.dart';
 import '../../shared/widgets/section_label.dart';
@@ -31,6 +33,7 @@ class MemberProfileScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final controller = context.watch<ProfileController>();
+    final l = AppLocalizations.of(context);
 
     return Scaffold(
       body: SafeArea(
@@ -38,7 +41,7 @@ class MemberProfileScreen extends StatelessWidget {
           LoadStatus.loading || LoadStatus.idle =>
             const Center(child: CircularProgressIndicator()),
           LoadStatus.error => _ErrorState(
-              message: controller.error ?? 'Something went wrong.',
+              message: controller.error ?? l.profileSomethingWrong,
               onRetry: controller.load,
             ),
           LoadStatus.ready => _ProfileBody(member: controller.member!),
@@ -60,6 +63,7 @@ class _ProfileBody extends StatelessWidget {
     final hydrationDue = context.watch<HydrationController>().promptDue;
     final isTrainerAccount =
         context.watch<AuthController>().user?.isTrainer ?? false;
+    final l = AppLocalizations.of(context);
 
     return RefreshIndicator(
       onRefresh: context.read<ProfileController>().load,
@@ -82,12 +86,12 @@ class _ProfileBody extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Hey, $firstName',
+                    Text(l.profileHey(firstName),
                         style: context.textStyles.headlineSmall),
                     const SizedBox(height: 2),
                     Text(
-                      '${member.membership.tier.label} Member · '
-                      '${member.currentStreakDays}-day streak 🔥',
+                      l.profileMemberStreak(member.membership.tier.localized(l),
+                          member.currentStreakDays),
                       style: context.textStyles.bodySmall
                           ?.copyWith(color: p.muted),
                     ),
@@ -96,7 +100,7 @@ class _ProfileBody extends StatelessWidget {
               ),
               if (isTrainerAccount)
                 IconButton(
-                  tooltip: 'Switch to trainer mode',
+                  tooltip: l.profileSwitchTrainer,
                   onPressed: () => context
                       .read<SessionController>()
                       .setRole(UserRole.trainer),
@@ -109,7 +113,7 @@ class _ProfileBody extends StatelessWidget {
                       builder: (_) => const SettingsScreen()),
                 ),
                 icon: Icon(Icons.settings_outlined, color: p.text),
-                tooltip: 'Settings',
+                tooltip: l.profileSettingsTooltip,
               ),
             ],
           ),
@@ -120,7 +124,7 @@ class _ProfileBody extends StatelessWidget {
           const SizedBox(height: AppSpacing.lg),
 
           // ---- KPI ring: the home centrepiece ----
-          const SectionLabel('Today at a glance'),
+          SectionLabel(l.profileTodayGlance),
           const SizedBox(height: AppSpacing.md),
           Center(child: _TodayKpiRing(member: member)),
           const SizedBox(height: AppSpacing.lg),
@@ -130,25 +134,25 @@ class _ProfileBody extends StatelessWidget {
           const SizedBox(height: AppSpacing.xl),
 
           // ---- Today's session (visual entry to Workout Execution) ----
-          const SectionLabel('Today\'s workout'),
+          SectionLabel(l.profileTodayWorkout),
           const SizedBox(height: AppSpacing.sm),
           _TodaySessionCard(),
           const SizedBox(height: AppSpacing.lg),
 
           // ---- Goal ----
-          SectionLabel('Goal · ${member.goal.label}'),
+          SectionLabel(l.profileGoalLabel(member.goal.localized(l))),
           const SizedBox(height: AppSpacing.sm),
           GoalProgressCard(member: member),
           const SizedBox(height: AppSpacing.lg),
 
           // ---- Membership ----
-          const SectionLabel('Membership'),
+          SectionLabel(l.profileMembership),
           const SizedBox(height: AppSpacing.sm),
           MembershipCard(member: member),
           const SizedBox(height: AppSpacing.lg),
 
           // ---- Badges ----
-          const SectionLabel('Achievements'),
+          SectionLabel(l.profileAchievements),
           const SizedBox(height: AppSpacing.sm),
           BadgesRow(badges: member.badges),
           const SizedBox(height: AppSpacing.lg),
@@ -156,7 +160,7 @@ class _ProfileBody extends StatelessWidget {
           // ---- Actions ----
           _ActionRow(
             icon: Icons.person_outline,
-            label: 'Edit profile',
+            label: l.profileEditProfile,
             onTap: () => Navigator.of(context).push(
               MaterialPageRoute(
                 builder: (_) => EditProfileScreen(member: member),
@@ -165,7 +169,7 @@ class _ProfileBody extends StatelessWidget {
           ),
           _ActionRow(
             icon: Icons.settings_outlined,
-            label: 'Settings & preferences',
+            label: l.profileSettingsPrefs,
             onTap: () => Navigator.of(context).push(
               MaterialPageRoute(builder: (_) => const SettingsScreen()),
             ),
@@ -179,6 +183,7 @@ class _ProfileBody extends StatelessWidget {
 class _TodaySessionCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
     return Container(
       padding: const EdgeInsets.all(AppSpacing.lg),
       decoration: BoxDecoration(
@@ -191,9 +196,9 @@ class _TodaySessionCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  'Push Day · A',
-                  style: TextStyle(
+                Text(
+                  l.profilePushDay,
+                  style: const TextStyle(
                     color: Colors.white,
                     fontSize: 16,
                     fontWeight: FontWeight.w800,
@@ -201,7 +206,7 @@ class _TodaySessionCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 3),
                 Text(
-                  '6 exercises · ~52 min',
+                  l.profileSessionMeta,
                   style: TextStyle(
                     color: Colors.white.withValues(alpha: 0.6),
                     fontSize: 12,
@@ -210,7 +215,7 @@ class _TodaySessionCard extends StatelessWidget {
               ],
             ),
           ),
-          const Pill('Start ▸', tone: PillTone.ember),
+          Pill(l.profileStart, tone: PillTone.ember),
         ],
       ),
     );
@@ -280,42 +285,42 @@ class _RotatingKpiCenterState extends State<_RotatingKpiCenter> {
     _startAutoRotate(); // reset the clock after a manual tap
   }
 
-  List<_KpiSpec> _buildSpecs() {
+  List<_KpiSpec> _buildSpecs(AppLocalizations l) {
     final m = widget.member;
     final ds = m.dailyStats;
     return [
       _KpiSpec(
-        label: 'Water',
+        label: l.kpiWater,
         value: '${ds.waterGlasses}',
-        unit: 'of ${ds.waterTargetGlasses} glasses',
+        unit: l.kpiWaterUnit(ds.waterTargetGlasses),
         icon: Icons.water_drop,
         color: AppColors.water,
       ),
       _KpiSpec(
-        label: 'BMI',
+        label: l.kpiBmi,
         value: m.metrics.bmi.toStringAsFixed(1),
         unit: m.metrics.bmiCategory,
         icon: Icons.monitor_heart,
         color: AppColors.teal,
       ),
       _KpiSpec(
-        label: 'Weight',
+        label: l.kpiWeight,
         value: m.displayWeight.toStringAsFixed(1),
         unit: m.units.weightUnit,
         icon: Icons.monitor_weight,
         color: AppColors.ember,
       ),
       _KpiSpec(
-        label: 'Calories',
+        label: l.kpiCalories,
         value: '${ds.caloriesBurned}',
-        unit: 'of ${ds.caloriesTarget} kcal',
+        unit: l.kpiCaloriesUnit(ds.caloriesTarget),
         icon: Icons.local_fire_department,
         color: AppColors.move,
       ),
       _KpiSpec(
-        label: 'Steps',
+        label: l.kpiSteps,
         value: _RingLegend._compact(ds.steps),
-        unit: 'of ${_RingLegend._compact(ds.stepsTarget)}',
+        unit: l.kpiStepsUnit(_RingLegend._compact(ds.stepsTarget)),
         icon: Icons.directions_walk,
         color: AppColors.steps,
       ),
@@ -325,7 +330,8 @@ class _RotatingKpiCenterState extends State<_RotatingKpiCenter> {
   @override
   Widget build(BuildContext context) {
     final p = context.palette;
-    final specs = _buildSpecs();
+    final l = AppLocalizations.of(context);
+    final specs = _buildSpecs(l);
     final i = _index % specs.length;
     final spec = specs[i];
 
@@ -437,23 +443,25 @@ class _RingLegend extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final ds = member.dailyStats;
+    final l = AppLocalizations.of(context);
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceAround,
       children: [
         _LegendItem(
           color: AppColors.move,
-          label: 'Move',
-          reading: '${ds.caloriesBurned}/${ds.caloriesTarget} kcal',
+          label: l.legendMove,
+          reading: l.legendMoveReading(ds.caloriesBurned, ds.caloriesTarget),
         ),
         _LegendItem(
           color: AppColors.steps,
-          label: 'Steps',
-          reading: '${_compact(ds.steps)}/${_compact(ds.stepsTarget)}',
+          label: l.kpiSteps,
+          reading: l.legendStepsReading(
+              _compact(ds.steps), _compact(ds.stepsTarget)),
         ),
         _LegendItem(
           color: AppColors.water,
-          label: 'Water',
-          reading: '${ds.waterGlasses}/${ds.waterTargetGlasses} glasses',
+          label: l.kpiWater,
+          reading: l.legendWaterReading(ds.waterGlasses, ds.waterTargetGlasses),
         ),
       ],
     );
@@ -518,6 +526,7 @@ class _AssessmentEntry extends StatelessWidget {
     final assessment = context.watch<AssessmentController>();
     final plan = assessment.selectedPlan;
     final p = context.palette;
+    final l = AppLocalizations.of(context);
 
     return Material(
       color: plan == null ? AppColors.ink : p.surface,
@@ -555,14 +564,12 @@ class _AssessmentEntry extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      plan == null ? 'Get your starter plan' : 'Your plan',
+                      plan == null ? l.assessGetStarter : l.assessYourPlan,
                       style: context.textStyles.titleMedium?.copyWith(
                           color: plan == null ? Colors.white : p.text),
                     ),
                     Text(
-                      plan == null
-                          ? 'Take the 2-minute health assessment'
-                          : plan.name,
+                      plan == null ? l.assessTake2min : plan.name,
                       style: TextStyle(
                         fontSize: 12.5,
                         color: plan == null
@@ -593,6 +600,7 @@ class _HydrationPrompt extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final controller = context.read<HydrationController>();
+    final l = AppLocalizations.of(context);
     return Container(
       padding: const EdgeInsets.all(AppSpacing.lg),
       decoration: BoxDecoration(
@@ -609,7 +617,7 @@ class _HydrationPrompt extends StatelessWidget {
               const SizedBox(width: AppSpacing.sm),
               Expanded(
                 child: Text(
-                  'Time to hydrate 💧',
+                  l.hydrateTitle,
                   style: context.textStyles.titleMedium,
                 ),
               ),
@@ -617,7 +625,7 @@ class _HydrationPrompt extends StatelessWidget {
           ),
           const SizedBox(height: 6),
           Text(
-            'Grab a glass of water and confirm below to keep your streak going.',
+            l.hydrateBody,
             style: context.textStyles.bodySmall,
           ),
           const SizedBox(height: AppSpacing.md),
@@ -631,20 +639,20 @@ class _HydrationPrompt extends StatelessWidget {
                   onPressed: () {
                     controller.confirmDrank();
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Nice — glass logged 💧'),
-                        duration: Duration(seconds: 1),
+                      SnackBar(
+                        content: Text(l.hydrateGlassLogged),
+                        duration: const Duration(seconds: 1),
                       ),
                     );
                   },
                   icon: const Icon(Icons.check, size: 18),
-                  label: const Text('I drank water'),
+                  label: Text(l.hydrateIDrank),
                 ),
               ),
               const SizedBox(width: AppSpacing.sm),
               OutlinedButton(
                 onPressed: controller.snooze,
-                child: const Text('Snooze'),
+                child: Text(l.hydrateSnooze),
               ),
             ],
           ),
@@ -660,18 +668,19 @@ class _LogWaterButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
     return OutlinedButton.icon(
       onPressed: () {
         context.read<ProfileController>().logWater();
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Logged a glass of water 💧'),
-            duration: Duration(seconds: 1),
+          SnackBar(
+            content: Text(l.hydrateLogged),
+            duration: const Duration(seconds: 1),
           ),
         );
       },
       icon: const Icon(Icons.add, size: 18, color: AppColors.water),
-      label: const Text('Log a glass of water'),
+      label: Text(l.hydrateLogGlass),
     );
   }
 }
@@ -719,6 +728,7 @@ class _ErrorState extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final p = context.palette;
+    final l = AppLocalizations.of(context);
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(AppSpacing.xxxl),
@@ -727,14 +737,14 @@ class _ErrorState extends StatelessWidget {
           children: [
             Icon(Icons.cloud_off, size: 40, color: p.muted),
             const SizedBox(height: AppSpacing.md),
-            Text('Couldn\'t load your profile',
+            Text(l.profileCouldntLoad,
                 style: context.textStyles.titleLarge),
             const SizedBox(height: AppSpacing.sm),
             Text(message,
                 textAlign: TextAlign.center,
                 style: context.textStyles.bodySmall?.copyWith(color: p.muted)),
             const SizedBox(height: AppSpacing.lg),
-            ElevatedButton(onPressed: onRetry, child: const Text('Retry')),
+            ElevatedButton(onPressed: onRetry, child: Text(l.actionRetry)),
           ],
         ),
       ),

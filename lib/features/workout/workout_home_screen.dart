@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_theme.dart';
+import '../../l10n/app_localizations.dart';
 import '../../data/models/workout_session.dart';
 import '../../shared/widgets/pill.dart';
 import '../../shared/widgets/section_label.dart';
@@ -43,15 +44,16 @@ class _WorkoutHomeScreenState extends State<WorkoutHomeScreen> {
   @override
   Widget build(BuildContext context) {
     final controller = context.watch<WorkoutController>();
+    final l = AppLocalizations.of(context);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Train')),
+      appBar: AppBar(title: Text(l.navTrain)),
       body: SafeArea(
         child: switch (controller.status) {
           LoadStatus.idle || LoadStatus.loading =>
             const Center(child: CircularProgressIndicator()),
           LoadStatus.error =>
-            const Center(child: Text('Could not load your workout.')),
+            Center(child: Text(l.workoutCouldNotLoad)),
           LoadStatus.ready =>
             _Overview(session: controller.session!, onStart: _startWorkout),
         },
@@ -77,6 +79,7 @@ class _Overview extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final p = context.palette;
+    final l = AppLocalizations.of(context);
     return ListView(
       padding: const EdgeInsets.fromLTRB(
           AppSpacing.screen, AppSpacing.lg, AppSpacing.screen, AppSpacing.xxxl),
@@ -90,7 +93,7 @@ class _Overview extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Pill('Today', tone: PillTone.ember),
+              Pill(l.workoutPillToday, tone: PillTone.ember),
               const SizedBox(height: AppSpacing.md),
               Text(
                 session.title,
@@ -111,19 +114,22 @@ class _Overview extends StatelessWidget {
               Row(
                 children: [
                   _HeaderStat(
-                      value: '${session.exercises.length}', label: 'Exercises'),
+                      value: '${session.exercises.length}',
+                      label: l.workoutStatExercises),
                   const SizedBox(width: AppSpacing.xl),
                   _HeaderStat(
-                      value: '${session.totalTargetSets}', label: 'Sets'),
+                      value: '${session.totalTargetSets}',
+                      label: l.workoutStatSets),
                   const SizedBox(width: AppSpacing.xl),
-                  _HeaderStat(value: '~$_estMinutes', label: 'Minutes'),
+                  _HeaderStat(
+                      value: '~$_estMinutes', label: l.workoutStatMinutes),
                 ],
               ),
             ],
           ),
         ),
         const SizedBox(height: AppSpacing.lg),
-        const SectionLabel('Exercises'),
+        SectionLabel(l.workoutSectionExercises),
         const SizedBox(height: AppSpacing.sm),
         for (var i = 0; i < session.exercises.length; i++) ...[
           _ExerciseRow(index: i + 1, exercise: session.exercises[i]),
@@ -134,7 +140,7 @@ class _Overview extends StatelessWidget {
         ElevatedButton.icon(
           onPressed: onStart,
           icon: const Icon(Icons.play_arrow_rounded),
-          label: const Text('Start workout'),
+          label: Text(l.workoutStart),
         ),
       ],
     );

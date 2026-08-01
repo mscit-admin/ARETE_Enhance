@@ -93,12 +93,10 @@ class _AppShellState extends State<AppShell> {
           label: l.navPlans,
           icon: Icons.assignment_outlined,
           activeIcon: Icons.assignment,
-          screen: const ComingSoonScreen(
-            title: 'Plans',
-            moduleName: 'Plan Assignment',
-            description:
-                'Build and assign training programs to your clients, review '
-                'their logs and adjust targets.',
+          screen: ComingSoonScreen(
+            title: l.navPlans,
+            moduleName: l.comingPlansModule,
+            description: l.comingPlansDesc,
             icon: Icons.assignment,
           ),
         ),
@@ -106,10 +104,10 @@ class _AppShellState extends State<AppShell> {
           label: l.navMessages,
           icon: Icons.chat_bubble_outline,
           activeIcon: Icons.chat_bubble,
-          screen: const ComingSoonScreen(
-            title: 'Messages',
-            moduleName: 'Client Messaging',
-            description: 'One-on-one chat with each of your clients.',
+          screen: ComingSoonScreen(
+            title: l.navMessages,
+            moduleName: l.comingMessagesModule,
+            description: l.comingMessagesDesc,
             icon: Icons.chat_bubble,
           ),
         ),

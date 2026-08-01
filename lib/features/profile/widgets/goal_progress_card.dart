@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/constants/enums.dart';
+import '../../../core/l10n/enum_labels.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../data/models/member.dart';
+import '../../../l10n/app_localizations.dart';
 import '../../../shared/widgets/app_card.dart';
 import '../../../shared/widgets/progress_bar.dart';
 
@@ -16,6 +18,7 @@ class GoalProgressCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final p = context.palette;
+    final l = AppLocalizations.of(context);
     return AppCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -23,9 +26,9 @@ class GoalProgressCard extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('Weekly target', style: context.textStyles.titleMedium),
+              Text(l.goalWeeklyTarget, style: context.textStyles.titleMedium),
               Text(
-                '${member.sessionsThisWeek} / ${member.weeklyTargetSessions} sessions',
+                l.goalSessions(member.sessionsThisWeek, member.weeklyTargetSessions),
                 style: context.textStyles.bodySmall?.copyWith(color: p.muted),
               ),
             ],
@@ -35,8 +38,8 @@ class GoalProgressCard extends StatelessWidget {
           const SizedBox(height: AppSpacing.md),
           Text(
             member.weeklyProgress >= 1
-                ? 'Target hit — strong week. 🔥'
-                : '${member.weeklyTargetSessions - member.sessionsThisWeek} session(s) to hit your ${member.goal.label.toLowerCase()} goal this week.',
+                ? l.goalHit
+                : l.goalRemaining(member.weeklyTargetSessions - member.sessionsThisWeek, member.goal.localized(l)),
             style: context.textStyles.bodySmall?.copyWith(color: p.muted),
           ),
         ],

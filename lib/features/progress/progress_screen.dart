@@ -6,6 +6,7 @@ import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_theme.dart';
 import '../../data/models/progress.dart';
+import '../../l10n/app_localizations.dart';
 import '../../shared/widgets/app_card.dart';
 import '../../shared/widgets/pill.dart';
 import '../../shared/widgets/section_label.dart';
@@ -35,9 +36,10 @@ class _ProgressScreenState extends State<ProgressScreen> {
   @override
   Widget build(BuildContext context) {
     final controller = context.watch<ProgressController>();
+    final l = AppLocalizations.of(context);
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Progress'),
+        title: Text(l.navProgress),
         bottom: const PreferredSize(
           preferredSize: Size.fromHeight(0),
           child: SizedBox.shrink(),
@@ -48,7 +50,7 @@ class _ProgressScreenState extends State<ProgressScreen> {
           LoadStatus.idle || LoadStatus.loading =>
             const Center(child: CircularProgressIndicator()),
           LoadStatus.error =>
-            const Center(child: Text('Could not load progress.')),
+            Center(child: Text(l.progressCouldNotLoad)),
           LoadStatus.ready => _Dashboard(data: controller.data!),
         },
       ),
@@ -66,12 +68,13 @@ class _Dashboard extends StatelessWidget {
     final p = context.palette;
     final change = data.weightChange;
     final down = change <= 0;
+    final l = AppLocalizations.of(context);
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(
           AppSpacing.screen, AppSpacing.md, AppSpacing.screen, AppSpacing.xxxl),
       children: [
-        Text('Last 12 weeks',
+        Text(l.progressLast12Weeks,
             style: context.textStyles.bodySmall?.copyWith(color: p.muted)),
         const SizedBox(height: AppSpacing.md),
 
@@ -102,7 +105,7 @@ class _Dashboard extends StatelessWidget {
                   ),
                 ],
               ),
-              Text('Body weight',
+              Text(l.progressBodyWeight,
                   style:
                       context.textStyles.bodySmall?.copyWith(color: p.muted)),
               const SizedBox(height: AppSpacing.md),
@@ -121,26 +124,26 @@ class _Dashboard extends StatelessWidget {
             Expanded(
                 child: _MiniStat(
                     value: '${data.totalWorkouts}',
-                    label: 'Workouts',
+                    label: l.progressWorkouts,
                     color: p.text)),
             const SizedBox(width: AppSpacing.md),
             Expanded(
                 child: _MiniStat(
                     value: '${data.totalPRs}',
-                    label: 'PRs set',
+                    label: l.progressPrsSet,
                     color: AppColors.teal)),
             const SizedBox(width: AppSpacing.md),
             Expanded(
                 child: _MiniStat(
                     value: '${data.streakDays}',
-                    label: 'Day streak',
+                    label: l.progressDayStreak,
                     color: AppColors.ember)),
           ],
         ),
         const SizedBox(height: AppSpacing.lg),
 
         // ---- Weekly volume ----
-        const SectionLabel('Weekly volume'),
+        SectionLabel(l.progressWeeklyVolume),
         const SizedBox(height: AppSpacing.sm),
         AppCard(
           child: Column(
@@ -151,7 +154,7 @@ class _Dashboard extends StatelessWidget {
                 children: [
                   Text('${(data.thisWeekVolume / 1000).toStringAsFixed(1)}k kg',
                       style: context.textStyles.titleLarge),
-                  Text('this week',
+                  Text(l.progressThisWeek,
                       style: context.textStyles.bodySmall
                           ?.copyWith(color: p.muted)),
                 ],
@@ -167,7 +170,7 @@ class _Dashboard extends StatelessWidget {
         const SizedBox(height: AppSpacing.lg),
 
         // ---- Personal records ----
-        const SectionLabel('Personal records'),
+        SectionLabel(l.progressPersonalRecords),
         const SizedBox(height: AppSpacing.sm),
         AppCard(
           padding: const EdgeInsets.symmetric(
@@ -181,7 +184,7 @@ class _Dashboard extends StatelessWidget {
         const SizedBox(height: AppSpacing.lg),
 
         // ---- Measurements ----
-        const SectionLabel('Measurements'),
+        SectionLabel(l.progressMeasurements),
         const SizedBox(height: AppSpacing.sm),
         GridView.count(
           crossAxisCount: 2,
@@ -197,7 +200,7 @@ class _Dashboard extends StatelessWidget {
         const SizedBox(height: AppSpacing.lg),
 
         // ---- Progress photos ----
-        const SectionLabel('Progress photos'),
+        SectionLabel(l.progressPhotos),
         const SizedBox(height: AppSpacing.sm),
         _PhotoStrip(count: data.photoCount),
       ],
@@ -313,6 +316,7 @@ class _PhotoStrip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final p = context.palette;
+    final l = AppLocalizations.of(context);
     return SizedBox(
       height: 108,
       child: ListView(
@@ -326,7 +330,7 @@ class _PhotoStrip extends StatelessWidget {
               children: [
                 Icon(Icons.add_a_photo_outlined, color: p.muted),
                 const SizedBox(height: 4),
-                Text('Add',
+                Text(l.progressAdd,
                     style: context.textStyles.bodySmall
                         ?.copyWith(color: p.muted)),
               ],

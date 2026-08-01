@@ -5,6 +5,7 @@ import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_theme.dart';
 import '../../data/models/workout_session.dart';
+import '../../l10n/app_localizations.dart';
 import '../../shared/widgets/app_card.dart';
 import '../../shared/widgets/pill.dart';
 import '../../shared/widgets/section_label.dart';
@@ -17,9 +18,10 @@ class WorkoutSummaryScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = context.read<WorkoutController>();
+    final l = AppLocalizations.of(context);
     final session = c.session;
     if (session == null) {
-      return const Scaffold(body: Center(child: Text('No session.')));
+      return Scaffold(body: Center(child: Text(l.workoutNoSession)));
     }
     final p = context.palette;
     final elapsed = c.elapsed;
@@ -44,7 +46,7 @@ class WorkoutSummaryScreen extends StatelessWidget {
               ),
             ),
             const SizedBox(height: AppSpacing.lg),
-            Text('Session complete',
+            Text(l.workoutSessionComplete,
                 textAlign: TextAlign.center,
                 style: context.textStyles.headlineSmall),
             const SizedBox(height: 4),
@@ -61,23 +63,23 @@ class WorkoutSummaryScreen extends StatelessWidget {
                 children: [
                   StatTile(
                       value: '$mins:${secs.toString().padLeft(2, '0')}',
-                      label: 'Duration'),
+                      label: l.workoutStatDuration),
                   StatTile(
-                      value: '${session.completedSets}', label: 'Sets'),
+                      value: '${session.completedSets}', label: l.workoutStatSets),
                   StatTile(
                       value: _fmtVolume(session.totalVolume),
                       unit: 'kg',
-                      label: 'Volume'),
+                      label: l.workoutStatVolume),
                   StatTile(
                       value: '${session.prCount}',
-                      label: 'PRs',
+                      label: l.workoutStatPrs,
                       valueColor: AppColors.teal),
                 ],
               ),
             ),
             const SizedBox(height: AppSpacing.lg),
 
-            const SectionLabel('By exercise'),
+            SectionLabel(l.workoutByExercise),
             const SizedBox(height: AppSpacing.sm),
             for (final e in session.exercises) _ExerciseSummary(exercise: e),
 
@@ -85,7 +87,7 @@ class WorkoutSummaryScreen extends StatelessWidget {
             ElevatedButton(
               onPressed: () =>
                   Navigator.of(context).popUntil((r) => r.isFirst),
-              child: const Text('Done'),
+              child: Text(l.actionDone),
             ),
           ],
         ),
@@ -106,6 +108,7 @@ class _ExerciseSummary extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final p = context.palette;
+    final l = AppLocalizations.of(context);
     final sets = exercise.loggedSets;
     final hasPr = sets.any((s) => s.isPr);
     final top = sets.isEmpty
@@ -124,16 +127,19 @@ class _ExerciseSummary extends StatelessWidget {
                     style: context.textStyles.titleMedium),
                 Text(
                   sets.isEmpty
-                      ? 'Skipped'
-                      : '${sets.length} sets'
-                          '${top != null ? ' · top ${top.weightKg.toStringAsFixed(top.weightKg % 1 == 0 ? 0 : 1)}kg × ${top.reps}' : ''}',
+                      ? l.workoutSkipped
+                      : (top != null
+                          ? l.workoutSetsTop(sets.length,
+                              top.weightKg.toStringAsFixed(top.weightKg % 1 == 0 ? 0 : 1),
+                              top.reps)
+                          : l.workoutSetsOnly(sets.length)),
                   style:
                       context.textStyles.bodySmall?.copyWith(color: p.muted),
                 ),
               ],
             ),
           ),
-          if (hasPr) const Pill('PR', tone: PillTone.teal),
+          if (hasPr) Pill(l.prShort, tone: PillTone.teal),
         ],
       ),
     );

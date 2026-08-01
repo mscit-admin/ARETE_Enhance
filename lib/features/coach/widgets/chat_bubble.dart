@@ -4,6 +4,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../data/models/coach_chat.dart';
+import '../../../l10n/app_localizations.dart';
 
 /// Renders one chat message: coach on the left, member on the right, with
 /// special cards for assigned plans and booked sessions.
@@ -14,11 +15,12 @@ class ChatBubble extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
     switch (message.kind) {
       case MessageKind.planCard:
         return _PlanCard(message: message);
       case MessageKind.sessionConfirmed:
-        return const _SystemNote(text: '📅 Session booked with your coach');
+        return _SystemNote(text: l.chatSessionBookedNote);
       case MessageKind.text:
         return _TextBubble(message: message);
     }
@@ -70,6 +72,7 @@ class _PlanCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final p = context.palette;
+    final l = AppLocalizations.of(context);
     return Align(
       alignment: Alignment.centerLeft,
       child: Container(
@@ -103,10 +106,10 @@ class _PlanCard extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('New program assigned',
+                        Text(l.chatNewProgram,
                             style: context.textStyles.bodySmall
                                 ?.copyWith(color: p.muted)),
-                        Text(message.planName ?? 'Training plan',
+                        Text(message.planName ?? l.chatTrainingPlan,
                             style: context.textStyles.titleMedium),
                       ],
                     ),
@@ -118,12 +121,13 @@ class _PlanCard extends StatelessWidget {
             InkWell(
               onTap: () => ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
-                    content: Text('Opening ${message.planName ?? 'plan'}…')),
+                    content: Text(l.chatOpeningPlan(
+                        message.planName ?? l.chatTrainingPlan))),
               ),
               child: Padding(
                 padding: const EdgeInsets.symmetric(vertical: 12),
                 child: Center(
-                  child: Text('View plan',
+                  child: Text(l.chatViewPlan,
                       style: TextStyle(
                           color: AppColors.ember,
                           fontWeight: FontWeight.w700)),

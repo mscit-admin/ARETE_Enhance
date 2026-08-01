@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/constants/enums.dart';
+import '../../l10n/app_localizations.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_theme.dart';
@@ -17,9 +18,10 @@ class AssessmentResultScreen extends StatelessWidget {
   const AssessmentResultScreen({super.key});
 
   void _choose(BuildContext context, StarterPlan plan) {
+    final l = AppLocalizations.of(context);
     context.read<AssessmentController>().selectPlan(plan);
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('${plan.name} is now your plan')),
+      SnackBar(content: Text(l.resultPlanIsNow(plan.name))),
     );
     Navigator.of(context).popUntil((r) => r.isFirst);
   }
@@ -27,16 +29,17 @@ class AssessmentResultScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = context.watch<AssessmentController>();
+    final l = AppLocalizations.of(context);
     final recs = c.recommendations;
     if (recs.isEmpty) {
-      return const Scaffold(body: Center(child: Text('No recommendations.')));
+      return Scaffold(body: Center(child: Text(l.resultNoRecs)));
     }
     final top = recs.first;
     final alternatives = recs.skip(1).take(2).toList();
     final flagged = c.answers.parqFlagged;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Your plan')),
+      appBar: AppBar(title: Text(l.resultTitle)),
       body: SafeArea(
         child: ListView(
           padding: const EdgeInsets.fromLTRB(AppSpacing.screen, AppSpacing.md,
@@ -48,13 +51,13 @@ class AssessmentResultScreen extends StatelessWidget {
             ],
             _CalorieEstimate(activity: c.answers.activity),
             const SizedBox(height: AppSpacing.lg),
-            const SectionLabel('Recommended for you'),
+            SectionLabel(l.resultRecommendedFor),
             const SizedBox(height: AppSpacing.sm),
             _RecommendedCard(
                 ranked: top, onStart: () => _choose(context, top.plan)),
             if (alternatives.isNotEmpty) ...[
               const SizedBox(height: AppSpacing.lg),
-              const SectionLabel('Alternatives'),
+              SectionLabel(l.resultAlternatives),
               const SizedBox(height: AppSpacing.sm),
               for (final r in alternatives)
                 _AlternativeCard(
@@ -70,6 +73,7 @@ class AssessmentResultScreen extends StatelessWidget {
 class _SafetyNotice extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
     return Container(
       padding: const EdgeInsets.all(AppSpacing.lg),
       decoration: BoxDecoration(
@@ -84,8 +88,7 @@ class _SafetyNotice extends StatelessWidget {
           const SizedBox(width: AppSpacing.md),
           Expanded(
             child: Text(
-              'Based on your answers, check with a doctor before starting a new '
-              'program. Your plan is ready when you are.',
+              l.resultSafetyNotice,
               style: context.textStyles.bodySmall,
             ),
           ),
@@ -110,6 +113,7 @@ class _CalorieEstimate extends StatelessWidget {
     );
     final tdee = (bmr * factor).round();
     final p = context.palette;
+    final l = AppLocalizations.of(context);
 
     return AppCard(
       child: Row(
@@ -120,9 +124,9 @@ class _CalorieEstimate extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('~$tdee kcal / day',
+                Text(l.resultKcalDay(tdee),
                     style: context.textStyles.titleLarge),
-                Text('Estimated maintenance energy for your activity level',
+                Text(l.resultKcalSub,
                     style: context.textStyles.bodySmall
                         ?.copyWith(color: p.muted)),
               ],
@@ -142,6 +146,7 @@ class _RecommendedCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final plan = ranked.plan;
+    final l = AppLocalizations.of(context);
     return Container(
       padding: const EdgeInsets.all(AppSpacing.xl),
       decoration: BoxDecoration(
@@ -151,7 +156,7 @@ class _RecommendedCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Pill('Recommended', tone: PillTone.ember),
+          Pill(l.resultRecommended, tone: PillTone.ember),
           const SizedBox(height: AppSpacing.md),
           Text(plan.name,
               style: const TextStyle(
@@ -160,17 +165,17 @@ class _RecommendedCard extends StatelessWidget {
                   fontWeight: FontWeight.w800,
                   letterSpacing: -0.5)),
           const SizedBox(height: 4),
-          Text('${plan.split} · ${plan.weeks} weeks',
+          Text(l.resultPlanSplitWeeks(plan.split, plan.weeks),
               style: TextStyle(
                   color: Colors.white.withValues(alpha: 0.6), fontSize: 13)),
           const SizedBox(height: AppSpacing.lg),
           Row(
             children: [
-              _stat('${plan.daysPerWeek}', 'days/wk'),
+              _stat('${plan.daysPerWeek}', l.resultStatDaysWk),
               const SizedBox(width: AppSpacing.xl),
-              _stat('~${plan.avgMinutes}', 'min'),
+              _stat('~${plan.avgMinutes}', l.resultStatMin),
               const SizedBox(width: AppSpacing.xl),
-              _stat('${plan.weeks}', 'weeks'),
+              _stat('${plan.weeks}', l.resultStatWeeks),
             ],
           ),
           const SizedBox(height: AppSpacing.lg),
@@ -202,7 +207,7 @@ class _RecommendedCard extends StatelessWidget {
             width: double.infinity,
             child: ElevatedButton(
               onPressed: onStart,
-              child: const Text('Start this plan'),
+              child: Text(l.resultStartThisPlan),
             ),
           ),
         ],
@@ -238,6 +243,7 @@ class _AlternativeCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final p = context.palette;
+    final l = AppLocalizations.of(context);
     return Padding(
       padding: const EdgeInsets.only(bottom: AppSpacing.sm),
       child: AppCard(
@@ -249,14 +255,14 @@ class _AlternativeCard extends StatelessWidget {
                 children: [
                   Text(plan.name, style: context.textStyles.titleMedium),
                   Text(
-                      '${plan.split} · ${plan.daysPerWeek} days · ${plan.weeks} wks',
+                      l.resultAltMeta(plan.split, plan.daysPerWeek, plan.weeks),
                       style: context.textStyles.bodySmall
                           ?.copyWith(color: p.muted)),
                 ],
               ),
             ),
             const SizedBox(width: AppSpacing.sm),
-            OutlinedButton(onPressed: onChoose, child: const Text('Choose')),
+            OutlinedButton(onPressed: onChoose, child: Text(l.actionChoose)),
           ],
         ),
       ),

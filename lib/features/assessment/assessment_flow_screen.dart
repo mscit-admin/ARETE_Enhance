@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/constants/enums.dart';
+import '../../core/l10n/enum_labels.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_theme.dart';
 import '../../data/models/assessment.dart';
+import '../../l10n/app_localizations.dart';
 import '../../state/assessment_controller.dart';
 import 'assessment_result_screen.dart';
 import 'widgets/choice_tile.dart';
@@ -29,14 +31,14 @@ class _AssessmentFlowScreenState extends State<AssessmentFlowScreen> {
         (_) => context.read<AssessmentController>().reset());
   }
 
-  static const _titles = [
-    'What\'s your main goal?',
-    'How would you describe your experience?',
-    'How many days a week can you train?',
-    'What equipment do you have?',
-    'How active are you day-to-day?',
-    'A few quick safety questions',
-  ];
+  List<String> _titles(AppLocalizations l) => [
+        l.assessTitleGoal,
+        l.assessTitleExperience,
+        l.assessTitleDays,
+        l.assessTitleEquipment,
+        l.assessTitleActivity,
+        l.assessTitleSafety,
+      ];
 
   bool _canContinue(AssessmentController c) {
     switch (_step) {
@@ -57,7 +59,7 @@ class _AssessmentFlowScreenState extends State<AssessmentFlowScreen> {
     if (_step < _stepCount - 1) {
       setState(() => _step++);
     } else {
-      c.computeRecommendations();
+      c.computeRecommendations(AppLocalizations.of(context));
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(builder: (_) => const AssessmentResultScreen()),
       );
@@ -72,13 +74,14 @@ class _AssessmentFlowScreenState extends State<AssessmentFlowScreen> {
   Widget build(BuildContext context) {
     final c = context.watch<AssessmentController>();
     final p = context.palette;
+    final l = AppLocalizations.of(context);
 
     return Scaffold(
       appBar: AppBar(
         leading: _step == 0
             ? null
             : IconButton(icon: const Icon(Icons.arrow_back), onPressed: _back),
-        title: Text('Step ${_step + 1} of $_stepCount'),
+        title: Text(l.assessStepOf(_step + 1, _stepCount)),
       ),
       body: SafeArea(
         child: Column(
@@ -108,7 +111,7 @@ class _AssessmentFlowScreenState extends State<AssessmentFlowScreen> {
                 padding: const EdgeInsets.symmetric(
                     horizontal: AppSpacing.screen),
                 children: [
-                  Text(_titles[_step],
+                  Text(_titles(l)[_step],
                       style: context.textStyles.headlineSmall),
                   const SizedBox(height: AppSpacing.lg),
                   _StepBody(step: _step, controller: c),
@@ -127,7 +130,7 @@ class _AssessmentFlowScreenState extends State<AssessmentFlowScreen> {
                 child: ElevatedButton(
                   onPressed: _canContinue(c) ? () => _next(c) : null,
                   child: Text(
-                      _step == _stepCount - 1 ? 'See my plan' : 'Continue'),
+                      _step == _stepCount - 1 ? l.assessSeeMyPlan : l.assessContinue),
                 ),
               ),
             ),
@@ -146,6 +149,7 @@ class _StepBody extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final a = controller.answers;
+    final l = AppLocalizations.of(context);
     switch (step) {
       case 0:
         const emoji = {
@@ -159,7 +163,7 @@ class _StepBody extends StatelessWidget {
             for (final g in FitnessGoal.values)
               ChoiceTile(
                 leading: emoji[g],
-                label: g.label,
+                label: g.localized(l),
                 selected: a.goal == g,
                 onTap: () => controller.setGoal(g),
               ),
@@ -171,17 +175,17 @@ class _StepBody extends StatelessWidget {
           ExperienceLevel.intermediate: '💪',
           ExperienceLevel.advanced: '🏆',
         };
-        const sub = {
-          ExperienceLevel.beginner: 'Little or no training',
-          ExperienceLevel.intermediate: '6–24 months consistent',
-          ExperienceLevel.advanced: '2+ years consistent',
+        final sub = {
+          ExperienceLevel.beginner: l.assessExpBeginnerSub,
+          ExperienceLevel.intermediate: l.assessExpIntermediateSub,
+          ExperienceLevel.advanced: l.assessExpAdvancedSub,
         };
         return Column(
           children: [
             for (final e in ExperienceLevel.values)
               ChoiceTile(
                 leading: emoji[e],
-                label: e.label,
+                label: e.localized(l),
                 subtitle: sub[e],
                 selected: a.experience == e,
                 onTap: () => controller.setExperience(e),
@@ -193,7 +197,7 @@ class _StepBody extends StatelessWidget {
           children: [
             for (final d in [2, 3, 4, 5, 6])
               ChoiceTile(
-                label: '$d days per week',
+                label: l.assessDaysPerWeek(d),
                 selected: a.daysPerWeek == d,
                 onTap: () => controller.setDays(d),
               ),
@@ -208,14 +212,14 @@ class _StepBody extends StatelessWidget {
         };
         return Column(
           children: [
-            Text('Choose all that apply.',
+            Text(l.assessChooseAllApply,
                 style: context.textStyles.bodySmall),
             const SizedBox(height: AppSpacing.sm),
             for (final e in EquipmentAccess.values)
               ChoiceTile(
                 multi: true,
                 leading: emoji[e],
-                label: e.label,
+                label: e.localized(l),
                 selected: a.equipment.contains(e),
                 onTap: () => controller.toggleEquipment(e),
               ),
@@ -230,12 +234,12 @@ class _StepBody extends StatelessWidget {
         };
         return Column(
           children: [
-            for (final l in ActivityLevel.values)
+            for (final act in ActivityLevel.values)
               ChoiceTile(
-                leading: emoji[l],
-                label: l.label,
-                selected: a.activity == l,
-                onTap: () => controller.setActivity(l),
+                leading: emoji[act],
+                label: act.localized(l),
+                selected: a.activity == act,
+                onTap: () => controller.setActivity(act),
               ),
           ],
         );
@@ -250,10 +254,14 @@ class _ParqStep extends StatelessWidget {
   const _ParqStep({required this.controller});
   final AssessmentController controller;
 
+  List<String> _parq(AppLocalizations l) =>
+      [l.parq1, l.parq2, l.parq3, l.parq4, l.parq5, l.parq6];
+
   @override
   Widget build(BuildContext context) {
     final p = context.palette;
     final a = controller.answers;
+    final l = AppLocalizations.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -269,8 +277,7 @@ class _ParqStep extends StatelessWidget {
               const SizedBox(width: AppSpacing.sm),
               Expanded(
                 child: Text(
-                  'Answer honestly. Any "yes" just means we\'ll suggest '
-                  'checking with a professional first.',
+                  l.assessParqIntro,
                   style: context.textStyles.bodySmall
                       ?.copyWith(color: AppColors.teal),
                 ),
@@ -287,7 +294,7 @@ class _ParqStep extends StatelessWidget {
               dense: true,
               value: a.parq[i],
               activeColor: AppColors.ember,
-              title: Text(parqQuestions[i],
+              title: Text(_parq(l)[i],
                   style: context.textStyles.bodyMedium),
               onChanged: (v) => controller.setParq(i, v),
             ),

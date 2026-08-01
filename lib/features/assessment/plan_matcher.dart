@@ -1,6 +1,8 @@
 import '../../core/constants/enums.dart';
+import '../../core/l10n/enum_labels.dart';
 import '../../data/models/assessment.dart';
 import '../../data/models/starter_plan.dart';
+import '../../l10n/app_localizations.dart';
 
 /// A plan plus the score/reasons it earned against the member's answers.
 class RankedPlan {
@@ -25,7 +27,8 @@ class PlanMatcher {
     return s;
   }
 
-  List<RankedPlan> rank(AssessmentAnswers a, List<StarterPlan> plans) {
+  List<RankedPlan> rank(
+      AssessmentAnswers a, List<StarterPlan> plans, AppLocalizations l) {
     final available = _available(a.equipment);
     final ranked = <RankedPlan>[];
 
@@ -35,23 +38,23 @@ class PlanMatcher {
 
       if (a.goal != null && p.goals.contains(a.goal)) {
         score += 4;
-        reasons.add('Matches your ${a.goal!.label.toLowerCase()} goal');
+        reasons.add(l.reasonMatchesGoal(a.goal!.localized(l)));
       }
       if (a.experience != null && p.experience.contains(a.experience)) {
         score += 3;
-        reasons.add('Suited to ${a.experience!.label.toLowerCase()} lifters');
+        reasons.add(l.reasonSuitedExperience(a.experience!.localized(l)));
       }
 
       final dayGap = (p.daysPerWeek - a.daysPerWeek).abs();
       score += (3 - dayGap).clamp(-2, 3);
       if (dayGap == 0) {
-        reasons.add('Fits your ${a.daysPerWeek} days per week');
+        reasons.add(l.reasonFitsDays(a.daysPerWeek));
       }
 
       final canDo = p.equipment.any(available.contains);
       if (canDo) {
         score += 3;
-        reasons.add('Works with your equipment');
+        reasons.add(l.reasonWorksEquipment);
       } else {
         score -= 5;
       }

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../l10n/app_localizations.dart';
 
 /// Horizontally scrolling achievement badges earned by the member.
 class BadgesRow extends StatelessWidget {
@@ -13,9 +14,10 @@ class BadgesRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final p = context.palette;
+    final l = AppLocalizations.of(context);
     if (badges.isEmpty) {
       return Text(
-        'No badges yet — your first workout earns one.',
+        l.badgesEmpty,
         style: context.textStyles.bodySmall?.copyWith(color: p.muted),
       );
     }

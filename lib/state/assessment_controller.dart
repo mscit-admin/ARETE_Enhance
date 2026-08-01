@@ -5,6 +5,7 @@ import '../data/mock/mock_plans.dart';
 import '../data/models/assessment.dart';
 import '../data/models/starter_plan.dart';
 import '../features/assessment/plan_matcher.dart';
+import '../l10n/app_localizations.dart';
 
 /// Holds the in-progress assessment answers, computes recommendations, and
 /// remembers the plan the member chose.
@@ -53,8 +54,8 @@ class AssessmentController extends ChangeNotifier {
     notifyListeners();
   }
 
-  void computeRecommendations() {
-    _recommendations = _matcher.rank(answers, MockPlans.all);
+  void computeRecommendations(AppLocalizations l) {
+    _recommendations = _matcher.rank(answers, MockPlans.all, l);
     notifyListeners();
   }
 

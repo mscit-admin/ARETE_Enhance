@@ -6,6 +6,7 @@ import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_theme.dart';
 import '../../data/models/coach_chat.dart';
+import '../../l10n/app_localizations.dart';
 import '../../data/models/trainer.dart';
 import '../../shared/widgets/gradient_avatar.dart';
 import '../../shared/widgets/pill.dart';
@@ -48,6 +49,7 @@ class _CoachScreenState extends State<CoachScreen> {
   }
 
   Future<void> _connectCoach() async {
+    final l = AppLocalizations.of(context);
     final linked = await Navigator.of(context).push<bool>(
       MaterialPageRoute(builder: (_) => const ConnectCoachScreen()),
     );
@@ -56,13 +58,14 @@ class _CoachScreenState extends State<CoachScreen> {
       await context.read<ConnectController>().loadCoach();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Coach connected 🎉')),
+          SnackBar(content: Text(l.coachConnected)),
         );
       }
     }
   }
 
   Future<void> _openBooking(Trainer? trainer) async {
+    final l = AppLocalizations.of(context);
     final now = DateTime.now();
     final slots = [
       for (var d = 1; d <= 4; d++)
@@ -76,11 +79,11 @@ class _CoachScreenState extends State<CoachScreen> {
     if (picked != null && mounted) {
       context
           .read<CoachController>()
-          .bookSession(picked, 'Form check · 1-on-1');
+          .bookSession(picked, l.coachFormCheck);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-            content: Text(
-                'Session booked for ${DateFormat('EEE, MMM d · h:mm a').format(picked)}')),
+            content: Text(l.coachSessionBooked(
+                DateFormat('EEE, MMM d · h:mm a').format(picked)))),
       );
     }
   }
@@ -90,13 +93,14 @@ class _CoachScreenState extends State<CoachScreen> {
     final coach = context.watch<CoachController>();
     final trainer = context.watch<ProfileController>().assignedTrainer;
     final p = context.palette;
+    final l = AppLocalizations.of(context);
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Coach'),
+        title: Text(l.navCoach),
         actions: [
           IconButton(
-            tooltip: 'Connect a coach',
+            tooltip: l.coachConnectTooltip,
             icon: const Icon(Icons.qr_code_scanner),
             onPressed: _connectCoach,
           ),
@@ -116,7 +120,7 @@ class _CoachScreenState extends State<CoachScreen> {
                 child: OutlinedButton.icon(
                   onPressed: () => _openBooking(trainer),
                   icon: const Icon(Icons.calendar_month, size: 18),
-                  label: const Text('Book a 1-on-1 session'),
+                  label: Text(l.coachBookSession),
                 ),
               ),
             ),
@@ -142,8 +146,9 @@ class _CoachHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final p = context.palette;
+    final l = AppLocalizations.of(context);
     final t = trainer; // local promotes; a public field cannot
-    final name = t?.fullName ?? 'Your coach';
+    final name = t?.fullName ?? l.coachDefaultName;
     return Padding(
       padding: const EdgeInsets.all(AppSpacing.screen),
       child: Row(
@@ -158,19 +163,19 @@ class _CoachHeader extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Coach ${name.split(' ').first}',
+                Text(l.trainerCoachName(name.split(' ').first),
                     style: context.textStyles.titleLarge),
                 Text(
                   t == null
-                      ? 'Certified personal trainer'
-                      : '${t.certifications.join(' · ')} · replies in ~${t.avgResponseHours}h',
+                      ? l.coachCertified
+                      : l.coachRepliesIn(t.certifications.join(' · '), t.avgResponseHours),
                   style:
                       context.textStyles.bodySmall?.copyWith(color: p.muted),
                 ),
               ],
             ),
           ),
-          const Pill('Online', tone: PillTone.teal, icon: Icons.circle),
+          Pill(l.coachOnline, tone: PillTone.teal, icon: Icons.circle),
         ],
       ),
     );
@@ -183,6 +188,7 @@ class _UpcomingSession extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
     return Padding(
       padding: const EdgeInsets.fromLTRB(
           AppSpacing.screen, 0, AppSpacing.screen, AppSpacing.sm),
@@ -204,12 +210,12 @@ class _UpcomingSession extends StatelessWidget {
                     DateFormat('EEEE, MMM d · h:mm a').format(session.start),
                     style: context.textStyles.titleMedium,
                   ),
-                  Text('${session.focus} · ${session.minutes} min',
+                  Text(l.coachSessionFocusMinutes(session.focus, session.minutes),
                       style: context.textStyles.bodySmall),
                 ],
               ),
             ),
-            const Pill('Booked', tone: PillTone.teal),
+            Pill(l.coachBooked, tone: PillTone.teal),
           ],
         ),
       ),
@@ -244,6 +250,7 @@ class _TypingIndicator extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final p = context.palette;
+    final l = AppLocalizations.of(context);
     return Align(
       alignment: Alignment.centerLeft,
       child: Container(
@@ -254,7 +261,7 @@ class _TypingIndicator extends StatelessWidget {
           borderRadius: BorderRadius.circular(14),
           border: Border.all(color: p.line),
         ),
-        child: Text('Coach is typing…',
+        child: Text(l.coachTyping,
             style: context.textStyles.bodySmall?.copyWith(color: p.muted)),
       ),
     );
@@ -269,6 +276,7 @@ class _Composer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final p = context.palette;
+    final l = AppLocalizations.of(context);
     return Container(
       padding: const EdgeInsets.fromLTRB(
           AppSpacing.md, AppSpacing.sm, AppSpacing.md, AppSpacing.md),
@@ -285,8 +293,8 @@ class _Composer extends StatelessWidget {
               minLines: 1,
               maxLines: 4,
               onSubmitted: (_) => onSend(),
-              decoration: const InputDecoration(
-                hintText: 'Message your coach…',
+              decoration: InputDecoration(
+                hintText: l.coachMessageHint,
                 isDense: true,
               ),
             ),
@@ -316,6 +324,7 @@ class _BookingSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
     return SafeArea(
       child: Padding(
         padding: const EdgeInsets.fromLTRB(AppSpacing.screen, 0,
@@ -324,7 +333,7 @@ class _BookingSheet extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Pick a session time',
+            Text(l.coachPickTime,
                 style: context.textStyles.titleLarge),
             const SizedBox(height: AppSpacing.md),
             for (final s in slots)
@@ -332,7 +341,7 @@ class _BookingSheet extends StatelessWidget {
                 contentPadding: EdgeInsets.zero,
                 leading: const Icon(Icons.schedule),
                 title: Text(DateFormat('EEEE, MMM d').format(s)),
-                subtitle: Text('${DateFormat('h:mm a').format(s)} · 45 min'),
+                subtitle: Text(l.coachSlotDuration(DateFormat('h:mm a').format(s))),
                 trailing: const Icon(Icons.chevron_right),
                 onTap: () => Navigator.of(context).pop(s),
               ),

@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_theme.dart';
+import '../../l10n/app_localizations.dart';
 import '../../state/connect_controller.dart';
 
 /// Member-facing: scan a trainer's QR code (or type it) to link up.
@@ -54,8 +55,9 @@ class _ConnectCoachScreenState extends State<ConnectCoachScreen> {
   @override
   Widget build(BuildContext context) {
     final p = context.palette;
+    final l = AppLocalizations.of(context);
     return Scaffold(
-      appBar: AppBar(title: const Text('Connect a coach')),
+      appBar: AppBar(title: Text(l.connectTitle)),
       body: SafeArea(
         child: Column(
           children: [
@@ -84,7 +86,7 @@ class _ConnectCoachScreenState extends State<ConnectCoachScreen> {
                         child: Padding(
                           padding: const EdgeInsets.all(AppSpacing.xl),
                           child: Text(
-                            'Camera unavailable. Enter the code below instead.',
+                            l.connectCameraUnavailable,
                             textAlign: TextAlign.center,
                             style: const TextStyle(color: Colors.white70),
                           ),
@@ -102,14 +104,14 @@ class _ConnectCoachScreenState extends State<ConnectCoachScreen> {
                         ),
                       ),
                     ),
-                    const Positioned(
+                    Positioned(
                       left: 0,
                       right: 0,
                       bottom: 12,
                       child: Text(
-                        'Point at your coach\'s QR code',
+                        l.connectPointAtQr,
                         textAlign: TextAlign.center,
-                        style: TextStyle(color: Colors.white70, fontSize: 12),
+                        style: const TextStyle(color: Colors.white70, fontSize: 12),
                       ),
                     ),
                   ],
@@ -123,7 +125,7 @@ class _ConnectCoachScreenState extends State<ConnectCoachScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Text('Or enter the code',
+                  Text(l.connectOrEnterCode,
                       style: context.textStyles.labelSmall),
                   const SizedBox(height: AppSpacing.sm),
                   Row(
@@ -132,8 +134,8 @@ class _ConnectCoachScreenState extends State<ConnectCoachScreen> {
                         child: TextField(
                           controller: _codeField,
                           textCapitalization: TextCapitalization.characters,
-                          decoration: const InputDecoration(
-                            hintText: 'e.g. P8EW2B',
+                          decoration: InputDecoration(
+                            hintText: l.connectCodeHint,
                             isDense: true,
                           ),
                         ),
@@ -149,7 +151,7 @@ class _ConnectCoachScreenState extends State<ConnectCoachScreen> {
                                 height: 18,
                                 child: CircularProgressIndicator(
                                     strokeWidth: 2, color: Colors.white))
-                            : const Text('Link'),
+                            : Text(l.connectLink),
                       ),
                     ],
                   ),

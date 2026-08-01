@@ -7,6 +7,7 @@ import '../../core/theme/app_theme.dart';
 import '../../data/models/exercise.dart';
 import '../../data/models/set_log.dart';
 import '../../data/models/workout_session.dart';
+import '../../l10n/app_localizations.dart';
 import '../../shared/widgets/app_card.dart';
 import '../../shared/widgets/pill.dart';
 import '../../shared/widgets/section_label.dart';
@@ -27,18 +28,19 @@ class ActiveWorkoutScreen extends StatelessWidget {
   }
 
   Future<void> _confirmQuit(BuildContext context) async {
+    final l = AppLocalizations.of(context);
     final quit = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
-        title: const Text('Finish workout?'),
-        content: const Text('End the session now and see your summary.'),
+        title: Text(l.workoutFinishTitle),
+        content: Text(l.workoutFinishBody),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(context, false),
-              child: const Text('Keep going')),
+              child: Text(l.workoutKeepGoing)),
           TextButton(
               onPressed: () => Navigator.pop(context, true),
-              child: const Text('Finish')),
+              child: Text(l.actionFinish)),
         ],
       ),
     );
@@ -54,6 +56,7 @@ class ActiveWorkoutScreen extends StatelessWidget {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
     final ex = we.exercise;
+    final l = AppLocalizations.of(context);
     final setNumber = we.loggedSets.length + 1;
 
     return Scaffold(
@@ -63,8 +66,9 @@ class ActiveWorkoutScreen extends StatelessWidget {
           children: [
             Text(ex.name, style: context.textStyles.titleLarge),
             Text(
-              'Exercise ${c.exerciseIndex + 1} of ${session.exercises.length}'
-              ' · Set ${setNumber.clamp(1, ex.targetSets)} of ${ex.targetSets}',
+              l.workoutExerciseSetOf(c.exerciseIndex + 1,
+                  session.exercises.length, setNumber.clamp(1, ex.targetSets),
+                  ex.targetSets),
               style: context.textStyles.bodySmall,
             ),
           ],
@@ -72,7 +76,7 @@ class ActiveWorkoutScreen extends StatelessWidget {
         actions: [
           TextButton(
             onPressed: () => _confirmQuit(context),
-            child: const Text('Finish'),
+            child: Text(l.actionFinish),
           ),
         ],
       ),
@@ -96,13 +100,13 @@ class ActiveWorkoutScreen extends StatelessWidget {
                   _ExerciseInfo(exercise: ex),
                   const SizedBox(height: AppSpacing.lg),
                   if (!we.isComplete) ...[
-                    const SectionLabel('Log this set'),
+                    SectionLabel(l.workoutLogThisSet),
                     const SizedBox(height: AppSpacing.sm),
                     _LogSetCard(controller: c, exercise: ex),
                   ],
                   const SizedBox(height: AppSpacing.lg),
                   if (we.loggedSets.isNotEmpty) ...[
-                    const SectionLabel('Completed sets'),
+                    SectionLabel(l.workoutCompletedSets),
                     const SizedBox(height: AppSpacing.sm),
                     _CompletedSets(sets: we.loggedSets, unit: 'kg'),
                   ],
@@ -126,12 +130,13 @@ class _RestSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
     return AppCard(
       child: Column(
         children: [
-          const Align(
+          Align(
             alignment: Alignment.centerLeft,
-            child: Pill('Rest', tone: PillTone.ember),
+            child: Pill(l.workoutRest, tone: PillTone.ember),
           ),
           const SizedBox(height: AppSpacing.sm),
           RestTimerRing(
@@ -149,7 +154,7 @@ class _RestSection extends StatelessWidget {
               const SizedBox(width: AppSpacing.md),
               OutlinedButton(
                 onPressed: controller.skipRest,
-                child: const Text('Skip rest'),
+                child: Text(l.workoutSkipRest),
               ),
             ],
           ),
@@ -166,6 +171,7 @@ class _ExerciseInfo extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final p = context.palette;
+    final l = AppLocalizations.of(context);
     return AppCard(
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -185,8 +191,9 @@ class _ExerciseInfo extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Target: ${exercise.targetSets} × ${exercise.targetReps}'
-                    ' · rest ${exercise.restSeconds}s',
+                Text(
+                    l.workoutTarget(exercise.targetSets, exercise.targetReps,
+                        exercise.restSeconds),
                     style: context.textStyles.bodyMedium),
                 const SizedBox(height: 4),
                 Wrap(
@@ -224,6 +231,7 @@ class _LogSetCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final p = context.palette;
+    final l = AppLocalizations.of(context);
     final last = exercise.lastWeightKg;
     final diff = last == null ? null : controller.draftWeight - last;
 
@@ -258,8 +266,8 @@ class _LogSetCard extends StatelessWidget {
             const SizedBox(height: AppSpacing.sm),
             Text(
               diff == 0
-                  ? 'Same as last time'
-                  : '${diff > 0 ? '+' : ''}${diff.toStringAsFixed(diff % 1 == 0 ? 0 : 1)} kg vs last time',
+                  ? l.workoutSameAsLast
+                  : l.workoutDiffVsLast('${diff > 0 ? '+' : ''}${diff.toStringAsFixed(diff % 1 == 0 ? 0 : 1)}'),
               style: context.textStyles.bodySmall?.copyWith(
                 color: diff >= 0 ? AppColors.teal : p.muted,
                 fontWeight: FontWeight.w600,
@@ -280,6 +288,7 @@ class _CompletedSets extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final p = context.palette;
+    final l = AppLocalizations.of(context);
     return AppCard(
       padding: const EdgeInsets.symmetric(
           horizontal: AppSpacing.lg, vertical: AppSpacing.sm),
@@ -299,7 +308,7 @@ class _CompletedSets extends StatelessWidget {
                         size: 14, color: Colors.white),
                   ),
                   const SizedBox(width: AppSpacing.md),
-                  Text('Set ${s.setNumber}',
+                  Text(l.workoutSetN(s.setNumber),
                       style: context.textStyles.bodyMedium),
                   const Spacer(),
                   Text(
@@ -311,7 +320,7 @@ class _CompletedSets extends StatelessWidget {
                   ),
                   if (s.isPr) ...[
                     const SizedBox(width: AppSpacing.sm),
-                    const Pill('PR', tone: PillTone.teal),
+                    Pill(l.prShort, tone: PillTone.teal),
                   ],
                 ],
               ),
@@ -331,17 +340,18 @@ class _BottomBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final we = controller.currentExercise!;
     final p = context.palette;
+    final l = AppLocalizations.of(context);
 
     late String label;
     late VoidCallback action;
     if (!we.isComplete) {
-      label = controller.isResting ? 'Log set (resting…)' : 'Log set';
+      label = controller.isResting ? l.workoutLogSetResting : l.workoutLogSet;
       action = controller.logSet;
     } else if (!controller.isLastExercise) {
-      label = 'Next exercise';
+      label = l.workoutNextExercise;
       action = controller.nextExercise;
     } else {
-      label = 'Finish workout';
+      label = l.workoutFinishWorkout;
       action = onFinish;
     }
 

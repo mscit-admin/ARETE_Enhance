@@ -5,6 +5,7 @@ import 'package:qr_flutter/qr_flutter.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_theme.dart';
+import '../../l10n/app_localizations.dart';
 import '../../shared/widgets/pill.dart';
 import '../../state/connect_controller.dart';
 
@@ -30,9 +31,10 @@ class _TrainerQrScreenState extends State<TrainerQrScreen> {
     final p = context.palette;
     final code = connect.trainerCode;
     final payload = connect.qrPayload;
+    final l = AppLocalizations.of(context);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('My coach QR')),
+      appBar: AppBar(title: Text(l.qrTitle)),
       body: SafeArea(
         child: Center(
           child: Padding(
@@ -40,13 +42,13 @@ class _TrainerQrScreenState extends State<TrainerQrScreen> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Pill('Trainer', tone: PillTone.teal),
+                Pill(l.roleTrainer, tone: PillTone.teal),
                 const SizedBox(height: AppSpacing.lg),
-                Text('Share this code with your clients',
+                Text(l.qrShareTitle,
                     textAlign: TextAlign.center,
                     style: context.textStyles.titleLarge),
                 const SizedBox(height: 6),
-                Text('They scan it in the app to connect with you.',
+                Text(l.qrShareSubtitle,
                     textAlign: TextAlign.center,
                     style:
                         context.textStyles.bodySmall?.copyWith(color: p.muted)),
@@ -96,7 +98,7 @@ class _TrainerQrScreenState extends State<TrainerQrScreen> {
                     ),
                   ),
                 const SizedBox(height: AppSpacing.sm),
-                Text('Or share the code above manually.',
+                Text(l.qrShareManual,
                     style:
                         context.textStyles.bodySmall?.copyWith(color: p.muted)),
               ],
