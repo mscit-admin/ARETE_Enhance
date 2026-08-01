@@ -6,6 +6,7 @@ import '../profile/member_profile_screen.dart';
 import '../profile/trainer_home_screen.dart';
 import '../placeholder/coming_soon_screen.dart';
 import '../workout/workout_home_screen.dart';
+import '../progress/progress_screen.dart';
 import '../../state/session_controller.dart';
 
 /// Root scaffold with bottom navigation. The tab set adapts to the active
@@ -68,14 +69,7 @@ class _AppShellState extends State<AppShell> {
           label: 'Progress',
           icon: Icons.insights_outlined,
           activeIcon: Icons.insights_rounded,
-          screen: ComingSoonScreen(
-            title: 'Progress',
-            moduleName: 'Progress Tracking',
-            description:
-                'Weight trend, training volume, personal records, measurements '
-                'and progress photos.',
-            icon: Icons.insights_rounded,
-          ),
+          screen: ProgressScreen(),
         ),
         _TabDef(
           label: 'Coach',
