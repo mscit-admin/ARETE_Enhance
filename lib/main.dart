@@ -11,6 +11,7 @@ import 'data/repositories/mock_workout_repository.dart';
 import 'state/assessment_controller.dart';
 import 'state/auth_controller.dart';
 import 'state/coach_controller.dart';
+import 'state/connect_controller.dart';
 import 'state/hydration_controller.dart';
 import 'state/profile_controller.dart';
 import 'state/progress_controller.dart';
@@ -62,6 +63,9 @@ void main() {
         ChangeNotifierProvider(create: (_) => AssessmentController()),
         ChangeNotifierProvider(
           create: (_) => CoachController(coachRepository),
+        ),
+        ChangeNotifierProvider(
+          create: (_) => ConnectController(apiClient),
         ),
       ],
       child: const AreteApp(),

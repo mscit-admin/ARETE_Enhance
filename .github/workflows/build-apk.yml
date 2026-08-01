@@ -92,6 +92,10 @@ jobs:
           if ! grep -q "android.permission.INTERNET" "$MANIFEST"; then
             sed -i 's#<application#<uses-permission android:name="android.permission.INTERNET"/>\n    <application#' "$MANIFEST"
           fi
+          # CAMERA permission for the QR scanner (mobile_scanner).
+          if ! grep -q "android.permission.CAMERA" "$MANIFEST"; then
+            sed -i 's#<application#<uses-permission android:name="android.permission.CAMERA"/>\n    <application#' "$MANIFEST"
+          fi
           echo "----- network_security_config.xml -----"
           cat android/app/src/main/res/xml/network_security_config.xml
           echo "----- AndroidManifest.xml (head) -----"; head -n 14 "$MANIFEST"

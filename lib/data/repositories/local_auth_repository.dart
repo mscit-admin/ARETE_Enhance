@@ -47,6 +47,7 @@ class LocalAuthRepository implements AuthRepository {
     required String name,
     required String email,
     required String password,
+    String role = 'member',
   }) async {
     final p = await _prefs;
     final key = _normalize(email);

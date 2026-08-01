@@ -41,10 +41,30 @@ class ApiProfileRepository implements ProfileRepository {
     return server.copyWith(dailyStats: member.dailyStats);
   }
 
-  // ---- Trainer features remain local until server endpoints exist ----
   @override
-  Future<Trainer?> getAssignedTrainer(String memberId) async =>
-      MockData.trainer;
+  Future<Trainer?> getAssignedTrainer(String memberId) async {
+    try {
+      final json = await _client.get('/api/app/coach') as Map<String, dynamic>;
+      final c = json['coach'] as Map<String, dynamic>?;
+      if (c == null) return null;
+      return Trainer(
+        id: c['id'] as String,
+        fullName: c['full_name'] as String,
+        email: (c['email'] as String?) ?? '',
+        certifications:
+            (c['certifications'] as List?)?.cast<String>() ?? const [],
+        specialty: (c['specialty'] as String?) ?? 'Personal Trainer',
+        bio: '',
+        clientIds: const [],
+        avgResponseHours: (c['avg_response_h'] as int?) ?? 24,
+        rating: (c['rating'] as num?)?.toDouble() ?? 0,
+      );
+    } catch (_) {
+      return null;
+    }
+  }
+
+  // ---- Trainer roster still uses mock data until wired ----
 
   @override
   Future<List<Member>> getClientsForTrainer(String trainerId) async =>

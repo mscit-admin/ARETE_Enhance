@@ -1,17 +1,29 @@
-/// A signed-in account (identity only — profile details live in Member).
+/// A signed-in account (identity + role; profile details live in Member).
 class AuthUser {
-  const AuthUser({required this.id, required this.name, required this.email});
+  const AuthUser({
+    required this.id,
+    required this.name,
+    required this.email,
+    this.role = 'member',
+  });
 
   final String id;
   final String name;
   final String email;
 
-  Map<String, dynamic> toJson() => {'id': id, 'name': name, 'email': email};
+  /// 'member' or 'trainer' (admins use the web console).
+  final String role;
+
+  bool get isTrainer => role == 'trainer';
+
+  Map<String, dynamic> toJson() =>
+      {'id': id, 'name': name, 'email': email, 'role': role};
 
   factory AuthUser.fromJson(Map<String, dynamic> json) => AuthUser(
         id: json['id'] as String,
         name: json['name'] as String,
         email: json['email'] as String,
+        role: (json['role'] as String?) ?? 'member',
       );
 }
 

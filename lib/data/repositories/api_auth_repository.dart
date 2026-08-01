@@ -13,6 +13,7 @@ class ApiAuthRepository implements AuthRepository {
         id: p['id'] as String,
         name: p['fullName'] as String,
         email: p['email'] as String,
+        role: (p['role'] as String?) ?? 'member',
       );
 
   @override
@@ -33,11 +34,12 @@ class ApiAuthRepository implements AuthRepository {
     required String name,
     required String email,
     required String password,
+    String role = 'member',
   }) async {
     try {
       final json = await _client.post(
         '/api/app/auth/register',
-        {'name': name, 'email': email, 'password': password},
+        {'name': name, 'email': email, 'password': password, 'role': role},
       ) as Map<String, dynamic>;
       await _client.setToken(json['token'] as String);
       return _userFromProfile(json['profile'] as Map<String, dynamic>);

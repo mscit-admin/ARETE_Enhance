@@ -14,6 +14,7 @@ import '../../shared/widgets/section_label.dart';
 import '../../shared/widgets/stat_tile.dart';
 import '../../state/profile_controller.dart';
 import '../../state/trainer_controller.dart';
+import '../coach/trainer_qr_screen.dart';
 import 'settings_screen.dart';
 
 /// Trainer-role home: the coach's own profile summary plus their client roster.
@@ -95,6 +96,13 @@ class _TrainerBody extends StatelessWidget {
               ),
             ),
             IconButton(
+              tooltip: 'My QR code',
+              onPressed: () => Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const TrainerQrScreen()),
+              ),
+              icon: const Icon(Icons.qr_code_2, color: AppColors.teal),
+            ),
+            IconButton(
               onPressed: () => Navigator.of(context).push(
                 MaterialPageRoute(builder: (_) => const SettingsScreen()),
               ),
@@ -102,6 +110,8 @@ class _TrainerBody extends StatelessWidget {
             ),
           ],
         ),
+        const SizedBox(height: AppSpacing.lg),
+        _ShareCodeCard(),
         const SizedBox(height: AppSpacing.lg),
 
         AppCard(
@@ -130,6 +140,49 @@ class _TrainerBody extends StatelessWidget {
           const SizedBox(height: AppSpacing.sm),
         ],
       ],
+    );
+  }
+}
+
+/// Prompt for the trainer to open their shareable QR code.
+class _ShareCodeCard extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return AppCard(
+      color: AppColors.ink,
+      borderColor: AppColors.ink,
+      onTap: () => Navigator.of(context).push(
+        MaterialPageRoute(builder: (_) => const TrainerQrScreen()),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+            ),
+            child: const Icon(Icons.qr_code_2, color: AppColors.brandGreen),
+          ),
+          const SizedBox(width: AppSpacing.md),
+          const Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Your coach QR code',
+                    style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 15)),
+                Text('Clients scan it to connect with you',
+                    style: TextStyle(color: Colors.white70, fontSize: 12)),
+              ],
+            ),
+          ),
+          const Icon(Icons.chevron_right, color: Colors.white54),
+        ],
+      ),
     );
   }
 }

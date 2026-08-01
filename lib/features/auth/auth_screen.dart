@@ -21,6 +21,7 @@ class _AuthScreenState extends State<AuthScreen> {
   final _password = TextEditingController();
 
   bool _isSignUp = false;
+  String _role = 'member'; // 'member' or 'trainer'
 
   @override
   void dispose() {
@@ -40,7 +41,7 @@ class _AuthScreenState extends State<AuthScreen> {
     FocusScope.of(context).unfocus();
     final auth = context.read<AuthController>();
     if (_isSignUp) {
-      await auth.signUp(_name.text, _email.text, _password.text);
+      await auth.signUp(_name.text, _email.text, _password.text, role: _role);
     } else {
       await auth.signIn(_email.text, _password.text);
     }
@@ -104,6 +105,24 @@ class _AuthScreenState extends State<AuthScreen> {
                     const SizedBox(height: AppSpacing.xxl),
 
                     if (_isSignUp) ...[
+                      Text('I am a', style: context.textStyles.labelSmall),
+                      const SizedBox(height: AppSpacing.sm),
+                      SegmentedButton<String>(
+                        segments: const [
+                          ButtonSegment(
+                              value: 'member',
+                              label: Text('Trainee'),
+                              icon: Icon(Icons.directions_run)),
+                          ButtonSegment(
+                              value: 'trainer',
+                              label: Text('Trainer'),
+                              icon: Icon(Icons.sports_gymnastics)),
+                        ],
+                        selected: {_role},
+                        onSelectionChanged: (s) =>
+                            setState(() => _role = s.first),
+                      ),
+                      const SizedBox(height: AppSpacing.md),
                       TextFormField(
                         controller: _name,
                         textCapitalization: TextCapitalization.words,

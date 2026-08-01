@@ -22,69 +22,73 @@ class SettingsScreen extends StatelessWidget {
     final session = context.watch<SessionController>();
     final profile = context.watch<ProfileController>();
     final member = profile.member;
+    // Only trainer accounts may switch into trainer mode.
+    final isTrainerAccount =
+        context.watch<AuthController>().user?.isTrainer ?? false;
 
     return Scaffold(
       appBar: AppBar(title: const Text('Settings')),
       body: ListView(
         padding: const EdgeInsets.all(AppSpacing.screen),
         children: [
-          // ---- Role switch (one app, two roles) ----
-          const SectionLabel('Viewing as'),
-          const SizedBox(height: AppSpacing.sm),
-          AppCard(
-            child: Column(
-              children: [
-                Row(
-                  children: [
-                    Icon(
-                      session.isTrainer
-                          ? Icons.sports_gymnastics
-                          : Icons.directions_run,
-                      color: AppColors.ember,
-                    ),
-                    const SizedBox(width: AppSpacing.md),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(session.role.label,
-                              style: context.textStyles.titleMedium),
-                          Text(
-                            session.isTrainer
-                                ? 'Coach view — client roster & plans'
-                                : 'Your training experience',
-                            style: context.textStyles.bodySmall,
-                          ),
-                        ],
+          // ---- Role switch (trainer accounts only) ----
+          if (isTrainerAccount) ...[
+            const SectionLabel('Viewing as'),
+            const SizedBox(height: AppSpacing.sm),
+            AppCard(
+              child: Column(
+                children: [
+                  Row(
+                    children: [
+                      Icon(
+                        session.isTrainer
+                            ? Icons.sports_gymnastics
+                            : Icons.directions_run,
+                        color: AppColors.ember,
                       ),
-                    ),
-                    const Pill('Demo switch', tone: PillTone.neutral),
-                  ],
-                ),
-                const SizedBox(height: AppSpacing.md),
-                SegmentedButton<UserRole>(
-                  segments: const [
-                    ButtonSegment(
-                        value: UserRole.member,
-                        label: Text('Member'),
-                        icon: Icon(Icons.directions_run)),
-                    ButtonSegment(
-                        value: UserRole.trainer,
-                        label: Text('Trainer'),
-                        icon: Icon(Icons.sports_gymnastics)),
-                  ],
-                  selected: {session.role},
-                  onSelectionChanged: (s) {
-                    context.read<SessionController>().setRole(s.first);
-                    if (s.first == UserRole.trainer) {
-                      context.read<TrainerController>().load();
-                    }
-                  },
-                ),
-              ],
+                      const SizedBox(width: AppSpacing.md),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(session.role.label,
+                                style: context.textStyles.titleMedium),
+                            Text(
+                              session.isTrainer
+                                  ? 'Coach view — clients & QR'
+                                  : 'Your training experience',
+                              style: context.textStyles.bodySmall,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: AppSpacing.md),
+                  SegmentedButton<UserRole>(
+                    segments: const [
+                      ButtonSegment(
+                          value: UserRole.member,
+                          label: Text('Trainee'),
+                          icon: Icon(Icons.directions_run)),
+                      ButtonSegment(
+                          value: UserRole.trainer,
+                          label: Text('Trainer'),
+                          icon: Icon(Icons.sports_gymnastics)),
+                    ],
+                    selected: {session.role},
+                    onSelectionChanged: (s) {
+                      context.read<SessionController>().setRole(s.first);
+                      if (s.first == UserRole.trainer) {
+                        context.read<TrainerController>().load();
+                      }
+                    },
+                  ),
+                ],
+              ),
             ),
-          ),
-          const SizedBox(height: AppSpacing.xl),
+            const SizedBox(height: AppSpacing.xl),
+          ],
 
           // ---- Appearance ----
           const SectionLabel('Appearance'),

@@ -10,7 +10,9 @@ import '../../data/models/trainer.dart';
 import '../../shared/widgets/gradient_avatar.dart';
 import '../../shared/widgets/pill.dart';
 import '../../state/coach_controller.dart';
+import '../../state/connect_controller.dart';
 import '../../state/profile_controller.dart';
+import 'connect_coach_screen.dart';
 import 'widgets/chat_bubble.dart';
 
 class CoachScreen extends StatefulWidget {
@@ -45,6 +47,21 @@ class _CoachScreenState extends State<CoachScreen> {
     _input.clear();
   }
 
+  Future<void> _connectCoach() async {
+    final linked = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(builder: (_) => const ConnectCoachScreen()),
+    );
+    if (linked == true && mounted) {
+      await context.read<ProfileController>().load();
+      await context.read<ConnectController>().loadCoach();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Coach connected 🎉')),
+        );
+      }
+    }
+  }
+
   Future<void> _openBooking(Trainer? trainer) async {
     final now = DateTime.now();
     final slots = [
@@ -75,7 +92,16 @@ class _CoachScreenState extends State<CoachScreen> {
     final p = context.palette;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Coach')),
+      appBar: AppBar(
+        title: const Text('Coach'),
+        actions: [
+          IconButton(
+            tooltip: 'Connect a coach',
+            icon: const Icon(Icons.qr_code_scanner),
+            onPressed: _connectCoach,
+          ),
+        ],
+      ),
       body: SafeArea(
         child: Column(
           children: [

@@ -45,8 +45,10 @@ class AuthController extends ChangeNotifier {
   Future<bool> signIn(String email, String password) =>
       _run(() => _repo.signIn(email: email, password: password));
 
-  Future<bool> signUp(String name, String email, String password) =>
-      _run(() => _repo.signUp(name: name, email: email, password: password));
+  Future<bool> signUp(String name, String email, String password,
+          {String role = 'member'}) =>
+      _run(() =>
+          _repo.signUp(name: name, email: email, password: password, role: role));
 
   Future<bool> _run(Future<AuthUser> Function() action) async {
     _busy = true;

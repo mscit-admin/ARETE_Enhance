@@ -7,10 +7,12 @@ abstract class AuthRepository {
   Future<AuthUser?> currentUser();
 
   /// Create an account and sign in. Throws [AuthException] on failure.
+  /// [role] is 'member' or 'trainer'.
   Future<AuthUser> signUp({
     required String name,
     required String email,
     required String password,
+    String role = 'member',
   });
 
   /// Sign in with existing credentials. Throws [AuthException] on failure.

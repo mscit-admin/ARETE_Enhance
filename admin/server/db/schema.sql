@@ -52,8 +52,11 @@ CREATE TABLE IF NOT EXISTS trainers (
   bio             text,
   certifications  text[] NOT NULL DEFAULT '{}',
   rating          numeric(3,2) NOT NULL DEFAULT 0,
-  avg_response_h  int NOT NULL DEFAULT 24
+  avg_response_h  int NOT NULL DEFAULT 24,
+  code            text UNIQUE
 );
+-- Ensure the QR link code exists on pre-existing installs.
+ALTER TABLE trainers ADD COLUMN IF NOT EXISTS code text UNIQUE;
 
 CREATE TABLE IF NOT EXISTS members (
   user_id               uuid PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
