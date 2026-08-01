@@ -116,7 +116,8 @@ class _CoachHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final p = context.palette;
-    final name = trainer?.fullName ?? 'Your coach';
+    final t = trainer; // local promotes; a public field cannot
+    final name = t?.fullName ?? 'Your coach';
     return Padding(
       padding: const EdgeInsets.all(AppSpacing.screen),
       child: Row(
@@ -134,9 +135,9 @@ class _CoachHeader extends StatelessWidget {
                 Text('Coach ${name.split(' ').first}',
                     style: context.textStyles.titleLarge),
                 Text(
-                  trainer == null
+                  t == null
                       ? 'Certified personal trainer'
-                      : '${trainer.certifications.join(' · ')} · replies in ~${trainer.avgResponseHours}h',
+                      : '${t.certifications.join(' · ')} · replies in ~${t.avgResponseHours}h',
                   style:
                       context.textStyles.bodySmall?.copyWith(color: p.muted),
                 ),
