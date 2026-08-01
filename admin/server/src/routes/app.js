@@ -359,4 +359,304 @@ router.post('/link', requireAuth, async (req, res) => {
   }
 });
 
+// ======================================================================
+//  Workout plans — a trainer builds plans and assigns them to clients.
+// ======================================================================
+
+async function isTrainer(userId) {
+  const { rowCount } = await db.query(
+    'SELECT 1 FROM trainers WHERE user_id = $1',
+    [userId],
+  );
+  return rowCount > 0;
+}
+
+// Shape a plan row + its exercises for the app.
+async function planWithExercises(planId) {
+  const p = await db.query(
+    `SELECT id, name, description, days_per_week, weeks, split, created_at
+       FROM plans WHERE id = $1`,
+    [planId],
+  );
+  if (!p.rows[0]) return null;
+  const ex = await db.query(
+    `SELECT e.name, pe.target_sets, pe.target_reps, pe.position
+       FROM plan_exercises pe JOIN exercises e ON e.id = pe.exercise_id
+      WHERE pe.plan_id = $1
+      ORDER BY pe.position, pe.day_index`,
+    [planId],
+  );
+  const r = p.rows[0];
+  return {
+    id: r.id,
+    name: r.name,
+    description: r.description || '',
+    daysPerWeek: r.days_per_week,
+    weeks: r.weeks,
+    split: r.split || '',
+    createdAt: r.created_at,
+    exercises: ex.rows.map((x) => ({
+      name: x.name,
+      sets: x.target_sets,
+      reps: x.target_reps,
+    })),
+  };
+}
+
+// POST /api/app/trainer/plans  (trainer) — create a plan with exercises.
+// { name, description?, daysPerWeek?, weeks?, split?, exercises: [{name, sets, reps}] }
+router.post('/trainer/plans', requireAuth, async (req, res) => {
+  const uid = req.user.sub;
+  if (!(await isTrainer(uid))) {
+    return res.status(403).json({ error: 'Trainers only' });
+  }
+  const b = req.body || {};
+  const name = String(b.name || '').trim();
+  if (!name) return res.status(400).json({ error: 'A plan name is required' });
+  const exercises = Array.isArray(b.exercises) ? b.exercises : [];
+
+  const client = await db.pool.connect();
+  try {
+    await client.query('BEGIN');
+    const plan = await client.query(
+      `INSERT INTO plans (name, description, days_per_week, weeks, split, created_by)
+       VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`,
+      [
+        name,
+        String(b.description || '').trim() || null,
+        Number(b.daysPerWeek) || 3,
+        Number(b.weeks) || 8,
+        String(b.split || '').trim() || null,
+        uid,
+      ],
+    );
+    const planId = plan.rows[0].id;
+    let pos = 0;
+    for (const e of exercises) {
+      const exName = String(e?.name || '').trim();
+      if (!exName) continue;
+      const exRow = await client.query(
+        `INSERT INTO exercises (name) VALUES ($1) RETURNING id`,
+        [exName],
+      );
+      await client.query(
+        `INSERT INTO plan_exercises (plan_id, exercise_id, day_index, position, target_sets, target_reps)
+         VALUES ($1, $2, 0, $3, $4, $5)`,
+        [planId, exRow.rows[0].id, pos, Number(e?.sets) || 3, Number(e?.reps) || 10],
+      );
+      pos += 1;
+    }
+    await client.query('COMMIT');
+    return res.status(201).json({ plan: await planWithExercises(planId) });
+  } catch (e) {
+    await client.query('ROLLBACK');
+    return res.status(500).json({ error: 'Failed to create plan' });
+  } finally {
+    client.release();
+  }
+});
+
+// GET /api/app/trainer/plans  (trainer) — the trainer's own plans.
+router.get('/trainer/plans', requireAuth, async (req, res) => {
+  const uid = req.user.sub;
+  if (!(await isTrainer(uid))) {
+    return res.status(403).json({ error: 'Trainers only' });
+  }
+  try {
+    const { rows } = await db.query(
+      `SELECT p.id, p.name, p.description, p.days_per_week, p.weeks,
+              count(DISTINCT pe.exercise_id)::int AS exercise_count,
+              count(DISTINCT a.id) FILTER (WHERE a.active)::int AS assigned_count
+         FROM plans p
+         LEFT JOIN plan_exercises pe ON pe.plan_id = p.id
+         LEFT JOIN plan_assignments a ON a.plan_id = p.id
+        WHERE p.created_by = $1
+        GROUP BY p.id
+        ORDER BY p.created_at DESC`,
+      [uid],
+    );
+    return res.json({
+      rows: rows.map((r) => ({
+        id: r.id,
+        name: r.name,
+        description: r.description || '',
+        daysPerWeek: r.days_per_week,
+        weeks: r.weeks,
+        exerciseCount: r.exercise_count,
+        assignedCount: r.assigned_count,
+      })),
+    });
+  } catch (e) {
+    return res.status(500).json({ error: 'Failed to load plans' });
+  }
+});
+
+// GET /api/app/trainer/plans/:id  (trainer) — a plan's full detail.
+router.get('/trainer/plans/:id', requireAuth, async (req, res) => {
+  const uid = req.user.sub;
+  try {
+    const owns = await db.query(
+      'SELECT 1 FROM plans WHERE id = $1 AND created_by = $2',
+      [req.params.id, uid],
+    );
+    if (!owns.rowCount) return res.status(404).json({ error: 'Plan not found' });
+    return res.json({ plan: await planWithExercises(req.params.id) });
+  } catch (e) {
+    return res.status(500).json({ error: 'Failed to load plan' });
+  }
+});
+
+// POST /api/app/trainer/plans/:id/assign  (trainer) — assign to a client.
+// { memberId }
+router.post('/trainer/plans/:id/assign', requireAuth, async (req, res) => {
+  const uid = req.user.sub;
+  const planId = req.params.id;
+  const memberId = String(req.body?.memberId || '');
+  if (!memberId) return res.status(400).json({ error: 'memberId is required' });
+  try {
+    const owns = await db.query(
+      'SELECT name FROM plans WHERE id = $1 AND created_by = $2',
+      [planId, uid],
+    );
+    if (!owns.rowCount) return res.status(404).json({ error: 'Plan not found' });
+    // The member must be one of this trainer's clients.
+    const link = await db.query(
+      'SELECT 1 FROM members WHERE user_id = $1 AND trainer_id = $2',
+      [memberId, uid],
+    );
+    if (!link.rowCount) {
+      return res.status(403).json({ error: 'That member is not your client' });
+    }
+    // One active plan per member: retire previous active assignments.
+    await db.query(
+      'UPDATE plan_assignments SET active = false WHERE member_id = $1 AND active',
+      [memberId],
+    );
+    await db.query(
+      `INSERT INTO plan_assignments (member_id, plan_id, assigned_by, active)
+       VALUES ($1, $2, $3, true)`,
+      [memberId, planId, uid],
+    );
+    // Drop a chat card so the client sees it in the conversation.
+    await db.query(
+      `INSERT INTO messages (member_id, trainer_id, from_coach, body, kind, plan_id)
+       VALUES ($1, $2, true, $3, 'planCard', $4)`,
+      [memberId, uid, owns.rows[0].name, planId],
+    );
+    return res.json({ ok: true });
+  } catch (e) {
+    return res.status(500).json({ error: 'Failed to assign plan' });
+  }
+});
+
+// GET /api/app/my-plans  (member) — active plans assigned to me, with detail.
+router.get('/my-plans', requireAuth, async (req, res) => {
+  const uid = req.user.sub;
+  try {
+    const { rows } = await db.query(
+      `SELECT a.plan_id, a.assigned_at, u.full_name AS coach_name
+         FROM plan_assignments a
+         LEFT JOIN trainers t ON t.user_id = a.assigned_by
+         LEFT JOIN users u ON u.id = t.user_id
+        WHERE a.member_id = $1 AND a.active
+        ORDER BY a.assigned_at DESC`,
+      [uid],
+    );
+    const plans = [];
+    for (const r of rows) {
+      const p = await planWithExercises(r.plan_id);
+      if (p) plans.push({ ...p, assignedAt: r.assigned_at, coachName: r.coach_name });
+    }
+    return res.json({ rows: plans });
+  } catch (e) {
+    return res.status(500).json({ error: 'Failed to load plans' });
+  }
+});
+
+// ======================================================================
+//  Messaging — a member and their trainer share one conversation.
+// ======================================================================
+
+// Resolve the (member_id, trainer_id) pair for a conversation between the
+// current user and `peerId`, plus whether the current user is the coach.
+async function resolvePair(currentId, peerId) {
+  // Current user is the member, peer is their trainer.
+  const asMember = await db.query(
+    'SELECT 1 FROM members WHERE user_id = $1 AND trainer_id = $2',
+    [currentId, peerId],
+  );
+  if (asMember.rowCount) {
+    return { memberId: currentId, trainerId: peerId, currentIsCoach: false };
+  }
+  // Current user is the trainer, peer is one of their clients.
+  const asTrainer = await db.query(
+    'SELECT 1 FROM members WHERE user_id = $1 AND trainer_id = $2',
+    [peerId, currentId],
+  );
+  if (asTrainer.rowCount) {
+    return { memberId: peerId, trainerId: currentId, currentIsCoach: true };
+  }
+  return null;
+}
+
+// GET /api/app/messages/:peerId — the thread with a peer (coach or client).
+router.get('/messages/:peerId', requireAuth, async (req, res) => {
+  try {
+    const pair = await resolvePair(req.user.sub, req.params.peerId);
+    if (!pair) return res.status(404).json({ error: 'No conversation' });
+    const { rows } = await db.query(
+      `SELECT id, from_coach, body, kind, plan_id, created_at
+         FROM messages
+        WHERE member_id = $1 AND trainer_id = $2
+        ORDER BY created_at ASC`,
+      [pair.memberId, pair.trainerId],
+    );
+    return res.json({
+      currentIsCoach: pair.currentIsCoach,
+      rows: rows.map((m) => ({
+        id: m.id,
+        fromCoach: m.from_coach,
+        body: m.body,
+        kind: m.kind,
+        planId: m.plan_id,
+        createdAt: m.created_at,
+      })),
+    });
+  } catch (e) {
+    return res.status(500).json({ error: 'Failed to load messages' });
+  }
+});
+
+// POST /api/app/messages  { toUserId, body } — send a message to a peer.
+router.post('/messages', requireAuth, async (req, res) => {
+  const peerId = String(req.body?.toUserId || '');
+  const body = String(req.body?.body || '').trim();
+  if (!peerId || !body) {
+    return res.status(400).json({ error: 'toUserId and body are required' });
+  }
+  try {
+    const pair = await resolvePair(req.user.sub, peerId);
+    if (!pair) return res.status(404).json({ error: 'No conversation' });
+    const ins = await db.query(
+      `INSERT INTO messages (member_id, trainer_id, from_coach, body, kind)
+       VALUES ($1, $2, $3, $4, 'text')
+       RETURNING id, from_coach, body, kind, plan_id, created_at`,
+      [pair.memberId, pair.trainerId, pair.currentIsCoach, body],
+    );
+    const m = ins.rows[0];
+    return res.status(201).json({
+      message: {
+        id: m.id,
+        fromCoach: m.from_coach,
+        body: m.body,
+        kind: m.kind,
+        planId: m.plan_id,
+        createdAt: m.created_at,
+      },
+    });
+  } catch (e) {
+    return res.status(500).json({ error: 'Failed to send message' });
+  }
+});
+
 module.exports = router;

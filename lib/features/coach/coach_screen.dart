@@ -1,21 +1,26 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_theme.dart';
-import '../../data/models/coach_chat.dart';
-import '../../l10n/app_localizations.dart';
 import '../../data/models/trainer.dart';
+import '../../data/models/trainer_plan.dart';
+import '../../l10n/app_localizations.dart';
+import '../../shared/widgets/app_card.dart';
 import '../../shared/widgets/gradient_avatar.dart';
 import '../../shared/widgets/pill.dart';
-import '../../state/coach_controller.dart';
 import '../../state/connect_controller.dart';
+import '../../state/messaging_controller.dart';
+import '../../state/my_plan_controller.dart';
 import '../../state/profile_controller.dart';
+import '../trainer/plan_detail_screen.dart';
 import 'connect_coach_screen.dart';
-import 'widgets/chat_bubble.dart';
+import 'widgets/thread_bubble.dart';
 
+/// Trainee-side Coach tab: shows the linked coach, the plan they assigned, and
+/// a real conversation with them. When no coach is linked yet it invites the
+/// member to scan their coach's QR code.
 class CoachScreen extends StatefulWidget {
   const CoachScreen({super.key});
 
@@ -29,10 +34,7 @@ class _CoachScreenState extends State<CoachScreen> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      final c = context.read<CoachController>();
-      if (c.status == LoadStatus.idle) c.load();
-    });
+    WidgetsBinding.instance.addPostFrameCallback((_) => _refresh());
   }
 
   @override
@@ -41,11 +43,12 @@ class _CoachScreenState extends State<CoachScreen> {
     super.dispose();
   }
 
-  void _send() {
-    final text = _input.text;
-    if (text.trim().isEmpty) return;
-    context.read<CoachController>().sendMessage(text);
-    _input.clear();
+  void _refresh() {
+    context.read<MyPlanController>().load();
+    final coach = context.read<ProfileController>().assignedTrainer;
+    if (coach != null) {
+      context.read<MessagingController>().load(coach.id);
+    }
   }
 
   Future<void> _connectCoach() async {
@@ -53,47 +56,36 @@ class _CoachScreenState extends State<CoachScreen> {
     final linked = await Navigator.of(context).push<bool>(
       MaterialPageRoute(builder: (_) => const ConnectCoachScreen()),
     );
-    if (linked == true && mounted) {
-      await context.read<ProfileController>().load();
-      await context.read<ConnectController>().loadCoach();
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(l.coachConnected)),
-        );
-      }
-    }
+    if (linked != true || !mounted) return;
+    await context.read<ProfileController>().load();
+    await context.read<ConnectController>().loadCoach();
+    if (!mounted) return;
+    _refresh();
+    // Surface the coach's name on success.
+    final coach = context.read<ProfileController>().assignedTrainer;
+    final name = coach?.fullName.split(' ').first ??
+        (context.read<ConnectController>().coach?['full_name'] as String?)
+            ?.split(' ')
+            .first ??
+        '';
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(l.linkConnectedNamed(name))),
+    );
   }
 
-  Future<void> _openBooking(Trainer? trainer) async {
-    final l = AppLocalizations.of(context);
-    final now = DateTime.now();
-    final slots = [
-      for (var d = 1; d <= 4; d++)
-        DateTime(now.year, now.month, now.day + d, 18, 0),
-    ];
-    final picked = await showModalBottomSheet<DateTime>(
-      context: context,
-      showDragHandle: true,
-      builder: (_) => _BookingSheet(slots: slots),
-    );
-    if (picked != null && mounted) {
-      context
-          .read<CoachController>()
-          .bookSession(picked, l.coachFormCheck);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-            content: Text(l.coachSessionBooked(
-                DateFormat('EEE, MMM d · h:mm a').format(picked)))),
-      );
-    }
+  Future<void> _send() async {
+    final coach = context.read<ProfileController>().assignedTrainer;
+    if (coach == null) return;
+    final text = _input.text.trim();
+    if (text.isEmpty) return;
+    _input.clear();
+    await context.read<MessagingController>().send(coach.id, text);
   }
 
   @override
   Widget build(BuildContext context) {
-    final coach = context.watch<CoachController>();
-    final trainer = context.watch<ProfileController>().assignedTrainer;
-    final p = context.palette;
     final l = AppLocalizations.of(context);
+    final coach = context.watch<ProfileController>().assignedTrainer;
 
     return Scaffold(
       appBar: AppBar(
@@ -107,31 +99,45 @@ class _CoachScreenState extends State<CoachScreen> {
         ],
       ),
       body: SafeArea(
-        child: Column(
-          children: [
-            _CoachHeader(trainer: trainer),
-            if (coach.sessions.isNotEmpty)
-              _UpcomingSession(session: coach.sessions.last),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(AppSpacing.screen, 0,
-                  AppSpacing.screen, AppSpacing.sm),
-              child: SizedBox(
-                width: double.infinity,
-                child: OutlinedButton.icon(
-                  onPressed: () => _openBooking(trainer),
-                  icon: const Icon(Icons.calendar_month, size: 18),
-                  label: Text(l.coachBookSession),
-                ),
+        child: coach == null
+            ? _NoCoach(l: l, onConnect: _connectCoach)
+            : _Conversation(
+                coach: coach,
+                input: _input,
+                onSend: _send,
               ),
+      ),
+    );
+  }
+}
+
+class _NoCoach extends StatelessWidget {
+  const _NoCoach({required this.l, required this.onConnect});
+  final AppLocalizations l;
+  final VoidCallback onConnect;
+
+  @override
+  Widget build(BuildContext context) {
+    final p = context.palette;
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(AppSpacing.xxxl),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.qr_code_scanner, size: 44, color: p.muted),
+            const SizedBox(height: AppSpacing.md),
+            Text(l.coachNoCoach, style: context.textStyles.titleLarge),
+            const SizedBox(height: AppSpacing.sm),
+            Text(l.coachConnectPrompt,
+                textAlign: TextAlign.center,
+                style: context.textStyles.bodySmall?.copyWith(color: p.muted)),
+            const SizedBox(height: AppSpacing.lg),
+            ElevatedButton.icon(
+              onPressed: onConnect,
+              icon: const Icon(Icons.qr_code_scanner, size: 18),
+              label: Text(l.coachConnectBtn),
             ),
-            Divider(height: 1, color: p.line),
-            Expanded(
-              child: coach.status == LoadStatus.ready
-                  ? _Thread(
-                      messages: coach.messages, typing: coach.coachTyping)
-                  : const Center(child: CircularProgressIndicator()),
-            ),
-            _Composer(controller: _input, onSend: _send),
           ],
         ),
       ),
@@ -139,144 +145,128 @@ class _CoachScreenState extends State<CoachScreen> {
   }
 }
 
-class _CoachHeader extends StatelessWidget {
-  const _CoachHeader({required this.trainer});
-  final Trainer? trainer;
+class _Conversation extends StatelessWidget {
+  const _Conversation(
+      {required this.coach, required this.input, required this.onSend});
+  final Trainer coach;
+  final TextEditingController input;
+  final VoidCallback onSend;
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
     final p = context.palette;
-    final l = AppLocalizations.of(context);
-    final t = trainer; // local promotes; a public field cannot
-    final name = t?.fullName ?? l.coachDefaultName;
-    return Padding(
-      padding: const EdgeInsets.all(AppSpacing.screen),
-      child: Row(
-        children: [
-          GradientAvatar(
-            initials: initialsFrom(name),
-            size: 48,
-            tone: AvatarTone.ember,
-          ),
-          const SizedBox(width: AppSpacing.md),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(l.trainerCoachName(name.split(' ').first),
-                    style: context.textStyles.titleLarge),
-                Text(
-                  t == null
-                      ? l.coachCertified
-                      : l.coachRepliesIn(t.certifications.join(' · '), t.avgResponseHours),
-                  style:
-                      context.textStyles.bodySmall?.copyWith(color: p.muted),
+    final plan = context.watch<MyPlanController>().current;
+    final messages = context.watch<MessagingController>().thread(coach.id);
+
+    return Column(
+      children: [
+        // ---- Coach header ----
+        Padding(
+          padding: const EdgeInsets.all(AppSpacing.screen),
+          child: Row(
+            children: [
+              GradientAvatar(
+                initials: initialsFrom(coach.fullName),
+                size: 48,
+                tone: AvatarTone.ember,
+              ),
+              const SizedBox(width: AppSpacing.md),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(l.trainerCoachName(coach.fullName.split(' ').first),
+                        style: context.textStyles.titleLarge),
+                    Text(
+                      coach.specialty.isEmpty
+                          ? l.coachCertified
+                          : coach.specialty,
+                      style: context.textStyles.bodySmall
+                          ?.copyWith(color: p.muted),
+                    ),
+                  ],
                 ),
-              ],
-            ),
+              ),
+              Pill(l.coachOnline, tone: PillTone.teal, icon: Icons.circle),
+            ],
           ),
-          Pill(l.coachOnline, tone: PillTone.teal, icon: Icons.circle),
-        ],
-      ),
-    );
-  }
-}
-
-class _UpcomingSession extends StatelessWidget {
-  const _UpcomingSession({required this.session});
-  final CoachSession session;
-
-  @override
-  Widget build(BuildContext context) {
-    final l = AppLocalizations.of(context);
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(
-          AppSpacing.screen, 0, AppSpacing.screen, AppSpacing.sm),
-      child: Container(
-        padding: const EdgeInsets.all(AppSpacing.md),
-        decoration: BoxDecoration(
-          color: context.palette.tealSoft,
-          borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
         ),
-        child: Row(
-          children: [
-            const Icon(Icons.event_available, color: AppColors.teal),
-            const SizedBox(width: AppSpacing.md),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+        // ---- Assigned plan card ----
+        if (plan != null)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(
+                AppSpacing.screen, 0, AppSpacing.screen, AppSpacing.sm),
+            child: AppCard(
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => PlanDetailScreen(plan: plan)),
+              ),
+              child: Row(
                 children: [
-                  Text(
-                    DateFormat('EEEE, MMM d · h:mm a').format(session.start),
-                    style: context.textStyles.titleMedium,
+                  Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: p.emberSoft,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(Icons.assignment, color: AppColors.ember),
                   ),
-                  Text(l.coachSessionFocusMinutes(session.focus, session.minutes),
-                      style: context.textStyles.bodySmall),
+                  const SizedBox(width: AppSpacing.md),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(l.coachYourPlan,
+                            style: context.textStyles.bodySmall
+                                ?.copyWith(color: p.muted)),
+                        Text(plan.name, style: context.textStyles.titleMedium),
+                      ],
+                    ),
+                  ),
+                  Icon(Icons.chevron_right, color: p.muted),
                 ],
               ),
             ),
-            Pill(l.coachBooked, tone: PillTone.teal),
-          ],
+          ),
+        Divider(height: 1, color: p.line),
+        // ---- Conversation ----
+        Expanded(
+          child: ListView(
+            reverse: true,
+            padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.screen, vertical: AppSpacing.md),
+            children: [
+              for (final m in messages.reversed)
+                ThreadBubble(
+                  message: m,
+                  mine: !m.fromCoach,
+                  onViewPlan: m.isPlanCard && plan != null
+                      ? () => Navigator.of(context).push(
+                            MaterialPageRoute(
+                                builder: (_) => PlanDetailScreen(plan: plan)),
+                          )
+                      : null,
+                ),
+            ],
+          ),
         ),
-      ),
-    );
-  }
-}
-
-class _Thread extends StatelessWidget {
-  const _Thread({required this.messages, required this.typing});
-  final List<ChatMessage> messages;
-  final bool typing;
-
-  @override
-  Widget build(BuildContext context) {
-    // reverse:true keeps the latest message pinned to the bottom.
-    final items = <Widget>[
-      if (typing) const _TypingIndicator(),
-      for (final m in messages.reversed) ChatBubble(message: m),
-    ];
-    return ListView(
-      reverse: true,
-      padding: const EdgeInsets.symmetric(
-          horizontal: AppSpacing.screen, vertical: AppSpacing.md),
-      children: items,
-    );
-  }
-}
-
-class _TypingIndicator extends StatelessWidget {
-  const _TypingIndicator();
-
-  @override
-  Widget build(BuildContext context) {
-    final p = context.palette;
-    final l = AppLocalizations.of(context);
-    return Align(
-      alignment: Alignment.centerLeft,
-      child: Container(
-        margin: const EdgeInsets.only(top: 4, bottom: 4),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-        decoration: BoxDecoration(
-          color: p.surface,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: p.line),
-        ),
-        child: Text(l.coachTyping,
-            style: context.textStyles.bodySmall?.copyWith(color: p.muted)),
-      ),
+        _Composer(controller: input, hint: l.coachMessageHint, onSend: onSend),
+      ],
     );
   }
 }
 
 class _Composer extends StatelessWidget {
-  const _Composer({required this.controller, required this.onSend});
+  const _Composer(
+      {required this.controller, required this.hint, required this.onSend});
   final TextEditingController controller;
+  final String hint;
   final VoidCallback onSend;
 
   @override
   Widget build(BuildContext context) {
     final p = context.palette;
-    final l = AppLocalizations.of(context);
     return Container(
       padding: const EdgeInsets.fromLTRB(
           AppSpacing.md, AppSpacing.sm, AppSpacing.md, AppSpacing.md),
@@ -293,10 +283,7 @@ class _Composer extends StatelessWidget {
               minLines: 1,
               maxLines: 4,
               onSubmitted: (_) => onSend(),
-              decoration: InputDecoration(
-                hintText: l.coachMessageHint,
-                isDense: true,
-              ),
+              decoration: InputDecoration(hintText: hint, isDense: true),
             ),
           ),
           const SizedBox(width: AppSpacing.sm),
@@ -313,40 +300,6 @@ class _Composer extends StatelessWidget {
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _BookingSheet extends StatelessWidget {
-  const _BookingSheet({required this.slots});
-  final List<DateTime> slots;
-
-  @override
-  Widget build(BuildContext context) {
-    final l = AppLocalizations.of(context);
-    return SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(AppSpacing.screen, 0,
-            AppSpacing.screen, AppSpacing.lg),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(l.coachPickTime,
-                style: context.textStyles.titleLarge),
-            const SizedBox(height: AppSpacing.md),
-            for (final s in slots)
-              ListTile(
-                contentPadding: EdgeInsets.zero,
-                leading: const Icon(Icons.schedule),
-                title: Text(DateFormat('EEEE, MMM d').format(s)),
-                subtitle: Text(l.coachSlotDuration(DateFormat('h:mm a').format(s))),
-                trailing: const Icon(Icons.chevron_right),
-                onTap: () => Navigator.of(context).pop(s),
-              ),
-          ],
-        ),
       ),
     );
   }

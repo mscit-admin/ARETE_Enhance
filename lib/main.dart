@@ -14,6 +14,9 @@ import 'state/coach_controller.dart';
 import 'state/connect_controller.dart';
 import 'state/hydration_controller.dart';
 import 'state/locale_controller.dart';
+import 'state/messaging_controller.dart';
+import 'state/my_plan_controller.dart';
+import 'state/plans_controller.dart';
 import 'state/profile_controller.dart';
 import 'state/progress_controller.dart';
 import 'state/session_controller.dart';
@@ -68,6 +71,15 @@ void main() {
         ),
         ChangeNotifierProvider(
           create: (_) => ConnectController(apiClient),
+        ),
+        ChangeNotifierProvider(
+          create: (_) => PlansController(apiClient),
+        ),
+        ChangeNotifierProvider(
+          create: (_) => MyPlanController(apiClient),
+        ),
+        ChangeNotifierProvider(
+          create: (_) => MessagingController(apiClient),
         ),
       ],
       child: const AreteApp(),

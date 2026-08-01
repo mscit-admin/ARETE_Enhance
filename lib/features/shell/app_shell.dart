@@ -5,7 +5,8 @@ import '../../core/constants/enums.dart';
 import '../../l10n/app_localizations.dart';
 import '../profile/member_profile_screen.dart';
 import '../profile/trainer_home_screen.dart';
-import '../placeholder/coming_soon_screen.dart';
+import '../trainer/plans_screen.dart';
+import '../trainer/trainer_messages_screen.dart';
 import '../workout/workout_home_screen.dart';
 import '../progress/progress_screen.dart';
 import '../coach/coach_screen.dart';
@@ -93,23 +94,13 @@ class _AppShellState extends State<AppShell> {
           label: l.navPlans,
           icon: Icons.assignment_outlined,
           activeIcon: Icons.assignment,
-          screen: ComingSoonScreen(
-            title: l.navPlans,
-            moduleName: l.comingPlansModule,
-            description: l.comingPlansDesc,
-            icon: Icons.assignment,
-          ),
+          screen: const PlansScreen(),
         ),
         _TabDef(
           label: l.navMessages,
           icon: Icons.chat_bubble_outline,
           activeIcon: Icons.chat_bubble,
-          screen: ComingSoonScreen(
-            title: l.navMessages,
-            moduleName: l.comingMessagesModule,
-            description: l.comingMessagesDesc,
-            icon: Icons.chat_bubble,
-          ),
+          screen: const TrainerMessagesScreen(),
         ),
       ];
 }
