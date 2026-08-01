@@ -7,6 +7,7 @@ import '../profile/trainer_home_screen.dart';
 import '../placeholder/coming_soon_screen.dart';
 import '../workout/workout_home_screen.dart';
 import '../progress/progress_screen.dart';
+import '../coach/coach_screen.dart';
 import '../../state/session_controller.dart';
 
 /// Root scaffold with bottom navigation. The tab set adapts to the active
@@ -75,14 +76,7 @@ class _AppShellState extends State<AppShell> {
           label: 'Coach',
           icon: Icons.chat_bubble_outline,
           activeIcon: Icons.chat_bubble,
-          screen: ComingSoonScreen(
-            title: 'Coach',
-            moduleName: 'Trainer Management',
-            description:
-                'Your assigned coach, in-app messaging, plan hand-off and '
-                'session booking.',
-            icon: Icons.chat_bubble,
-          ),
+          screen: CoachScreen(),
         ),
       ];
 

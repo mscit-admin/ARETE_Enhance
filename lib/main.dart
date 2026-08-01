@@ -2,13 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import 'app/arete_app.dart';
+import 'data/repositories/mock_coach_repository.dart';
 import 'data/repositories/mock_profile_repository.dart';
 import 'data/repositories/mock_progress_repository.dart';
 import 'data/repositories/mock_workout_repository.dart';
+import 'data/repositories/coach_repository.dart';
 import 'data/repositories/profile_repository.dart';
 import 'data/repositories/progress_repository.dart';
 import 'data/repositories/workout_repository.dart';
 import 'state/assessment_controller.dart';
+import 'state/coach_controller.dart';
 import 'state/hydration_controller.dart';
 import 'state/profile_controller.dart';
 import 'state/progress_controller.dart';
@@ -24,6 +27,7 @@ void main() {
   final ProfileRepository profileRepository = MockProfileRepository();
   final WorkoutRepository workoutRepository = MockWorkoutRepository();
   final ProgressRepository progressRepository = MockProgressRepository();
+  final CoachRepository coachRepository = MockCoachRepository();
   final profileController = ProfileController(profileRepository)..load();
 
   runApp(
@@ -45,6 +49,9 @@ void main() {
         ),
         ChangeNotifierProvider(
           create: (_) => AssessmentController(),
+        ),
+        ChangeNotifierProvider(
+          create: (_) => CoachController(coachRepository),
         ),
       ],
       child: const AreteApp(),
