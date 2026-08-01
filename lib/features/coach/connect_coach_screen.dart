@@ -18,9 +18,13 @@ class ConnectCoachScreen extends StatefulWidget {
 }
 
 class _ConnectCoachScreenState extends State<ConnectCoachScreen> {
+  // autoStart is disabled so we only start the camera *after* the runtime
+  // permission is granted — otherwise the first start fails and the platform
+  // reports the camera as "unavailable".
   final _controller = MobileScannerController(
     detectionSpeed: DetectionSpeed.noDuplicates,
     facing: CameraFacing.back,
+    autoStart: false,
   );
   final _codeField = TextEditingController();
   bool _handling = false;
@@ -46,6 +50,7 @@ class _ConnectCoachScreenState extends State<ConnectCoachScreen> {
       _cameraGranted = status.isGranted;
       _checkingPermission = false;
     });
+    if (status.isGranted) await _startScanner();
   }
 
   Future<void> _enableCamera() async {
@@ -56,6 +61,16 @@ class _ConnectCoachScreenState extends State<ConnectCoachScreen> {
     }
     if (!mounted) return;
     setState(() => _cameraGranted = status.isGranted);
+    if (status.isGranted) await _startScanner();
+  }
+
+  /// Start (or restart) the camera. Safe to call more than once.
+  Future<void> _startScanner() async {
+    try {
+      await _controller.start();
+    } catch (_) {
+      // Already running, or a transient start error — ignore.
+    }
   }
 
   @override
@@ -122,11 +137,23 @@ class _ConnectCoachScreenState extends State<ConnectCoachScreen> {
                                 errorBuilder: (context, error, child) => Center(
                                   child: Padding(
                                     padding: const EdgeInsets.all(AppSpacing.xl),
-                                    child: Text(
-                                      l.connectCameraUnavailable,
-                                      textAlign: TextAlign.center,
-                                      style:
-                                          const TextStyle(color: Colors.white70),
+                                    child: Column(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Text(
+                                          l.connectCameraUnavailable,
+                                          textAlign: TextAlign.center,
+                                          style: const TextStyle(
+                                              color: Colors.white70),
+                                        ),
+                                        const SizedBox(height: AppSpacing.md),
+                                        ElevatedButton.icon(
+                                          onPressed: _startScanner,
+                                          icon: const Icon(Icons.refresh,
+                                              size: 18),
+                                          label: Text(l.actionRetry),
+                                        ),
+                                      ],
                                     ),
                                   ),
                                 ),
