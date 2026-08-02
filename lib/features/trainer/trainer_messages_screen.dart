@@ -81,15 +81,30 @@ class _ClientRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final p = context.palette;
+    final l = AppLocalizations.of(context);
     return AppCard(
       onTap: onTap,
       padding: const EdgeInsets.all(AppSpacing.md),
       child: Row(
         children: [
-          GradientAvatar(initials: initialsFrom(name), size: 42),
+          GradientAvatar(
+              initials: initialsFrom(name),
+              size: 46,
+              tone: AvatarTone.teal),
           const SizedBox(width: AppSpacing.md),
           Expanded(
-            child: Text(name, style: context.textStyles.titleMedium),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(name, style: context.textStyles.titleMedium),
+                const SizedBox(height: 2),
+                Text(l.messagesTapToOpen,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: context.textStyles.bodySmall
+                        ?.copyWith(color: p.muted)),
+              ],
+            ),
           ),
           Icon(Icons.chevron_right, color: p.muted),
         ],

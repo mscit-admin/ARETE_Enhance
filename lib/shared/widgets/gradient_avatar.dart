@@ -19,9 +19,13 @@ class GradientAvatar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final gradient = tone == AvatarTone.teal
-        ? const [AppColors.teal, Color(0xFF0A6B61)]
-        : const [AppColors.ember, AppColors.emberDark];
+    final gradient = switch (tone) {
+      AvatarTone.teal => const [AppColors.teal, Color(0xFF0A6B61)],
+      AvatarTone.lime => const [AppColors.accent, AppColors.accentPressed],
+      AvatarTone.ember => const [AppColors.ember, AppColors.emberDark],
+    };
+    // Dark initials read better on the bright lime gradient.
+    final fg = tone == AvatarTone.lime ? AppColors.onAccent : Colors.white;
 
     return Container(
       width: size,
@@ -38,7 +42,7 @@ class GradientAvatar extends StatelessWidget {
       child: Text(
         initials,
         style: TextStyle(
-          color: Colors.white,
+          color: fg,
           fontWeight: FontWeight.w800,
           fontSize: size * 0.36,
         ),
@@ -47,7 +51,7 @@ class GradientAvatar extends StatelessWidget {
   }
 }
 
-enum AvatarTone { teal, ember }
+enum AvatarTone { teal, ember, lime }
 
 /// Derive up to two initials from a full name.
 String initialsFrom(String name) {

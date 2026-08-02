@@ -67,14 +67,24 @@ class _AppShellState extends State<AppShell> {
         children: [for (final t in tabs) t.screen],
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
-      floatingActionButton: SizedBox(
+      floatingActionButton: Container(
         height: 62,
         width: 62,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.accent.withValues(alpha: 0.45),
+              blurRadius: 18,
+              spreadRadius: 1,
+            ),
+          ],
+        ),
         child: FloatingActionButton(
           onPressed: () => select(centreIndex),
           backgroundColor: AppColors.accent,
           foregroundColor: AppColors.onAccent,
-          elevation: 3,
+          elevation: 0,
           shape: const CircleBorder(),
           child: Icon(tabs[centreIndex].activeIcon,
               color: AppColors.onAccent, size: 28),

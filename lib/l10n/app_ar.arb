@@ -244,6 +244,7 @@
   "planNeedExercise": "أضف تمرينًا واحدًا على الأقل",
   "planSetsReps": "{sets} × {reps}",
   "messagesPickClient": "اختر متدربًا للمراسلة",
+  "messagesTapToOpen": "اضغط لفتح المحادثة",
   "messagesNoClients": "لا يوجد متدربون بعد — شارك رمز QR للتواصل.",
   "coachYourPlan": "خطتك",
   "coachPlanBy": "أسندها {name}",

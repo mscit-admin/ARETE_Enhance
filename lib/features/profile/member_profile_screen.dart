@@ -10,7 +10,6 @@ import '../../data/models/member.dart';
 import '../../l10n/app_localizations.dart';
 import '../../shared/widgets/gradient_avatar.dart';
 import '../../shared/widgets/language_menu_button.dart';
-import '../../shared/widgets/pill.dart';
 import '../../shared/widgets/section_label.dart';
 import '../../state/assessment_controller.dart';
 import '../../state/auth_controller.dart';
@@ -78,7 +77,10 @@ class _ProfileBody extends StatelessWidget {
           // ---- Header ----
           Row(
             children: [
-              GradientAvatar(initials: initialsFrom(member.fullName), size: 50),
+              GradientAvatar(
+                  initials: initialsFrom(member.fullName),
+                  size: 50,
+                  tone: AvatarTone.lime),
               const SizedBox(width: AppSpacing.md),
               Expanded(
                 child: Column(
@@ -162,11 +164,13 @@ class _TodaySessionCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
+    // Carbon "Today's workout" hero: a bright white card that pops against the
+    // black canvas, with a lime circular play button.
     return Container(
       padding: const EdgeInsets.all(AppSpacing.lg),
       decoration: BoxDecoration(
-        color: AppColors.ink,
-        borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(AppSpacing.radiusXl),
       ),
       child: Row(
         children: [
@@ -177,23 +181,36 @@ class _TodaySessionCard extends StatelessWidget {
                 Text(
                   l.profilePushDay,
                   style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w800,
+                    color: Color(0xFF0B0E11),
+                    fontSize: 20,
+                    height: 1.05,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: -0.4,
                   ),
                 ),
-                const SizedBox(height: 3),
+                const SizedBox(height: 4),
                 Text(
                   l.profileSessionMeta,
-                  style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.6),
-                    fontSize: 12,
+                  style: const TextStyle(
+                    color: Color(0x990B0E11),
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
               ],
             ),
           ),
-          Pill(l.profileStart, tone: PillTone.ember),
+          const SizedBox(width: AppSpacing.md),
+          Container(
+            width: 52,
+            height: 52,
+            decoration: const BoxDecoration(
+              color: AppColors.accent,
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(Icons.play_arrow_rounded,
+                color: AppColors.onAccent, size: 30),
+          ),
         ],
       ),
     );

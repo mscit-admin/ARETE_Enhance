@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_theme.dart';
 import '../../data/models/trainer_plan.dart';
@@ -167,6 +168,11 @@ class _PlanCard extends StatelessWidget {
             alignment: AlignmentDirectional.centerEnd,
             child: OutlinedButton.icon(
               onPressed: onAssign,
+              style: OutlinedButton.styleFrom(
+                foregroundColor: AppColors.accent,
+                side: const BorderSide(color: AppColors.limeTintBorder),
+                backgroundColor: AppColors.limeTintBg,
+              ),
               icon: const Icon(Icons.person_add_alt, size: 18),
               label: Text(l.plansAssign),
             ),

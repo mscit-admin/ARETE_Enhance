@@ -281,6 +281,7 @@
   "planSetsReps": "{sets} × {reps}",
   "@planSetsReps": { "placeholders": { "sets": { "type": "int" }, "reps": { "type": "int" } } },
   "messagesPickClient": "Choose a client to message",
+  "messagesTapToOpen": "Tap to open conversation",
   "messagesNoClients": "No clients yet — share your QR code to connect.",
   "coachYourPlan": "Your plan",
   "coachPlanBy": "Assigned by {name}",

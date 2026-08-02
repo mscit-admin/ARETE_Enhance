@@ -244,6 +244,7 @@
   "planNeedExercise": "Ajoutez au moins un exercice",
   "planSetsReps": "{sets} × {reps}",
   "messagesPickClient": "Choisissez un client à qui écrire",
+  "messagesTapToOpen": "Appuyez pour ouvrir la conversation",
   "messagesNoClients": "Aucun client — partagez votre code QR pour vous connecter.",
   "coachYourPlan": "Votre plan",
   "coachPlanBy": "Attribué par {name}",
