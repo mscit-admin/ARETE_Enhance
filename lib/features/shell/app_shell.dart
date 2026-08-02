@@ -72,11 +72,12 @@ class _AppShellState extends State<AppShell> {
         width: 62,
         child: FloatingActionButton(
           onPressed: () => select(centreIndex),
-          backgroundColor: AppColors.ember,
+          backgroundColor: AppColors.accent,
+          foregroundColor: AppColors.onAccent,
           elevation: 3,
           shape: const CircleBorder(),
           child: Icon(tabs[centreIndex].activeIcon,
-              color: Colors.white, size: 28),
+              color: AppColors.onAccent, size: 28),
         ),
       ),
       bottomNavigationBar: BottomAppBar(
@@ -227,7 +228,7 @@ class _NavItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = selected ? AppColors.ember : context.palette.muted;
+    final color = selected ? AppColors.accent : context.palette.muted;
     return InkResponse(
       onTap: onTap,
       radius: 36,

@@ -22,6 +22,22 @@ class AppColors {
   /// The logo's lime green ("Strength Beyond Limits").
   static const Color brandGreen = Color(0xFFA4D233);
 
+  // ---- Carbon interactive accent (lime) ----
+  /// The single interactive accent: CTAs, active nav, progress fills, own
+  /// chat bubbles. Ember/Teal/Water/Gold stay as data-viz metric hues only.
+  static const Color accent = Color(0xFFA4D233);
+  static const Color accentPressed = Color(0xFF7EA318);
+
+  /// Text/glyph colour to sit on a lime accent fill.
+  static const Color onAccent = Color(0xFF0B0E11);
+
+  /// Lime-tinted chip/badge background + border.
+  static const Color limeTintBg = Color(0xFF141A0C);
+  static const Color limeTintBorder = Color(0xFF33421A);
+
+  /// Carbon bottom bar / bottom action bar surface (raised, near-black).
+  static const Color navSurface = Color(0xFF0F1318);
+
   // Semantic
   static const Color success = teal;
   static const Color warning = gold;
@@ -43,14 +59,14 @@ class AppColors {
   static const _lightEmberSoft = Color(0xFFFBE3D8);
   static const _lightTealSoft = Color(0xFFD5EFEC);
 
-  // ---- Dark theme tokens ----
-  static const _darkBg = Color(0xFF0E1216);
-  static const _darkSurface = Color(0xFF161B21);
-  static const _darkSurfaceAlt = Color(0xFF1B2129);
-  static const _darkLine = Color(0xFF262D36);
-  static const _darkText = Color(0xFFE7E9EC);
+  // ---- Dark theme tokens (Carbon) ----
+  static const _darkBg = Color(0xFF0B0E11);
+  static const _darkSurface = Color(0xFF12161B);
+  static const _darkSurfaceAlt = Color(0xFF0F1318);
+  static const _darkLine = Color(0xFF1E252D);
+  static const _darkText = Color(0xFFFFFFFF);
   static const _darkMuted = Color(0xFF8A94A1);
-  static const _darkInk = Color(0xFF05070A);
+  static const _darkInk = Color(0xFF12161B);
   static const _darkEmberSoft = Color(0xFF2A1913);
   static const _darkTealSoft = Color(0xFF10231F);
 

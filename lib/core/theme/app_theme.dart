@@ -14,8 +14,8 @@ class AppTheme {
   static ThemeData _build(AppPalette p) {
     final colorScheme = ColorScheme(
       brightness: p.brightness,
-      primary: AppColors.ember,
-      onPrimary: Colors.white,
+      primary: AppColors.accent,
+      onPrimary: AppColors.onAccent,
       secondary: AppColors.teal,
       onSecondary: Colors.white,
       error: AppColors.danger,
@@ -52,18 +52,18 @@ class AppTheme {
       ),
       bottomNavigationBarTheme: BottomNavigationBarThemeData(
         backgroundColor: p.surface,
-        selectedItemColor: AppColors.ember,
+        selectedItemColor: AppColors.accent,
         unselectedItemColor: p.muted,
         type: BottomNavigationBarType.fixed,
         showUnselectedLabels: true,
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
-          backgroundColor: AppColors.ember,
-          foregroundColor: Colors.white,
+          backgroundColor: AppColors.accent,
+          foregroundColor: AppColors.onAccent,
           elevation: 0,
           padding: const EdgeInsets.symmetric(vertical: 15),
-          textStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
+          textStyle: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
           ),
@@ -95,7 +95,7 @@ class AppTheme {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-          borderSide: const BorderSide(color: AppColors.ember, width: 1.6),
+          borderSide: const BorderSide(color: AppColors.accent, width: 1.6),
         ),
         labelStyle: TextStyle(color: p.muted),
       ),
