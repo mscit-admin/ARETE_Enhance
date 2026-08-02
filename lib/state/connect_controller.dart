@@ -23,6 +23,15 @@ class ConnectController extends ChangeNotifier {
   String? get qrPayload =>
       _trainerCode == null ? null : 'ARETE-COACH:$_trainerCode';
 
+  /// Drop all per-account state on sign-out so nothing leaks to the next login.
+  void clear() {
+    _trainerCode = null;
+    _coach = null;
+    _clients = [];
+    _busy = false;
+    notifyListeners();
+  }
+
   /// Load (or lazily allocate) the signed-in trainer's link code.
   Future<String?> loadTrainerCode() async {
     try {

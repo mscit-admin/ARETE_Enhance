@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import 'app/arete_app.dart';
+import 'core/constants/enums.dart';
 import 'data/api/api_client.dart';
 import 'data/repositories/api_auth_repository.dart';
 import 'data/repositories/api_profile_repository.dart';
@@ -36,14 +37,26 @@ void main() {
   final authRepository = ApiAuthRepository(apiClient);
 
   final profileController = ProfileController(profileRepository);
+  final sessionController = SessionController();
+  final connectController = ConnectController(apiClient);
+  final myPlanController = MyPlanController(apiClient);
 
   final authController = AuthController(
     authRepository,
     onAuthenticated: (user) async {
+      // Every sign-in starts in trainee view; a trainer switches to coach
+      // mode via the header icon. This prevents a previous trainer session's
+      // role from leaking into a different (trainee-only) account.
+      sessionController.setRole(UserRole.member);
       await profileController.load();
       await profileController.applyAccount(name: user.name, email: user.email);
     },
-    onSignedOut: () async => profileController.clear(),
+    onSignedOut: () async {
+      sessionController.setRole(UserRole.member);
+      profileController.clear();
+      connectController.clear();
+      myPlanController.clear();
+    },
   )..bootstrap();
 
   runApp(
@@ -51,7 +64,7 @@ void main() {
       providers: [
         ChangeNotifierProvider.value(value: authController),
         ChangeNotifierProvider(create: (_) => LocaleController()),
-        ChangeNotifierProvider(create: (_) => SessionController()),
+        ChangeNotifierProvider.value(value: sessionController),
         ChangeNotifierProvider.value(value: profileController),
         ChangeNotifierProvider(
           create: (_) => TrainerController(profileRepository),
@@ -69,15 +82,11 @@ void main() {
         ChangeNotifierProvider(
           create: (_) => CoachController(coachRepository),
         ),
-        ChangeNotifierProvider(
-          create: (_) => ConnectController(apiClient),
-        ),
+        ChangeNotifierProvider.value(value: connectController),
         ChangeNotifierProvider(
           create: (_) => PlansController(apiClient),
         ),
-        ChangeNotifierProvider(
-          create: (_) => MyPlanController(apiClient),
-        ),
+        ChangeNotifierProvider.value(value: myPlanController),
         ChangeNotifierProvider(
           create: (_) => MessagingController(apiClient),
         ),
