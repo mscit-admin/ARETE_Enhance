@@ -96,10 +96,16 @@ jobs:
           if ! grep -q "android.permission.CAMERA" "$MANIFEST"; then
             sed -i 's#<application#<uses-permission android:name="android.permission.CAMERA"/>\n    <application#' "$MANIFEST"
           fi
+          # mobile_scanner's camera preview can render black under Flutter's
+          # Impeller renderer on Android; disable Impeller so the live camera
+          # shows reliably. (Inserted as an <application> child before <activity>.)
+          if ! grep -q "EnableImpeller" "$MANIFEST"; then
+            sed -i 's#<activity#<meta-data android:name="io.flutter.embedding.android.EnableImpeller" android:value="false" />\n        <activity#' "$MANIFEST"
+          fi
           echo "----- network_security_config.xml -----"
           cat android/app/src/main/res/xml/network_security_config.xml
-          echo "----- AndroidManifest.xml permissions -----"
-          grep -n "uses-permission" "$MANIFEST" || echo "NO uses-permission found!"
+          echo "----- AndroidManifest.xml permissions + impeller -----"
+          grep -n "uses-permission\|EnableImpeller" "$MANIFEST" || echo "NO uses-permission found!"
 
       - name: Install dependencies
         run: flutter pub get
