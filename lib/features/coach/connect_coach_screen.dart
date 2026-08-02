@@ -19,13 +19,7 @@ class ConnectCoachScreen extends StatefulWidget {
 
 class _ConnectCoachScreenState extends State<ConnectCoachScreen>
     with WidgetsBindingObserver {
-  // Default controller (autoStart = true): the MobileScanner widget starts the
-  // camera when it mounts. We only mount it *after* the permission is granted,
-  // so the start happens at the right time.
-  final _controller = MobileScannerController(
-    detectionSpeed: DetectionSpeed.noDuplicates,
-    facing: CameraFacing.back,
-  );
+  final _controller = MobileScannerController();
   final _codeField = TextEditingController();
   bool _handling = false;
   String? _error;
@@ -43,15 +37,13 @@ class _ConnectCoachScreenState extends State<ConnectCoachScreen>
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    // Re-check after the user comes back from the system settings screen —
-    // if they granted the permission there, start the camera automatically.
+    // If the user granted the permission in system settings and came back,
+    // start the camera automatically.
     if (state == AppLifecycleState.resumed && !_cameraGranted) {
       _refreshPermission(request: false);
     }
   }
 
-  /// Read the permission (optionally requesting it) and start the camera when
-  /// it is granted.
   Future<void> _refreshPermission({required bool request}) async {
     var status = await Permission.camera.status;
     if (!status.isGranted && request) {
@@ -62,24 +54,25 @@ class _ConnectCoachScreenState extends State<ConnectCoachScreen>
       _cameraStatus = status;
       _checkingPermission = false;
     });
+    if (status.isGranted) _startCamera();
   }
 
-  /// Button action: request the permission; if that doesn't grant it (denied
-  /// or permanently denied), open the system settings so it can be granted
-  /// there — that path always works even when the in-app dialog won't show.
   Future<void> _enableCamera() async {
     final status = await Permission.camera.request();
     if (!mounted) return;
     setState(() => _cameraStatus = status);
-    if (!status.isGranted) await openAppSettings();
+    if (status.isGranted) {
+      _startCamera();
+    } else {
+      await openAppSettings();
+    }
   }
 
-  /// Retry starting the camera (used by the error state's Retry button).
-  Future<void> _restart() async {
+  Future<void> _startCamera() async {
     try {
       await _controller.start();
     } catch (_) {
-      // Ignore — the errorBuilder will surface any persistent failure.
+      // Already running or a transient start error — safe to ignore.
     }
   }
 
@@ -148,39 +141,6 @@ class _ConnectCoachScreenState extends State<ConnectCoachScreen>
                                       : null;
                                   if (raw != null) _submit(raw);
                                 },
-                                errorBuilder: (context, error, child) => Center(
-                                  child: Padding(
-                                    padding: const EdgeInsets.all(AppSpacing.xl),
-                                    child: Column(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        Text(
-                                          l.connectCameraUnavailable,
-                                          textAlign: TextAlign.center,
-                                          style: const TextStyle(
-                                              color: Colors.white70),
-                                        ),
-                                        const SizedBox(height: 6),
-                                        // Real error code/message for diagnosis.
-                                        Text(
-                                          '${error.errorCode.name}'
-                                          '${error.errorDetails?.message != null ? ' · ${error.errorDetails!.message}' : ''}',
-                                          textAlign: TextAlign.center,
-                                          style: const TextStyle(
-                                              color: Colors.white38,
-                                              fontSize: 11),
-                                        ),
-                                        const SizedBox(height: AppSpacing.md),
-                                        ElevatedButton.icon(
-                                          onPressed: _restart,
-                                          icon: const Icon(Icons.refresh,
-                                              size: 18),
-                                          label: Text(l.actionRetry),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ),
                               ),
                               // viewfinder frame
                               Center(
@@ -233,9 +193,8 @@ class _ConnectCoachScreenState extends State<ConnectCoachScreen>
                       ),
                       const SizedBox(width: AppSpacing.sm),
                       ElevatedButton(
-                        onPressed: _handling
-                            ? null
-                            : () => _submit(_codeField.text),
+                        onPressed:
+                            _handling ? null : () => _submit(_codeField.text),
                         child: _handling
                             ? const SizedBox(
                                 width: 18,
@@ -249,7 +208,7 @@ class _ConnectCoachScreenState extends State<ConnectCoachScreen>
                   if (_error != null) ...[
                     const SizedBox(height: AppSpacing.sm),
                     Text(_error!,
-                        style: TextStyle(
+                        style: const TextStyle(
                             color: AppColors.danger, fontSize: 13)),
                   ],
                 ],
@@ -293,7 +252,6 @@ class _CameraPrompt extends StatelessWidget {
               label: Text(l.connectEnableCamera),
             ),
             const SizedBox(height: AppSpacing.sm),
-            // Small diagnostic line (permission state) — helps pinpoint issues.
             Text(
               'camera: ${status.name}',
               style: const TextStyle(color: Colors.white38, fontSize: 11),

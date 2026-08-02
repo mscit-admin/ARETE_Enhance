@@ -22,7 +22,8 @@ dependencies:
   crypto: ^3.0.3
   http: ^1.2.2
   qr_flutter: ^4.1.0
-  mobile_scanner: ^5.2.3
+  # A modern build is required: 5.x throws a native NPE on current toolchains.
+  mobile_scanner: ">=6.0.0 <8.0.0"
   permission_handler: ^11.3.1
 
 dev_dependencies:
