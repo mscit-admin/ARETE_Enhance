@@ -43,7 +43,7 @@ class _TextBubble extends StatelessWidget {
         margin: const EdgeInsets.symmetric(vertical: 4),
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
         decoration: BoxDecoration(
-          color: fromCoach ? p.surface : AppColors.ember,
+          color: fromCoach ? p.surface : AppColors.accent,
           borderRadius: BorderRadius.only(
             topLeft: const Radius.circular(14),
             topRight: const Radius.circular(14),
@@ -57,7 +57,7 @@ class _TextBubble extends StatelessWidget {
           style: TextStyle(
             fontSize: 14,
             height: 1.4,
-            color: fromCoach ? p.text : Colors.white,
+            color: fromCoach ? p.text : AppColors.onAccent,
           ),
         ),
       ),
@@ -99,7 +99,7 @@ class _PlanCard extends StatelessWidget {
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child:
-                        const Icon(Icons.assignment, color: AppColors.ember),
+                        const Icon(Icons.assignment, color: AppColors.accent),
                   ),
                   const SizedBox(width: AppSpacing.md),
                   Expanded(
@@ -129,7 +129,7 @@ class _PlanCard extends StatelessWidget {
                 child: Center(
                   child: Text(l.chatViewPlan,
                       style: TextStyle(
-                          color: AppColors.ember,
+                          color: AppColors.accent,
                           fontWeight: FontWeight.w700)),
                 ),
               ),

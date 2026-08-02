@@ -87,7 +87,7 @@ class ActiveWorkoutScreen extends StatelessWidget {
               value: session.progress,
               minHeight: 4,
               backgroundColor: context.palette.line,
-              color: AppColors.ember,
+              color: AppColors.accent,
             ),
             Expanded(
               child: ListView(

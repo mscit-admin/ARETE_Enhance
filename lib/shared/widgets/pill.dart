@@ -21,8 +21,9 @@ class Pill extends StatelessWidget {
     late Color fg;
     switch (tone) {
       case PillTone.ember:
-        bg = p.emberSoft;
-        fg = AppColors.ember;
+        // Carbon: the primary pill is lime, not ember.
+        bg = AppColors.limeTintBg;
+        fg = AppColors.accent;
       case PillTone.teal:
         bg = p.tealSoft;
         fg = AppColors.teal;

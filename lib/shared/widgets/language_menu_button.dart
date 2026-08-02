@@ -42,7 +42,7 @@ class LanguageMenuButton extends StatelessWidget {
           SizedBox(
             width: 22,
             child: selected
-                ? const Icon(Icons.check, size: 18, color: AppColors.ember)
+                ? const Icon(Icons.check, size: 18, color: AppColors.accent)
                 : null,
           ),
           const SizedBox(width: 6),

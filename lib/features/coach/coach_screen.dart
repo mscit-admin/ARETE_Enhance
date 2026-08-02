@@ -216,7 +216,7 @@ class _Conversation extends StatelessWidget {
                       color: p.emberSoft,
                       borderRadius: BorderRadius.circular(10),
                     ),
-                    child: const Icon(Icons.assignment, color: AppColors.ember),
+                    child: const Icon(Icons.assignment, color: AppColors.accent),
                   ),
                   const SizedBox(width: AppSpacing.md),
                   Expanded(
@@ -294,14 +294,14 @@ class _Composer extends StatelessWidget {
           ),
           const SizedBox(width: AppSpacing.sm),
           Material(
-            color: AppColors.ember,
+            color: AppColors.accent,
             shape: const CircleBorder(),
             child: InkWell(
               customBorder: const CircleBorder(),
               onTap: onSend,
               child: const Padding(
                 padding: EdgeInsets.all(12),
-                child: Icon(Icons.arrow_upward, color: Colors.white, size: 22),
+                child: Icon(Icons.arrow_upward, color: AppColors.onAccent, size: 22),
               ),
             ),
           ),

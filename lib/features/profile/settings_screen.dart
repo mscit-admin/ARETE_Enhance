@@ -46,7 +46,7 @@ class SettingsScreen extends StatelessWidget {
                         session.isTrainer
                             ? Icons.sports_gymnastics
                             : Icons.directions_run,
-                        color: AppColors.ember,
+                        color: AppColors.accent,
                       ),
                       const SizedBox(width: AppSpacing.md),
                       Expanded(
@@ -107,7 +107,7 @@ class SettingsScreen extends StatelessWidget {
                   onChanged: (v) =>
                       context.read<SessionController>().setFollowSystemTheme(v),
                   title: Text(l.settingsMatchSystemTheme),
-                  activeColor: AppColors.ember,
+                  activeColor: AppColors.accent,
                 ),
                 if (!session.followSystemTheme)
                   SwitchListTile(
@@ -115,7 +115,7 @@ class SettingsScreen extends StatelessWidget {
                     onChanged: (v) =>
                         context.read<SessionController>().setDark(v),
                     title: Text(l.settingsDarkMode),
-                    activeColor: AppColors.ember,
+                    activeColor: AppColors.accent,
                   ),
               ],
             ),
@@ -386,7 +386,7 @@ class _ToggleTileState extends State<_ToggleTile> {
       secondary: Icon(widget.icon),
       title: Text(widget.title),
       value: _value,
-      activeColor: AppColors.ember,
+      activeColor: AppColors.accent,
       onChanged: (v) => setState(() => _value = v),
     );
   }

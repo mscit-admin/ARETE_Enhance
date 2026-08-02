@@ -111,7 +111,7 @@ class _Dashboard extends StatelessWidget {
               const SizedBox(height: AppSpacing.md),
               WeightLineChart(
                 values: [for (final w in data.weight) w.kg],
-                color: AppColors.ember,
+                color: AppColors.accent,
               ),
             ],
           ),
@@ -162,7 +162,7 @@ class _Dashboard extends StatelessWidget {
               const SizedBox(height: AppSpacing.md),
               VolumeBarChart(
                 values: [for (final v in data.volume) v.volumeKg],
-                color: AppColors.teal,
+                color: AppColors.accent,
               ),
             ],
           ),

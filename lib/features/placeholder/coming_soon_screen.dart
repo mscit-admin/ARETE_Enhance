@@ -39,7 +39,7 @@ class ComingSoonScreen extends StatelessWidget {
                   color: p.emberSoft,
                   borderRadius: BorderRadius.circular(AppSpacing.radiusXl),
                 ),
-                child: Icon(icon, size: 40, color: AppColors.ember),
+                child: Icon(icon, size: 40, color: AppColors.accent),
               ),
               const SizedBox(height: AppSpacing.xl),
               const Pill('Phase 1 · Coming next', tone: PillTone.ember),

@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_theme.dart';
 
-/// A thin rounded progress bar with an ember gradient fill.
+/// A thin rounded progress bar with a lime gradient fill.
 class AppProgressBar extends StatelessWidget {
   const AppProgressBar({super.key, required this.value, this.height = 7});
 
@@ -25,7 +25,7 @@ class AppProgressBar extends StatelessWidget {
               height: height,
               decoration: const BoxDecoration(
                 gradient: LinearGradient(
-                  colors: [AppColors.ember, Color(0xFFF7893F)],
+                  colors: [AppColors.accentPressed, AppColors.accent],
                 ),
               ),
             ),

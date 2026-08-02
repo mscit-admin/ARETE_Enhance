@@ -47,7 +47,7 @@ class RestTimerRing extends StatelessWidget {
               value: progress.clamp(0.0, 1.0),
               strokeWidth: 9,
               strokeCap: StrokeCap.round,
-              color: AppColors.ember,
+              color: AppColors.accent,
               backgroundColor: Colors.transparent,
             ),
           ),

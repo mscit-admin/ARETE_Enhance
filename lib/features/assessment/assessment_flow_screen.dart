@@ -98,7 +98,7 @@ class _AssessmentFlowScreenState extends State<AssessmentFlowScreen> {
                         height: 4,
                         margin: const EdgeInsets.symmetric(horizontal: 2),
                         decoration: BoxDecoration(
-                          color: i <= _step ? AppColors.ember : p.line,
+                          color: i <= _step ? AppColors.accent : p.line,
                           borderRadius: BorderRadius.circular(4),
                         ),
                       ),
@@ -293,7 +293,7 @@ class _ParqStep extends StatelessWidget {
               contentPadding: EdgeInsets.zero,
               dense: true,
               value: a.parq[i],
-              activeColor: AppColors.ember,
+              activeColor: AppColors.accent,
               title: Text(_parq(l)[i],
                   style: context.textStyles.bodyMedium),
               onChanged: (v) => controller.setParq(i, v),

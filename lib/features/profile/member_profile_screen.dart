@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -24,7 +22,6 @@ import '../assessment/starter_plan_detail_screen.dart';
 import '../shell/root_scaffold_key.dart';
 import 'widgets/badges_row.dart';
 import 'widgets/goal_progress_card.dart';
-import 'widgets/kpi_ring.dart';
 import 'widgets/membership_card.dart';
 
 /// Member home / profile — the first fully-built module of Phase 1.
@@ -118,18 +115,16 @@ class _ProfileBody extends StatelessWidget {
           ),
           const SizedBox(height: AppSpacing.lg),
 
-          // ---- Assessment / plan entry ----
-          const _AssessmentEntry(),
+          // ---- Streak banner (Carbon emphasis) ----
+          _StreakBanner(member: member),
           const SizedBox(height: AppSpacing.lg),
 
-          // ---- KPI ring: the home centrepiece ----
-          SectionLabel(l.profileTodayGlance),
-          const SizedBox(height: AppSpacing.md),
-          Center(child: _TodayKpiRing(member: member)),
-          const SizedBox(height: AppSpacing.lg),
-          _RingLegend(member: member),
-          const SizedBox(height: AppSpacing.md),
-          const _LogWaterButton(),
+          // ---- Assessment / plan entry ----
+          const _AssessmentEntry(),
+          const SizedBox(height: AppSpacing.xl),
+
+          // ---- Today's activity (Carbon: three horizontal bars) ----
+          _TodayActivityBars(member: member),
           const SizedBox(height: AppSpacing.xl),
 
           // ---- Today's session (visual entry to Workout Execution) ----
@@ -205,294 +200,183 @@ class _TodaySessionCard extends StatelessWidget {
   }
 }
 
-/// The home centrepiece: three concentric activity rings (Move / Steps /
-/// Water) wrapped around a 2×2 grid of the member's key KPI numbers.
-class _TodayKpiRing extends StatelessWidget {
-  const _TodayKpiRing({required this.member});
+/// Carbon streak banner — the big streak number over a lime flame tile.
+class _StreakBanner extends StatelessWidget {
+  const _StreakBanner({required this.member});
 
   final Member member;
-
-  @override
-  Widget build(BuildContext context) {
-    final ds = member.dailyStats;
-
-    final rings = [
-      RingMetric(progress: ds.caloriesProgress, color: AppColors.move),
-      RingMetric(progress: ds.stepsProgress, color: AppColors.steps),
-      RingMetric(progress: ds.waterProgress, color: AppColors.water),
-    ];
-
-    return KpiRing(
-      rings: rings,
-      center: _RotatingKpiCenter(member: member),
-    );
-  }
-}
-
-/// The centre of the ring: shows ONE KPI large at a time, auto-advancing every
-/// few seconds and also advancing on tap. Page dots show position.
-class _RotatingKpiCenter extends StatefulWidget {
-  const _RotatingKpiCenter({required this.member});
-
-  final Member member;
-
-  @override
-  State<_RotatingKpiCenter> createState() => _RotatingKpiCenterState();
-}
-
-class _RotatingKpiCenterState extends State<_RotatingKpiCenter> {
-  int _index = 0;
-  Timer? _timer;
-
-  @override
-  void initState() {
-    super.initState();
-    _startAutoRotate();
-  }
-
-  @override
-  void dispose() {
-    _timer?.cancel();
-    super.dispose();
-  }
-
-  void _startAutoRotate() {
-    _timer?.cancel();
-    _timer = Timer.periodic(const Duration(seconds: 4), (_) {
-      if (mounted) setState(() => _index++);
-    });
-  }
-
-  void _next() {
-    setState(() => _index++);
-    _startAutoRotate(); // reset the clock after a manual tap
-  }
-
-  List<_KpiSpec> _buildSpecs(AppLocalizations l) {
-    final m = widget.member;
-    final ds = m.dailyStats;
-    return [
-      _KpiSpec(
-        label: l.kpiWater,
-        value: '${ds.waterGlasses}',
-        unit: l.kpiWaterUnit(ds.waterTargetGlasses),
-        icon: Icons.water_drop,
-        color: AppColors.water,
-      ),
-      _KpiSpec(
-        label: l.kpiBmi,
-        value: m.metrics.bmi.toStringAsFixed(1),
-        unit: m.metrics.bmiCategory,
-        icon: Icons.monitor_heart,
-        color: AppColors.teal,
-      ),
-      _KpiSpec(
-        label: l.kpiWeight,
-        value: m.displayWeight.toStringAsFixed(1),
-        unit: m.units.weightUnit,
-        icon: Icons.monitor_weight,
-        color: AppColors.ember,
-      ),
-      _KpiSpec(
-        label: l.kpiCalories,
-        value: '${ds.caloriesBurned}',
-        unit: l.kpiCaloriesUnit(ds.caloriesTarget),
-        icon: Icons.local_fire_department,
-        color: AppColors.move,
-      ),
-      _KpiSpec(
-        label: l.kpiSteps,
-        value: _RingLegend._compact(ds.steps),
-        unit: l.kpiStepsUnit(_RingLegend._compact(ds.stepsTarget)),
-        icon: Icons.directions_walk,
-        color: AppColors.steps,
-      ),
-    ];
-  }
 
   @override
   Widget build(BuildContext context) {
     final p = context.palette;
     final l = AppLocalizations.of(context);
-    final specs = _buildSpecs(l);
-    final i = _index % specs.length;
-    final spec = specs[i];
-
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTap: _next,
-      child: SizedBox(
-        width: 150,
-        height: 138,
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            AnimatedSwitcher(
-              duration: const Duration(milliseconds: 380),
-              transitionBuilder: (child, anim) => FadeTransition(
-                opacity: anim,
-                child: ScaleTransition(
-                  scale: Tween<double>(begin: 0.85, end: 1).animate(anim),
-                  child: child,
-                ),
-              ),
-              child: Column(
-                key: ValueKey(i),
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(spec.icon, color: spec.color, size: 22),
-                  const SizedBox(height: 6),
-                  Text(
-                    spec.label.toUpperCase(),
-                    style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: 1.3,
-                      color: p.muted,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    spec.value,
-                    style: TextStyle(
-                      fontSize: 46,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: -1.5,
-                      height: 1.0,
-                      color: p.text,
-                      fontFeatures: const [FontFeature.tabularFigures()],
-                    ),
-                  ),
-                  if (spec.unit != null)
-                    Text(
-                      spec.unit!,
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: p.muted,
-                      ),
-                    ),
-                ],
-              ),
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.lg),
+      decoration: BoxDecoration(
+        color: p.surface,
+        borderRadius: BorderRadius.circular(AppSpacing.radiusXl),
+        border: Border.all(color: p.line),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 64,
+            height: 64,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: AppColors.limeTintBg,
+              borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
+              border: Border.all(color: AppColors.limeTintBorder),
             ),
-            const SizedBox(height: 12),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              mainAxisSize: MainAxisSize.min,
+            child: const Icon(Icons.local_fire_department,
+                color: AppColors.accent, size: 30),
+          ),
+          const SizedBox(width: AppSpacing.md),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                for (int d = 0; d < specs.length; d++)
-                  AnimatedContainer(
-                    duration: const Duration(milliseconds: 250),
-                    margin: const EdgeInsets.symmetric(horizontal: 2.5),
-                    width: d == i ? 16 : 6,
-                    height: 6,
-                    decoration: BoxDecoration(
-                      color: d == i ? spec.color : p.line,
-                      borderRadius: BorderRadius.circular(3),
-                    ),
-                  ),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.baseline,
+                  textBaseline: TextBaseline.alphabetic,
+                  children: [
+                    Text('${member.currentStreakDays}',
+                        style: TextStyle(
+                            fontSize: 40,
+                            height: 1,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: -1,
+                            color: p.text)),
+                    const SizedBox(width: 6),
+                    Text(l.streakDaysWord,
+                        style: const TextStyle(
+                            color: AppColors.accent,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w800)),
+                  ],
+                ),
+                const SizedBox(height: 2),
+                Text(l.streakKeepGoing,
+                    style:
+                        context.textStyles.bodySmall?.copyWith(color: p.muted)),
               ],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
 }
 
-class _KpiSpec {
-  const _KpiSpec({
-    required this.label,
-    required this.value,
-    required this.icon,
-    required this.color,
-    this.unit,
-  });
-
-  final String label;
-  final String value;
-  final String? unit;
-  final IconData icon;
-  final Color color;
-}
-
-/// Colour key beneath the ring so each arc's metric is unambiguous.
-class _RingLegend extends StatelessWidget {
-  const _RingLegend({required this.member});
+/// Carbon "Today's activity" — three horizontal metric bars (Move / Steps /
+/// Water) plus a lime log-water chip. Replaces the old concentric KPI rings.
+class _TodayActivityBars extends StatelessWidget {
+  const _TodayActivityBars({required this.member});
 
   final Member member;
-
-  @override
-  Widget build(BuildContext context) {
-    final ds = member.dailyStats;
-    final l = AppLocalizations.of(context);
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceAround,
-      children: [
-        _LegendItem(
-          color: AppColors.move,
-          label: l.legendMove,
-          reading: l.legendMoveReading(ds.caloriesBurned, ds.caloriesTarget),
-        ),
-        _LegendItem(
-          color: AppColors.steps,
-          label: l.kpiSteps,
-          reading: l.legendStepsReading(
-              _compact(ds.steps), _compact(ds.stepsTarget)),
-        ),
-        _LegendItem(
-          color: AppColors.water,
-          label: l.kpiWater,
-          reading: l.legendWaterReading(ds.waterGlasses, ds.waterTargetGlasses),
-        ),
-      ],
-    );
-  }
 
   static String _compact(int n) {
     if (n < 1000) return '$n';
     final k = n / 1000;
     return '${k.toStringAsFixed(k >= 10 ? 0 : 1)}k';
   }
+
+  @override
+  Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    final ds = member.dailyStats;
+    final overall =
+        (((ds.caloriesProgress + ds.stepsProgress + ds.waterProgress) / 3) *
+                100)
+            .clamp(0.0, 100.0)
+            .round();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Expanded(child: SectionLabel(l.profileTodayActivity)),
+            Text('$overall%',
+                style: const TextStyle(
+                    color: AppColors.accent,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w800)),
+          ],
+        ),
+        const SizedBox(height: AppSpacing.md),
+        _ActivityBar(
+          icon: Icons.local_fire_department,
+          name: l.legendMove,
+          value: '${ds.caloriesBurned}/${ds.caloriesTarget} kcal',
+          progress: ds.caloriesProgress,
+          color: AppColors.move,
+        ),
+        const SizedBox(height: AppSpacing.md),
+        _ActivityBar(
+          icon: Icons.directions_walk,
+          name: l.kpiSteps,
+          value: '${_compact(ds.steps)}/${_compact(ds.stepsTarget)}',
+          progress: ds.stepsProgress,
+          color: AppColors.steps,
+        ),
+        const SizedBox(height: AppSpacing.md),
+        _ActivityBar(
+          icon: Icons.water_drop,
+          name: l.kpiWater,
+          value: '${ds.waterGlasses}/${ds.waterTargetGlasses}',
+          progress: ds.waterProgress,
+          color: AppColors.water,
+        ),
+        const SizedBox(height: AppSpacing.md),
+        const _LogWaterButton(),
+      ],
+    );
+  }
 }
 
-class _LegendItem extends StatelessWidget {
-  const _LegendItem(
-      {required this.color, required this.label, required this.reading});
+class _ActivityBar extends StatelessWidget {
+  const _ActivityBar({
+    required this.icon,
+    required this.name,
+    required this.value,
+    required this.progress,
+    required this.color,
+  });
 
+  final IconData icon;
+  final String name;
+  final String value;
+  final double progress;
   final Color color;
-  final String label;
-  final String reading;
 
   @override
   Widget build(BuildContext context) {
     final p = context.palette;
     return Column(
-      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
-          mainAxisSize: MainAxisSize.min,
           children: [
-            Container(
-              width: 9,
-              height: 9,
-              decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-            ),
+            Icon(icon, size: 16, color: color),
             const SizedBox(width: 6),
-            Text(
-              label,
-              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
-            ),
+            Text(name, style: context.textStyles.titleMedium),
+            const Spacer(),
+            Text(value,
+                style: context.textStyles.bodySmall?.copyWith(color: p.muted)),
           ],
         ),
-        const SizedBox(height: 3),
-        Text(
-          reading,
-          style: TextStyle(
-            fontSize: 11,
-            color: p.muted,
-            fontFeatures: const [FontFeature.tabularFigures()],
+        const SizedBox(height: 6),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(999),
+          child: Stack(
+            children: [
+              Container(height: 9, color: p.line),
+              FractionallySizedBox(
+                widthFactor: progress.clamp(0.0, 1.0),
+                child: Container(height: 9, color: color),
+              ),
+            ],
           ),
         ),
       ],

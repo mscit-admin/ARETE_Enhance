@@ -53,7 +53,7 @@ class ThreadBubble extends StatelessWidget {
                         borderRadius: BorderRadius.circular(10),
                       ),
                       child:
-                          const Icon(Icons.assignment, color: AppColors.ember),
+                          const Icon(Icons.assignment, color: AppColors.accent),
                     ),
                     const SizedBox(width: AppSpacing.md),
                     Expanded(
@@ -83,7 +83,7 @@ class ThreadBubble extends StatelessWidget {
                     child: Center(
                       child: Text(l.chatViewPlan,
                           style: const TextStyle(
-                              color: AppColors.ember,
+                              color: AppColors.accent,
                               fontWeight: FontWeight.w700)),
                     ),
                   ),
@@ -103,7 +103,7 @@ class ThreadBubble extends StatelessWidget {
         margin: const EdgeInsets.symmetric(vertical: 4),
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
         decoration: BoxDecoration(
-          color: mine ? AppColors.ember : p.surface,
+          color: mine ? AppColors.accent : p.surface,
           borderRadius: BorderRadius.only(
             topLeft: const Radius.circular(14),
             topRight: const Radius.circular(14),
@@ -117,7 +117,7 @@ class ThreadBubble extends StatelessWidget {
           style: TextStyle(
             fontSize: 14,
             height: 1.4,
-            color: mine ? Colors.white : p.text,
+            color: mine ? AppColors.onAccent : p.text,
           ),
         ),
       ),

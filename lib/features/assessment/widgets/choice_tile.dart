@@ -41,7 +41,7 @@ class ChoiceTile extends StatelessWidget {
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
               border: Border.all(
-                color: selected ? AppColors.ember : p.line,
+                color: selected ? AppColors.accent : p.line,
                 width: selected ? 1.6 : 1,
               ),
             ),
@@ -57,7 +57,7 @@ class ChoiceTile extends StatelessWidget {
                     children: [
                       Text(label,
                           style: context.textStyles.titleMedium?.copyWith(
-                            color: selected ? AppColors.ember : p.text,
+                            color: selected ? AppColors.accent : p.text,
                           )),
                       if (subtitle != null)
                         Text(subtitle!,
@@ -81,10 +81,10 @@ class ChoiceTile extends StatelessWidget {
         width: 22,
         height: 22,
         decoration: BoxDecoration(
-          color: selected ? AppColors.ember : Colors.transparent,
+          color: selected ? AppColors.accent : Colors.transparent,
           borderRadius: BorderRadius.circular(6),
           border: Border.all(
-              color: selected ? AppColors.ember : p.line, width: 2),
+              color: selected ? AppColors.accent : p.line, width: 2),
         ),
         child: selected
             ? const Icon(Icons.check, size: 15, color: Colors.white)
@@ -97,7 +97,7 @@ class ChoiceTile extends StatelessWidget {
       decoration: BoxDecoration(
         shape: BoxShape.circle,
         border: Border.all(
-            color: selected ? AppColors.ember : p.line, width: 2),
+            color: selected ? AppColors.accent : p.line, width: 2),
       ),
       child: selected
           ? Center(
@@ -105,7 +105,7 @@ class ChoiceTile extends StatelessWidget {
                 width: 10,
                 height: 10,
                 decoration: const BoxDecoration(
-                    color: AppColors.ember, shape: BoxShape.circle),
+                    color: AppColors.accent, shape: BoxShape.circle),
               ),
             )
           : null,
