@@ -333,6 +333,8 @@
   "assessGetStarter": "Get your starter plan",
   "assessYourPlan": "Your plan",
   "assessTake2min": "Take the 2-minute health assessment",
+  "starterChangePlan": "Change plan",
+  "starterAbout": "A ready-made program matched to your assessment — follow it on your own. A coach's plan replaces this once assigned.",
 
   "hydrateTitle": "Time to hydrate 💧",
   "hydrateBody": "Grab a glass of water and confirm below to keep your streak going.",

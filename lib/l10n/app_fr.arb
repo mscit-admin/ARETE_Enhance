@@ -285,6 +285,8 @@
   "assessGetStarter": "Obtenez votre plan de départ",
   "assessYourPlan": "Votre plan",
   "assessTake2min": "Faites le bilan santé de 2 minutes",
+  "starterChangePlan": "Changer de plan",
+  "starterAbout": "Un programme prêt à l'emploi adapté à votre bilan — à suivre vous-même. Le plan d'un coach le remplace une fois attribué.",
 
   "hydrateTitle": "C'est l'heure de s'hydrater 💧",
   "hydrateBody": "Prenez un verre d'eau et confirmez ci-dessous pour maintenir votre série.",

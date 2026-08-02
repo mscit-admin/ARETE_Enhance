@@ -40,6 +40,7 @@ void main() {
   final sessionController = SessionController();
   final connectController = ConnectController(apiClient);
   final myPlanController = MyPlanController(apiClient);
+  final assessmentController = AssessmentController();
 
   final authController = AuthController(
     authRepository,
@@ -56,6 +57,7 @@ void main() {
       profileController.clear();
       connectController.clear();
       myPlanController.clear();
+      assessmentController.clearSelectedPlan();
     },
   )..bootstrap();
 
@@ -78,7 +80,7 @@ void main() {
         ChangeNotifierProvider(
           create: (_) => ProgressController(progressRepository),
         ),
-        ChangeNotifierProvider(create: (_) => AssessmentController()),
+        ChangeNotifierProvider.value(value: assessmentController),
         ChangeNotifierProvider(
           create: (_) => CoachController(coachRepository),
         ),

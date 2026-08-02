@@ -20,6 +20,7 @@ import '../../state/hydration_controller.dart';
 import '../../state/profile_controller.dart';
 import '../../state/session_controller.dart';
 import '../assessment/assessment_flow_screen.dart';
+import '../assessment/starter_plan_detail_screen.dart';
 import '../shell/root_scaffold_key.dart';
 import 'widgets/badges_row.dart';
 import 'widgets/goal_progress_card.dart';
@@ -516,7 +517,11 @@ class _AssessmentEntry extends StatelessWidget {
       child: InkWell(
         borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
         onTap: () => Navigator.of(context).push(
-          MaterialPageRoute(builder: (_) => const AssessmentFlowScreen()),
+          MaterialPageRoute(
+            builder: (_) => plan == null
+                ? const AssessmentFlowScreen()
+                : StarterPlanDetailScreen(plan: plan),
+          ),
         ),
         child: Container(
           padding: const EdgeInsets.all(AppSpacing.lg),

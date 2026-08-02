@@ -5,6 +5,14 @@ import '../models/starter_plan.dart';
 class MockPlans {
   MockPlans._();
 
+  /// Look a plan up by its id (used to restore the persisted selection).
+  static StarterPlan? byId(String id) {
+    for (final p in all) {
+      if (p.id == id) return p;
+    }
+    return null;
+  }
+
   static const List<StarterPlan> all = [
     StarterPlan(
       id: 'plan_foundation3',
