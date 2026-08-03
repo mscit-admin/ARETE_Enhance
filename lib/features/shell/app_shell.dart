@@ -5,7 +5,8 @@ import '../../core/constants/enums.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_theme.dart';
 import '../../l10n/app_localizations.dart';
-import '../help/help_tour_screen.dart';
+import '../help/guided_tour.dart';
+import '../help/tour_keys.dart';
 import '../profile/account_drawer.dart';
 import '../profile/member_profile_screen.dart';
 import '../profile/trainer_home_screen.dart';
@@ -38,22 +39,161 @@ class AppShell extends StatefulWidget {
 class _AppShellState extends State<AppShell> {
   int _index = 0;
   bool _introHandled = false;
+  bool _tourRunning = false;
 
-  /// Show the in-app guide automatically the first time the app is opened.
-  void _maybeShowIntro() {
+  @override
+  void initState() {
+    super.initState();
+    // Let the account drawer replay the guided tour on demand.
+    TourLauncher.register(() => _runTour());
+  }
+
+  @override
+  void dispose() {
+    TourLauncher.unregister();
+    super.dispose();
+  }
+
+  /// Switch the visible tab (used both by taps and by the guided tour).
+  void _goTab(int i) {
+    final isTrainer = context.read<SessionController>().isTrainer;
+    setState(() => _index = i);
+    _refreshTab(i, isTrainer);
+  }
+
+  /// Auto-start the walkthrough the first time the app opens, once the
+  /// profile has loaded so the Home targets can be measured.
+  void _maybeAutoStartTour() {
     if (_introHandled) return;
     final help = context.read<HelpController>();
-    if (!help.shouldAutoShow) return;
+    final ready = context.read<ProfileController>().status == LoadStatus.ready;
+    if (!help.shouldAutoShow || !ready) return;
     _introHandled = true;
-    final account = context.read<AuthController>().user;
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-      HelpTourScreen.show(
-        context,
-        isTrainer: account?.isTrainer ?? false,
-        onFinished: () => context.read<HelpController>().markIntroSeen(),
-      );
+      if (mounted) _runTour();
     });
+  }
+
+  /// Build and launch the spotlight tour for the current account.
+  void _runTour() {
+    if (_tourRunning) return;
+    _tourRunning = true;
+    final l = AppLocalizations.of(context);
+    final isTrainerAccount =
+        context.read<AuthController>().user?.isTrainer ?? false;
+
+    GuidedTour(
+      context,
+      _buildSteps(l, isTrainerAccount),
+      onFinished: () {
+        _tourRunning = false;
+        context.read<HelpController>().markIntroSeen();
+        // Return trainers to the trainee Home view where the tour began.
+        context.read<SessionController>().setRole(UserRole.member);
+        _goTab(0);
+      },
+    ).start();
+  }
+
+  List<TourStep> _buildSteps(AppLocalizations l, bool isTrainerAccount) {
+    Future<void> member() async {
+      context.read<SessionController>().setRole(UserRole.member);
+      _goTab(0);
+    }
+
+    final steps = <TourStep>[
+      TourStep(
+        title: l.helpWelcomeTitle,
+        body: l.helpWelcomeBody,
+        before: member,
+      ),
+      TourStep(
+        target: TourKeys.navHome,
+        circle: true,
+        title: l.helpHomeTitle,
+        body: l.helpHomeBody,
+        before: member,
+      ),
+      TourStep(
+        target: TourKeys.homeAccount,
+        circle: true,
+        title: l.tourAccountTitle,
+        body: l.tourAccountBody,
+      ),
+      TourStep(
+        target: TourKeys.homeStreak,
+        title: l.tourStreakTitle,
+        body: l.tourStreakBody,
+      ),
+      TourStep(
+        target: TourKeys.homeActivity,
+        title: l.tourActivityTitle,
+        body: l.tourActivityBody,
+      ),
+      TourStep(
+        target: TourKeys.homeWorkout,
+        title: l.tourWorkoutTitle,
+        body: l.tourWorkoutBody,
+      ),
+      TourStep(
+        target: TourKeys.navTrain,
+        circle: true,
+        title: l.helpTrainTitle,
+        body: l.helpTrainBody,
+        before: () async => _goTab(1),
+      ),
+      TourStep(
+        target: TourKeys.navProgress,
+        circle: true,
+        title: l.helpProgressTitle,
+        body: l.helpProgressBody,
+        before: () async => _goTab(2),
+      ),
+      TourStep(
+        target: TourKeys.navCoach,
+        circle: true,
+        title: l.helpCoachTitle,
+        body: l.helpCoachBody,
+        before: () async => _goTab(3),
+      ),
+    ];
+
+    if (isTrainerAccount) {
+      Future<void> coach(int tab) async {
+        context.read<SessionController>().setRole(UserRole.trainer);
+        _goTab(tab);
+      }
+
+      steps.addAll([
+        TourStep(
+          title: l.helpTrainerIntroTitle,
+          body: l.helpTrainerIntroBody,
+          before: () => coach(0),
+        ),
+        TourStep(
+          target: TourKeys.navClients,
+          circle: true,
+          title: l.helpClientsTitle,
+          body: l.helpClientsBody,
+          before: () => coach(0),
+        ),
+        TourStep(
+          target: TourKeys.navPlans,
+          circle: true,
+          title: l.helpPlansTitle,
+          body: l.helpPlansBody,
+          before: () => coach(1),
+        ),
+        TourStep(
+          target: TourKeys.navMessages,
+          circle: true,
+          title: l.helpMessagesTitle,
+          body: l.helpMessagesBody,
+          before: () => coach(2),
+        ),
+      ]);
+    }
+    return steps;
   }
 
   @override
@@ -62,9 +202,10 @@ class _AppShellState extends State<AppShell> {
     final isTrainer = session.role == UserRole.trainer;
     final l = AppLocalizations.of(context);
 
-    // Kick off the first-run guide once the seen-flag has loaded.
+    // Kick off the first-run guide once the flag + profile have loaded.
     context.watch<HelpController>();
-    _maybeShowIntro();
+    context.watch<ProfileController>();
+    _maybeAutoStartTour();
 
     final tabs = isTrainer ? _trainerTabs(l) : _memberTabs(l);
     // Guard against an out-of-range index when the role (and tab count) changes.
@@ -79,10 +220,7 @@ class _AppShellState extends State<AppShell> {
     final leftIndices = isTrainer ? const [2] : const [3];
     final rightIndices = isTrainer ? const [1] : const [1, 2];
 
-    void select(int i) {
-      setState(() => _index = i);
-      _refreshTab(i, isTrainer);
-    }
+    void select(int i) => _goTab(i);
 
     return Scaffold(
       key: rootScaffoldKey,
@@ -93,6 +231,7 @@ class _AppShellState extends State<AppShell> {
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
       floatingActionButton: Container(
+        key: tabs[centreIndex].navKey,
         height: 62,
         width: 62,
         decoration: BoxDecoration(
@@ -130,6 +269,7 @@ class _AppShellState extends State<AppShell> {
                 children: [
                   for (final i in leftIndices)
                     _NavItem(
+                      key: tabs[i].navKey,
                       tab: tabs[i],
                       selected: safeIndex == i,
                       onTap: () => select(i),
@@ -144,6 +284,7 @@ class _AppShellState extends State<AppShell> {
                 children: [
                   for (final i in rightIndices)
                     _NavItem(
+                      key: tabs[i].navKey,
                       tab: tabs[i],
                       selected: safeIndex == i,
                       onTap: () => select(i),
@@ -192,24 +333,28 @@ class _AppShellState extends State<AppShell> {
           icon: Icons.home_outlined,
           activeIcon: Icons.home_rounded,
           screen: const MemberProfileScreen(),
+          navKey: TourKeys.navHome,
         ),
         _TabDef(
           label: l.navTrain,
           icon: Icons.fitness_center_outlined,
           activeIcon: Icons.fitness_center,
           screen: const WorkoutHomeScreen(),
+          navKey: TourKeys.navTrain,
         ),
         _TabDef(
           label: l.navProgress,
           icon: Icons.insights_outlined,
           activeIcon: Icons.insights_rounded,
           screen: const ProgressScreen(),
+          navKey: TourKeys.navProgress,
         ),
         _TabDef(
           label: l.navCoach,
           icon: Icons.chat_bubble_outline,
           activeIcon: Icons.chat_bubble,
           screen: const CoachScreen(),
+          navKey: TourKeys.navCoach,
         ),
       ];
 
@@ -219,18 +364,21 @@ class _AppShellState extends State<AppShell> {
           icon: Icons.groups_outlined,
           activeIcon: Icons.groups_rounded,
           screen: const TrainerHomeScreen(),
+          navKey: TourKeys.navClients,
         ),
         _TabDef(
           label: l.navPlans,
           icon: Icons.assignment_outlined,
           activeIcon: Icons.assignment,
           screen: const PlansScreen(),
+          navKey: TourKeys.navPlans,
         ),
         _TabDef(
           label: l.navMessages,
           icon: Icons.chat_bubble_outline,
           activeIcon: Icons.chat_bubble,
           screen: const TrainerMessagesScreen(),
+          navKey: TourKeys.navMessages,
         ),
       ];
 }
@@ -241,17 +389,23 @@ class _TabDef {
     required this.icon,
     required this.activeIcon,
     required this.screen,
+    required this.navKey,
   });
 
   final String label;
   final IconData icon;
   final IconData activeIcon;
   final Widget screen;
+
+  /// Key on this destination's bottom-bar button (or the centre FAB) so the
+  /// guided tour can spotlight it.
+  final GlobalKey navKey;
 }
 
 /// One tappable destination in the notched bottom bar (icon + label).
 class _NavItem extends StatelessWidget {
   const _NavItem({
+    super.key,
     required this.tab,
     required this.selected,
     required this.onTap,

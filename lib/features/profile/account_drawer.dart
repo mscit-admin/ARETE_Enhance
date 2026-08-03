@@ -8,7 +8,7 @@ import '../../l10n/app_localizations.dart';
 import '../../shared/widgets/gradient_avatar.dart';
 import '../../state/auth_controller.dart';
 import '../../state/profile_controller.dart';
-import '../help/help_tour_screen.dart';
+import '../help/tour_keys.dart';
 import 'edit_profile_screen.dart';
 import 'settings_screen.dart';
 
@@ -122,10 +122,10 @@ class AccountDrawer extends StatelessWidget {
               leading: const Icon(Icons.help_outline, color: AppColors.accent),
               title: Text(l.helpMenuItem),
               onTap: () {
-                final isTrainer =
-                    context.read<AuthController>().user?.isTrainer ?? false;
                 Navigator.of(context).pop();
-                HelpTourScreen.show(context, isTrainer: isTrainer);
+                // The tour is orchestrated by AppShell (it drives tab/role
+                // switching); replay it via the shared launcher.
+                TourLauncher.replay();
               },
             ),
             const Spacer(),

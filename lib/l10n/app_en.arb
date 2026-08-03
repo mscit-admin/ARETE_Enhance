@@ -440,5 +440,13 @@
   "helpMessagesTitle": "Messages",
   "helpMessagesBody": "Message your clients directly and answer their questions.",
   "helpRoleSwitchTitle": "Switch view",
-  "helpRoleSwitchBody": "Use the switch icon in the header to move between your trainee view and your coach view."
+  "helpRoleSwitchBody": "Use the switch icon in the header to move between your trainee view and your coach view.",
+  "tourAccountTitle": "Your account",
+  "tourAccountBody": "This icon opens your account menu — edit profile, settings, language and this guide.",
+  "tourStreakTitle": "Your streak",
+  "tourStreakBody": "This shows how many days in a row you've trained. Keep it alive!",
+  "tourActivityTitle": "Today's activity",
+  "tourActivityBody": "Your move, steps and water for today, each with its own progress bar.",
+  "tourWorkoutTitle": "Today's workout",
+  "tourWorkoutBody": "Your session for today — tap the play button to start it."
 }

@@ -18,6 +18,7 @@ import '../../state/profile_controller.dart';
 import '../../state/session_controller.dart';
 import '../assessment/assessment_flow_screen.dart';
 import '../assessment/starter_plan_detail_screen.dart';
+import '../help/tour_keys.dart';
 import '../shell/root_scaffold_key.dart';
 import 'widgets/badges_row.dart';
 import 'widgets/goal_progress_card.dart';
@@ -109,6 +110,7 @@ class _ProfileBody extends StatelessWidget {
                 ),
               LanguageMenuButton(color: p.text),
               IconButton(
+                key: TourKeys.homeAccount,
                 tooltip: l.profileSettingsTooltip,
                 onPressed: () => rootScaffoldKey.currentState?.openEndDrawer(),
                 icon: Icon(Icons.account_circle_outlined, color: p.text),
@@ -118,7 +120,10 @@ class _ProfileBody extends StatelessWidget {
           const SizedBox(height: AppSpacing.lg),
 
           // ---- Streak banner (Carbon emphasis) ----
-          _StreakBanner(member: member),
+          KeyedSubtree(
+            key: TourKeys.homeStreak,
+            child: _StreakBanner(member: member),
+          ),
           const SizedBox(height: AppSpacing.lg),
 
           // ---- Assessment / plan entry ----
@@ -126,13 +131,16 @@ class _ProfileBody extends StatelessWidget {
           const SizedBox(height: AppSpacing.xl),
 
           // ---- Today's activity (Carbon: three horizontal bars) ----
-          _TodayActivityBars(member: member),
+          KeyedSubtree(
+            key: TourKeys.homeActivity,
+            child: _TodayActivityBars(member: member),
+          ),
           const SizedBox(height: AppSpacing.xl),
 
           // ---- Today's session (visual entry to Workout Execution) ----
           SectionLabel(l.profileTodayWorkout),
           const SizedBox(height: AppSpacing.sm),
-          _TodaySessionCard(),
+          KeyedSubtree(key: TourKeys.homeWorkout, child: _TodaySessionCard()),
           const SizedBox(height: AppSpacing.lg),
 
           // ---- Goal ----

@@ -389,5 +389,13 @@
   "helpMessagesTitle": "Messages",
   "helpMessagesBody": "Envoyez des messages directement à vos clients et répondez à leurs questions.",
   "helpRoleSwitchTitle": "Changer de vue",
-  "helpRoleSwitchBody": "Utilisez l'icône de bascule dans l'en-tête pour passer de la vue client à la vue coach."
+  "helpRoleSwitchBody": "Utilisez l'icône de bascule dans l'en-tête pour passer de la vue client à la vue coach.",
+  "tourAccountTitle": "Votre compte",
+  "tourAccountBody": "Cette icône ouvre le menu du compte — profil, réglages, langue et ce guide.",
+  "tourStreakTitle": "Votre série",
+  "tourStreakBody": "Indique combien de jours d'affilée vous vous êtes entraîné. Gardez-la vivante !",
+  "tourActivityTitle": "Activité du jour",
+  "tourActivityBody": "Votre mouvement, vos pas et votre eau du jour, chacun avec sa barre de progression.",
+  "tourWorkoutTitle": "Séance du jour",
+  "tourWorkoutBody": "Votre séance du jour — touchez le bouton lecture pour la démarrer."
 }
