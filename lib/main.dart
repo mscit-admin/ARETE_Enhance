@@ -13,6 +13,7 @@ import 'state/assessment_controller.dart';
 import 'state/auth_controller.dart';
 import 'state/coach_controller.dart';
 import 'state/connect_controller.dart';
+import 'state/help_controller.dart';
 import 'state/hydration_controller.dart';
 import 'state/locale_controller.dart';
 import 'state/messaging_controller.dart';
@@ -66,6 +67,7 @@ void main() {
       providers: [
         ChangeNotifierProvider.value(value: authController),
         ChangeNotifierProvider(create: (_) => LocaleController()),
+        ChangeNotifierProvider(create: (_) => HelpController()),
         ChangeNotifierProvider.value(value: sessionController),
         ChangeNotifierProvider.value(value: profileController),
         ChangeNotifierProvider(

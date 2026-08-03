@@ -5,6 +5,7 @@ import '../../core/constants/enums.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_theme.dart';
 import '../../l10n/app_localizations.dart';
+import '../help/help_tour_screen.dart';
 import '../profile/account_drawer.dart';
 import '../profile/member_profile_screen.dart';
 import '../profile/trainer_home_screen.dart';
@@ -14,7 +15,9 @@ import '../trainer/trainer_messages_screen.dart';
 import '../workout/workout_home_screen.dart';
 import '../progress/progress_screen.dart';
 import '../coach/coach_screen.dart';
+import '../../state/auth_controller.dart';
 import '../../state/connect_controller.dart';
+import '../../state/help_controller.dart';
 import '../../state/messaging_controller.dart';
 import '../../state/my_plan_controller.dart';
 import '../../state/plans_controller.dart';
@@ -34,12 +37,34 @@ class AppShell extends StatefulWidget {
 
 class _AppShellState extends State<AppShell> {
   int _index = 0;
+  bool _introHandled = false;
+
+  /// Show the in-app guide automatically the first time the app is opened.
+  void _maybeShowIntro() {
+    if (_introHandled) return;
+    final help = context.read<HelpController>();
+    if (!help.shouldAutoShow) return;
+    _introHandled = true;
+    final account = context.read<AuthController>().user;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      HelpTourScreen.show(
+        context,
+        isTrainer: account?.isTrainer ?? false,
+        onFinished: () => context.read<HelpController>().markIntroSeen(),
+      );
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     final session = context.watch<SessionController>();
     final isTrainer = session.role == UserRole.trainer;
     final l = AppLocalizations.of(context);
+
+    // Kick off the first-run guide once the seen-flag has loaded.
+    context.watch<HelpController>();
+    _maybeShowIntro();
 
     final tabs = isTrainer ? _trainerTabs(l) : _memberTabs(l);
     // Guard against an out-of-range index when the role (and tab count) changes.
