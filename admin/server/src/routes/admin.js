@@ -2,24 +2,38 @@ const express = require('express');
 const bcrypt = require('bcryptjs');
 const db = require('../db');
 const { requireAuth, requireRole } = require('../middleware/auth');
-const { PERMISSIONS } = require('../permissions');
+const { SECTIONS, PERMISSIONS, expandLegacy, cleanList } = require('../permissions');
 
 const router = express.Router();
 
-// Load the caller's console permissions. An admin whose `permissions` column
-// is NULL is a full-access (super) admin — this also keeps things working on
-// installs where the column hasn't been migrated yet (undefined_column → all).
+// Resolve the caller's effective console permissions. Precedence:
+//   custom role (role_key) → per-user override (permissions) → full access.
+// Falls back to full access on installs where the columns aren't migrated yet.
 async function attachPermissions(req, res, next) {
   try {
-    const { rows } = await db.query('SELECT permissions FROM users WHERE id = $1', [
-      req.user.sub,
-    ]);
-    const raw = rows[0] ? rows[0].permissions : null;
-    req.perms = raw == null ? PERMISSIONS.slice() : Array.isArray(raw) ? raw : [];
+    const { rows } = await db.query(
+      `SELECT u.role, u.permissions, u.role_key, r.permissions AS role_perms
+         FROM users u
+         LEFT JOIN admin_roles r ON r.key = u.role_key
+        WHERE u.id = $1`,
+      [req.user.sub],
+    );
+    const u = rows[0] || {};
+    if (u.role && u.role !== 'admin') {
+      req.perms = [];
+    } else if (u.role_key && u.role_perms != null) {
+      req.perms = expandLegacy(u.role_perms);
+    } else if (u.permissions != null) {
+      req.perms = expandLegacy(u.permissions);
+    } else {
+      req.perms = PERMISSIONS.slice(); // super admin
+    }
     return next();
   } catch (e) {
-    if (e && e.code === '42703') {
-      req.perms = PERMISSIONS.slice(); // column not migrated yet → full access
+    // Not migrated yet (missing column 42703 / missing admin_roles table 42P01)
+    // → treat as a full-access admin so the console keeps working.
+    if (e && (e.code === '42703' || e.code === '42P01')) {
+      req.perms = PERMISSIONS.slice();
       return next();
     }
     return res.status(500).json({ error: 'Authorization failed' });
@@ -46,6 +60,7 @@ router.get('/me', (req, res) => {
     role: req.user.role,
     permissions: req.perms,
     allPermissions: PERMISSIONS,
+    sections: SECTIONS,
   });
 });
 
@@ -95,7 +110,7 @@ router.get('/overview', async (_req, res) => {
 });
 
 // GET /api/admin/members?query=&status=&page=&pageSize=
-router.get('/members', need('members'), async (req, res) => {
+router.get('/members', need('members.view'), async (req, res) => {
   const query = (req.query.query || '').toString().trim();
   const status = (req.query.status || '').toString().trim();
   const page = Math.max(1, parseInt(req.query.page, 10) || 1);
@@ -146,7 +161,7 @@ router.get('/members', need('members'), async (req, res) => {
 });
 
 // GET /api/admin/members/:id — full detail.
-router.get('/members/:id', need('members'), async (req, res) => {
+router.get('/members/:id', need('members.view'), async (req, res) => {
   try {
     const { rows } = await db.query(
       `SELECT u.id, u.full_name, u.email, u.phone, u.created_at,
@@ -185,7 +200,7 @@ router.get('/members/:id', need('members'), async (req, res) => {
 });
 
 // PATCH /api/admin/members/:id  { status?, tier?, trainerId? }
-router.patch('/members/:id', need('members'), async (req, res) => {
+router.patch('/members/:id', need('members.manage'), async (req, res) => {
   const { status, tier, trainerId } = req.body || {};
   try {
     if (trainerId !== undefined) {
@@ -218,7 +233,7 @@ router.patch('/members/:id', need('members'), async (req, res) => {
 });
 
 // GET /api/admin/trainers — roster with client counts.
-router.get('/trainers', need('trainers'), async (_req, res) => {
+router.get('/trainers', need('trainers.view'), async (_req, res) => {
   try {
     const { rows } = await db.query(
       `SELECT u.id, u.full_name, u.email, t.specialty, t.rating, t.avg_response_h,
@@ -236,7 +251,7 @@ router.get('/trainers', need('trainers'), async (_req, res) => {
 });
 
 // GET /api/admin/plans — plan library.
-router.get('/plans', need('plans'), async (_req, res) => {
+router.get('/plans', need('plans.view'), async (_req, res) => {
   try {
     const { rows } = await db.query(
       `SELECT id, name, split, days_per_week, weeks, goal, experience, avg_minutes
@@ -270,7 +285,7 @@ router.get('/settings', async (_req, res) => {
 });
 
 // PUT /api/admin/settings — save the currency.
-router.put('/settings', need('settings'), async (req, res) => {
+router.put('/settings', need('settings.manage'), async (req, res) => {
   const { currency } = req.body || {};
   if (!currency || typeof currency !== 'object') {
     return res.status(400).json({ error: 'currency object is required' });
@@ -330,7 +345,7 @@ router.get('/locales/:code', async (req, res) => {
 
 // POST /api/admin/locales — create or replace a custom language.
 // Body: { code, name, dir, strings:{key:value} } (parsed from the CSV client-side).
-router.post('/locales', need('settings'), async (req, res) => {
+router.post('/locales', need('settings.manage'), async (req, res) => {
   const { code, name, dir, strings } = req.body || {};
   const c = String(code || '').trim().toLowerCase();
   if (!CODE_RE.test(c)) {
@@ -362,7 +377,7 @@ router.post('/locales', need('settings'), async (req, res) => {
 });
 
 // DELETE /api/admin/locales/:code — remove a custom language.
-router.delete('/locales/:code', need('settings'), async (req, res) => {
+router.delete('/locales/:code', need('settings.manage'), async (req, res) => {
   try {
     await db.query(`DELETE FROM admin_locales WHERE code = $1`, [
       String(req.params.code).toLowerCase(),
@@ -391,7 +406,7 @@ router.get('/stats/growth', async (_req, res) => {
 });
 
 // GET /api/admin/stats/revenue — paid revenue per month (last 6 months).
-router.get('/stats/revenue', need('billing'), async (_req, res) => {
+router.get('/stats/revenue', need('billing.view'), async (_req, res) => {
   try {
     const { rows } = await db.query(
       `SELECT to_char(date_trunc('month', paid_at), 'YYYY-MM') AS month,
@@ -411,11 +426,18 @@ router.get('/stats/revenue', need('billing'), async (_req, res) => {
 const ROLES = ['member', 'trainer', 'admin'];
 const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 
-// Keep only recognised permission keys; only admins carry permissions.
-function cleanPerms(role, perms) {
-  if (role !== 'admin') return null;
-  if (!Array.isArray(perms)) return [];
-  return PERMISSIONS.filter((p) => perms.includes(p));
+// Compute the (role_key, permissions) columns for a console user from the
+// requested role plus either a custom role key or a per-user permissions
+// array. Only admins carry either; a plain admin (both null) is full-access.
+async function assignmentFor(role, roleKey, permsInput) {
+  if (role !== 'admin') return { roleKey: null, permissions: null };
+  if (roleKey) {
+    const r = await db.query('SELECT key FROM admin_roles WHERE key = $1', [roleKey]);
+    if (!r.rows[0]) return { error: 'Unknown role.' };
+    return { roleKey, permissions: null };
+  }
+  if (Array.isArray(permsInput)) return { roleKey: null, permissions: cleanList(permsInput) };
+  return { roleKey: null, permissions: null };
 }
 
 // Create the matching profile row so an admin-created trainer/member is usable
@@ -435,7 +457,7 @@ async function ensureProfileRow(userId, role) {
 }
 
 // GET /api/admin/users?role=&query=
-router.get('/users', need('users'), async (req, res) => {
+router.get('/users', need('users.view'), async (req, res) => {
   const role = (req.query.role || '').toString().trim();
   const query = (req.query.query || '').toString().trim();
   const where = [];
@@ -451,7 +473,7 @@ router.get('/users', need('users'), async (req, res) => {
   const whereSql = where.length ? `WHERE ${where.join(' AND ')}` : '';
   try {
     const { rows } = await db.query(
-      `SELECT id, full_name, email, role, status, permissions, created_at
+      `SELECT id, full_name, email, role, status, permissions, role_key, created_at
          FROM users ${whereSql} ORDER BY created_at DESC LIMIT 200`,
       params,
     );
@@ -462,7 +484,7 @@ router.get('/users', need('users'), async (req, res) => {
 });
 
 // POST /api/admin/users  { name, email, password, role, permissions[] }
-router.post('/users', need('users'), async (req, res) => {
+router.post('/users', need('users.manage'), async (req, res) => {
   const { name, email, password, role } = req.body || {};
   const mail = String(email || '').trim().toLowerCase();
   if (!name || !mail || !password) {
@@ -473,14 +495,16 @@ router.post('/users', need('users'), async (req, res) => {
     return res.status(400).json({ error: 'Password must be at least 6 characters.' });
   }
   if (!ROLES.includes(role)) return res.status(400).json({ error: 'Invalid role.' });
-  const perms = cleanPerms(role, req.body.permissions);
+  const asn = await assignmentFor(role, req.body.roleKey, req.body.permissions);
+  if (asn.error) return res.status(400).json({ error: asn.error });
   try {
     const hash = await bcrypt.hash(String(password), 10);
     const { rows } = await db.query(
-      `INSERT INTO users (email, password_hash, full_name, role, permissions)
-         VALUES ($1, $2, $3, $4, $5::jsonb)
-       RETURNING id, full_name, email, role, status, permissions, created_at`,
-      [mail, hash, String(name).trim(), role, perms == null ? null : JSON.stringify(perms)],
+      `INSERT INTO users (email, password_hash, full_name, role, permissions, role_key)
+         VALUES ($1, $2, $3, $4, $5::jsonb, $6)
+       RETURNING id, full_name, email, role, status, permissions, role_key, created_at`,
+      [mail, hash, String(name).trim(), role,
+        asn.permissions == null ? null : JSON.stringify(asn.permissions), asn.roleKey],
     );
     await ensureProfileRow(rows[0].id, role);
     await db.query(
@@ -498,7 +522,7 @@ router.post('/users', need('users'), async (req, res) => {
 });
 
 // PATCH /api/admin/users/:id  { name?, role?, status?, permissions?, password? }
-router.patch('/users/:id', need('users'), async (req, res) => {
+router.patch('/users/:id', need('users.manage'), async (req, res) => {
   const { name, role, status, password } = req.body || {};
   const id = req.params.id;
   if (role !== undefined && !ROLES.includes(role)) {
@@ -532,10 +556,13 @@ router.patch('/users/:id', need('users'), async (req, res) => {
       params.push(status);
       sets.push(`status = $${params.length}`);
     }
-    if (req.body.permissions !== undefined || role !== undefined) {
-      const perms = cleanPerms(effRole, req.body.permissions);
-      params.push(perms == null ? null : JSON.stringify(perms));
+    if (req.body.permissions !== undefined || req.body.roleKey !== undefined || role !== undefined) {
+      const asn = await assignmentFor(effRole, req.body.roleKey, req.body.permissions);
+      if (asn.error) return res.status(400).json({ error: asn.error });
+      params.push(asn.permissions == null ? null : JSON.stringify(asn.permissions));
       sets.push(`permissions = $${params.length}::jsonb`);
+      params.push(asn.roleKey);
+      sets.push(`role_key = $${params.length}`);
     }
     if (password !== undefined) {
       if (String(password).length < 6) {
@@ -550,7 +577,7 @@ router.patch('/users/:id', need('users'), async (req, res) => {
     const { rows } = await db.query(
       `UPDATE users SET ${sets.join(', ')}, updated_at = now()
          WHERE id = $${params.length}
-       RETURNING id, full_name, email, role, status, permissions, created_at`,
+       RETURNING id, full_name, email, role, status, permissions, role_key, created_at`,
       params,
     );
     if (role !== undefined) await ensureProfileRow(id, role);
@@ -566,7 +593,7 @@ router.patch('/users/:id', need('users'), async (req, res) => {
 });
 
 // DELETE /api/admin/users/:id
-router.delete('/users/:id', need('users'), async (req, res) => {
+router.delete('/users/:id', need('users.manage'), async (req, res) => {
   const id = req.params.id;
   if (id === req.user.sub) {
     return res.status(400).json({ error: 'You cannot delete your own account.' });
@@ -592,6 +619,145 @@ router.delete('/users/:id', need('users'), async (req, res) => {
     res.json({ ok: true });
   } catch (e) {
     res.status(500).json({ error: 'Failed to delete user' });
+  }
+});
+
+// ---------- Custom roles (permission bundles) ----------
+
+const ROLE_KEY_RE = /^[a-z0-9][a-z0-9_-]{1,31}$/;
+
+function slugify(s) {
+  return String(s || '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 32);
+}
+
+// GET /api/admin/roles — custom roles + the permission catalogue.
+router.get('/roles', need('users.view'), async (_req, res) => {
+  try {
+    const { rows } = await db.query(
+      `SELECT key, name, permissions, is_system,
+              (SELECT count(*)::int FROM users u WHERE u.role_key = admin_roles.key) AS users
+         FROM admin_roles ORDER BY is_system DESC, name`,
+    );
+    res.json({ rows, allPermissions: PERMISSIONS, sections: SECTIONS });
+  } catch (e) {
+    res.status(500).json({ error: 'Failed to load roles' });
+  }
+});
+
+// POST /api/admin/roles  { key?, name, permissions[] }
+router.post('/roles', need('users.manage'), async (req, res) => {
+  const name = String(req.body.name || '').trim();
+  if (!name) return res.status(400).json({ error: 'A role name is required.' });
+  const key = (req.body.key && String(req.body.key).toLowerCase()) || slugify(name);
+  if (!ROLE_KEY_RE.test(key)) {
+    return res.status(400).json({ error: 'Invalid role key (use letters, numbers, - or _).' });
+  }
+  const permissions = cleanList(req.body.permissions);
+  try {
+    const { rows } = await db.query(
+      `INSERT INTO admin_roles (key, name, permissions, updated_at)
+         VALUES ($1, $2, $3::jsonb, now())
+       ON CONFLICT (key) DO UPDATE
+         SET name = EXCLUDED.name, permissions = EXCLUDED.permissions, updated_at = now()
+       RETURNING key, name, permissions, is_system`,
+      [key, name.slice(0, 60), JSON.stringify(permissions)],
+    );
+    await db.query(
+      `INSERT INTO audit_log (admin_id, action, entity, entity_id)
+       VALUES ($1, 'save_role', 'admin_roles', NULL)`,
+      [req.user.sub],
+    );
+    res.json(rows[0]);
+  } catch (e) {
+    res.status(500).json({ error: 'Failed to save role' });
+  }
+});
+
+// PATCH /api/admin/roles/:key  { name?, permissions? } — not for system roles.
+router.patch('/roles/:key', need('users.manage'), async (req, res) => {
+  const key = String(req.params.key).toLowerCase();
+  try {
+    const cur = await db.query('SELECT is_system FROM admin_roles WHERE key = $1', [key]);
+    if (!cur.rows[0]) return res.status(404).json({ error: 'Role not found' });
+    if (cur.rows[0].is_system) {
+      return res.status(400).json({ error: 'System roles cannot be edited.' });
+    }
+    const sets = [];
+    const params = [];
+    if (req.body.name !== undefined) {
+      params.push(String(req.body.name).trim().slice(0, 60));
+      sets.push(`name = $${params.length}`);
+    }
+    if (req.body.permissions !== undefined) {
+      params.push(JSON.stringify(cleanList(req.body.permissions)));
+      sets.push(`permissions = $${params.length}::jsonb`);
+    }
+    if (!sets.length) return res.json({ ok: true });
+    params.push(key);
+    const { rows } = await db.query(
+      `UPDATE admin_roles SET ${sets.join(', ')}, updated_at = now()
+         WHERE key = $${params.length}
+       RETURNING key, name, permissions, is_system`,
+      params,
+    );
+    res.json(rows[0]);
+  } catch (e) {
+    res.status(500).json({ error: 'Failed to update role' });
+  }
+});
+
+// DELETE /api/admin/roles/:key — downgrades its users to no console access.
+router.delete('/roles/:key', need('users.manage'), async (req, res) => {
+  const key = String(req.params.key).toLowerCase();
+  try {
+    const cur = await db.query('SELECT is_system FROM admin_roles WHERE key = $1', [key]);
+    if (!cur.rows[0]) return res.status(404).json({ error: 'Role not found' });
+    if (cur.rows[0].is_system) {
+      return res.status(400).json({ error: 'System roles cannot be deleted.' });
+    }
+    // Detach users from the role safely: no role, no access (never full access).
+    await db.query(
+      `UPDATE users SET role_key = NULL, permissions = '[]'::jsonb WHERE role_key = $1`,
+      [key],
+    );
+    await db.query('DELETE FROM admin_roles WHERE key = $1', [key]);
+    await db.query(
+      `INSERT INTO audit_log (admin_id, action, entity, entity_id)
+       VALUES ($1, 'delete_role', 'admin_roles', NULL)`,
+      [req.user.sub],
+    );
+    res.json({ ok: true });
+  } catch (e) {
+    res.status(500).json({ error: 'Failed to delete role' });
+  }
+});
+
+// ---------- Activity / audit log ----------
+
+// GET /api/admin/audit?page= — recent admin actions.
+router.get('/audit', need('users.view'), async (req, res) => {
+  const page = Math.max(1, parseInt(req.query.page, 10) || 1);
+  const pageSize = 20;
+  const offset = (page - 1) * pageSize;
+  try {
+    const { rows } = await db.query(
+      `SELECT a.action, a.entity, a.entity_id, a.at,
+              u.full_name AS admin_name, u.email AS admin_email,
+              count(*) OVER()::int AS total
+         FROM audit_log a
+         LEFT JOIN users u ON u.id = a.admin_id
+        ORDER BY a.at DESC
+        LIMIT $1 OFFSET $2`,
+      [pageSize, offset],
+    );
+    const total = rows.length ? rows[0].total : 0;
+    res.json({ page, pageSize, total, rows: rows.map(({ total: _t, ...r }) => r) });
+  } catch (e) {
+    res.status(500).json({ error: 'Failed to load activity' });
   }
 });
 

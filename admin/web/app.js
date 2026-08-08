@@ -3,13 +3,15 @@ const token = localStorage.getItem('arete_token');
 if (!token) location.replace('index.html');
 
 const user = JSON.parse(localStorage.getItem('arete_user') || '{}');
-let me = null; // { id, name, email, role, permissions, allPermissions }
-const PERMS_FALLBACK = ['members', 'trainers', 'plans', 'billing', 'settings', 'users'];
+let me = null; // { id, name, email, role, permissions, allPermissions, sections }
 
 // Hide nav sections the signed-in admin lacks permission for. A null
 // permissions list (older server / super admin) shows everything.
 function applyNavVisibility() {
-  const need = { members: 'members', trainers: 'trainers', plans: 'plans', settings: 'settings', users: 'users' };
+  const need = {
+    members: 'members.view', trainers: 'trainers.view', plans: 'plans.view',
+    settings: 'settings.view', users: 'users.view', roles: 'users.view', audit: 'users.view',
+  };
   const perms = me && me.permissions ? me.permissions : null;
   document.querySelectorAll('.nav a[data-section]').forEach((a) => {
     const key = need[a.dataset.section];
@@ -90,6 +92,8 @@ function refreshActive() {
   else if (active === 'trainers') loadTrainers();
   else if (active === 'plans') loadPlans();
   else if (active === 'users') loadUsers();
+  else if (active === 'roles') loadRoles();
+  else if (active === 'audit') loadAudit();
   else if (active === 'settings') loadSettings();
 }
 
@@ -106,6 +110,8 @@ document.querySelectorAll('.nav a[data-section]').forEach((a) => {
     if (s === 'trainers') loadTrainers();
     if (s === 'plans') loadPlans();
     if (s === 'users') loadUsers();
+    if (s === 'roles') loadRoles();
+    if (s === 'audit') loadAudit();
     if (s === 'settings') loadSettings();
   });
 });
@@ -315,7 +321,56 @@ function renderCustomLangs() {
   });
 }
 
-// ---------- Users, roles & permissions ----------
+// ---------- Shared helpers: permission matrix + role cache ----------
+let rolesCache = []; // [{key,name,permissions,is_system,users}]
+
+function sectionsOf() {
+  return (me && me.sections) || ['members', 'trainers', 'plans', 'billing', 'settings', 'users'];
+}
+function tOr(key, fallback) {
+  const v = I18N.t(key);
+  return v === key ? fallback : v;
+}
+
+// A per-section grid of View + Manage checkboxes. Manage auto-implies View.
+function buildPermMatrix(containerId, selected) {
+  const set = new Set(selected || []);
+  document.getElementById(containerId).innerHTML = sectionsOf().map((s) => `
+    <div class="perm-sec">
+      <div class="perm-sec-name">${I18N.t('perm.' + s)}</div>
+      <label><input type="checkbox" data-perm="${s}.view" ${set.has(s + '.view') ? 'checked' : ''}/> ${I18N.t('common.view')}</label>
+      <label><input type="checkbox" data-perm="${s}.manage" ${set.has(s + '.manage') ? 'checked' : ''}/> ${I18N.t('common.manage')}</label>
+    </div>`).join('');
+  document.querySelectorAll(`#${containerId} input[data-perm$=".manage"]`).forEach((mb) => {
+    mb.addEventListener('change', () => {
+      if (mb.checked) {
+        const v = mb.closest('.perm-sec').querySelector('input[data-perm$=".view"]');
+        if (v) v.checked = true;
+      }
+    });
+  });
+}
+function readPermMatrix(containerId) {
+  return [...document.querySelectorAll(`#${containerId} input[data-perm]:checked`)].map((i) => i.dataset.perm);
+}
+function sectionsSummary(perms) {
+  const p = perms || [];
+  const out = sectionsOf()
+    .filter((s) => p.includes(s + '.view') || p.includes(s + '.manage'))
+    .map((s) => I18N.t('perm.' + s) + (p.includes(s + '.manage') ? ' ✎' : ''));
+  return out.length ? out.join(', ') : '—';
+}
+
+async function fetchRoles() {
+  try {
+    const d = await api('/admin/roles');
+    rolesCache = d.rows || [];
+  } catch (_) {
+    rolesCache = [];
+  }
+}
+
+// ---------- Users ----------
 let editingUserId = null;
 
 function roleBadge(role) {
@@ -323,20 +378,38 @@ function roleBadge(role) {
 }
 function permsSummary(u) {
   if (u.role !== 'admin') return `<span class="muted">${I18N.t('users.noConsole')}</span>`;
+  if (u.role_key) {
+    const r = rolesCache.find((x) => x.key === u.role_key);
+    return `<span class="role-badge admin">${r ? r.name : u.role_key}</span>`;
+  }
   const p = u.permissions;
   if (p == null) return I18N.t('users.fullAccess');
-  if (!p.length) return '<span class="muted">—</span>';
-  return p.map((k) => I18N.t('perm.' + k)).join(', ');
+  if (!p.length) return `<span class="muted">${I18N.t('users.noConsole')}</span>`;
+  return sectionsSummary(p);
 }
 
-function buildPermChecks(selected) {
-  const all = (me && me.allPermissions) || PERMS_FALLBACK;
-  const set = new Set(selected || all); // default: everything checked
-  document.getElementById('uPerms').innerHTML = all.map((k) =>
-    `<label><input type="checkbox" value="${k}" ${set.has(k) ? 'checked' : ''}/> ${I18N.t('perm.' + k)}</label>`,
-  ).join('');
+function fillAccessSelect(u) {
+  const opts = [`<option value="__full__">${I18N.t('users.fullAccessOpt')}</option>`];
+  rolesCache.filter((r) => !r.is_system).forEach((r) => {
+    opts.push(`<option value="role:${r.key}">${r.name}</option>`);
+  });
+  opts.push(`<option value="__custom__">${I18N.t('users.customOpt')}</option>`);
+  const sel = document.getElementById('uAccess');
+  sel.innerHTML = opts.join('');
+  let val = '__full__';
+  if (u && u.role === 'admin') {
+    if (u.role_key) val = 'role:' + u.role_key;
+    else if (u.permissions != null) val = '__custom__';
+  }
+  sel.value = [...sel.options].some((o) => o.value === val) ? val : '__full__';
 }
-function togglePermsVisibility() {
+
+function updateAccessUI(currentPerms) {
+  const v = document.getElementById('uAccess').value;
+  document.getElementById('uMatrixWrap').style.display = v === '__custom__' ? '' : 'none';
+  if (v === '__custom__') buildPermMatrix('uPerms', currentPerms || []);
+}
+function toggleUserAccessBlock() {
   const role = document.getElementById('uRole').value;
   document.getElementById('uPermsWrap').style.display = role === 'admin' ? '' : 'none';
 }
@@ -352,8 +425,9 @@ function showUserForm(u) {
   document.getElementById('uPassword').value = '';
   document.getElementById('uPwLabel').textContent = I18N.t(u ? 'users.newPassword' : 'users.password');
   document.getElementById('uPwHint').style.display = u ? '' : 'none';
-  buildPermChecks(u && u.role === 'admin' ? u.permissions || undefined : undefined);
-  togglePermsVisibility();
+  fillAccessSelect(u);
+  toggleUserAccessBlock();
+  updateAccessUI(u && u.role === 'admin' ? u.permissions || [] : []);
   const msg = document.getElementById('userMsg');
   msg.className = 'ok-msg';
   msg.textContent = '';
@@ -362,6 +436,15 @@ function showUserForm(u) {
 function hideUserForm() {
   document.getElementById('userFormCard').style.display = 'none';
   editingUserId = null;
+}
+
+// Build the { roleKey?, permissions? } body from the access selector.
+function accessBody(role) {
+  if (role !== 'admin') return {};
+  const v = document.getElementById('uAccess').value;
+  if (v.startsWith('role:')) return { roleKey: v.slice(5) };
+  if (v === '__custom__') return { roleKey: '', permissions: readPermMatrix('uPerms') };
+  return { roleKey: '' }; // full access
 }
 
 async function loadUsers() {
@@ -419,14 +502,13 @@ async function saveUser() {
   const role = document.getElementById('uRole').value;
   const status = document.getElementById('uStatus').value;
   const password = document.getElementById('uPassword').value;
-  const permissions = [...document.querySelectorAll('#uPerms input:checked')].map((i) => i.value);
   try {
     if (editingUserId) {
-      const body = { name, role, status, permissions };
+      const body = { name, role, status, ...accessBody(role) };
       if (password) body.password = password;
       await apiSend('PATCH', `/admin/users/${editingUserId}`, body);
     } else {
-      await apiSend('POST', '/admin/users', { name, email, password, role, permissions });
+      await apiSend('POST', '/admin/users', { name, email, password, role, status, ...accessBody(role) });
     }
     hideUserForm();
     loadUsers();
@@ -438,13 +520,139 @@ async function saveUser() {
 document.getElementById('addUser').addEventListener('click', () => showUserForm(null));
 document.getElementById('cancelUser').addEventListener('click', hideUserForm);
 document.getElementById('saveUser').addEventListener('click', saveUser);
-document.getElementById('uRole').addEventListener('change', togglePermsVisibility);
+document.getElementById('uRole').addEventListener('change', () => {
+  toggleUserAccessBlock();
+  updateAccessUI([]);
+});
+document.getElementById('uAccess').addEventListener('change', () => updateAccessUI([]));
 let uSearchTimer;
 document.getElementById('uq').addEventListener('input', () => {
   clearTimeout(uSearchTimer);
   uSearchTimer = setTimeout(loadUsers, 250);
 });
 document.getElementById('uRoleFilter').addEventListener('change', loadUsers);
+
+// ---------- Roles (permission bundles) ----------
+let editingRoleKey = null;
+
+async function loadRoles() {
+  try {
+    const data = await api('/admin/roles');
+    rolesCache = data.rows || [];
+    const body = data.rows.map((r) => `
+      <tr>
+        <td>${r.name} ${r.is_system ? `<span class="pill active">${I18N.t('roles.system')}</span>` : ''}</td>
+        <td class="muted">${r.key}</td>
+        <td>${sectionsSummary(r.permissions || [])}</td>
+        <td class="rt tabular">${r.users || 0}</td>
+        <td class="rt"><div class="row-actions">
+          ${r.is_system ? '' : `<button class="btn ghost" data-redit="${r.key}">${I18N.t('roles.edit')}</button>
+          <button class="btn ghost" data-rdel="${r.key}">${I18N.t('roles.delete')}</button>`}
+        </div></td>
+      </tr>`).join('');
+    document.getElementById('rolesTable').innerHTML = `
+      <thead><tr><th>${I18N.t('roles.name')}</th><th>${I18N.t('roles.key')}</th><th>${I18N.t('roles.permissions')}</th><th class="rt">${I18N.t('roles.usersCount')}</th><th class="rt">${I18N.t('users.actions')}</th></tr></thead>
+      <tbody>${body || `<tr><td colspan="5" class="muted">${I18N.t('roles.none')}</td></tr>`}</tbody>`;
+
+    const t = document.getElementById('rolesTable');
+    t.querySelectorAll('[data-redit]').forEach((b) => {
+      b.addEventListener('click', () => {
+        const r = rolesCache.find((x) => x.key === b.dataset.redit);
+        if (r) showRoleForm(r);
+      });
+    });
+    t.querySelectorAll('[data-rdel]').forEach((b) => {
+      b.addEventListener('click', () => deleteRole(b.dataset.rdel));
+    });
+  } catch (e) {
+    document.getElementById('rolesTable').innerHTML = `<tbody><tr><td class="muted">${e.message}</td></tr></tbody>`;
+  }
+}
+
+function showRoleForm(r) {
+  editingRoleKey = r ? r.key : null;
+  document.getElementById('roleFormTitle').textContent = I18N.t(r ? 'roles.edit' : 'roles.add');
+  document.getElementById('rName').value = r ? r.name : '';
+  document.getElementById('rKey').value = r ? r.key : '';
+  document.getElementById('rKey').disabled = !!r;
+  buildPermMatrix('rPerms', r ? r.permissions || [] : []);
+  const msg = document.getElementById('roleMsg');
+  msg.className = 'ok-msg';
+  msg.textContent = '';
+  document.getElementById('roleFormCard').style.display = '';
+}
+function hideRoleForm() {
+  document.getElementById('roleFormCard').style.display = 'none';
+  editingRoleKey = null;
+}
+
+async function saveRole() {
+  const msg = document.getElementById('roleMsg');
+  const name = document.getElementById('rName').value.trim();
+  const key = document.getElementById('rKey').value.trim();
+  const permissions = readPermMatrix('rPerms');
+  try {
+    if (editingRoleKey) {
+      await apiSend('PATCH', `/admin/roles/${editingRoleKey}`, { name, permissions });
+    } else {
+      await apiSend('POST', '/admin/roles', { name, key, permissions });
+    }
+    hideRoleForm();
+    loadRoles();
+  } catch (e) {
+    msg.textContent = e.message;
+    msg.className = 'ok-msg show err';
+  }
+}
+
+async function deleteRole(key) {
+  if (!confirm(I18N.t('roles.confirmDelete'))) return;
+  try {
+    await apiSend('DELETE', `/admin/roles/${key}`);
+    loadRoles();
+  } catch (e) {
+    alert(e.message);
+  }
+}
+
+document.getElementById('addRole').addEventListener('click', () => showRoleForm(null));
+document.getElementById('cancelRole').addEventListener('click', hideRoleForm);
+document.getElementById('saveRole').addEventListener('click', saveRole);
+
+// ---------- Activity / audit log ----------
+let auditPage = 1;
+function fmtDateTime(s) {
+  if (!s) return '—';
+  const o = { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' };
+  try {
+    return new Date(s).toLocaleString(I18N.getLocale(), o);
+  } catch (_) {
+    return new Date(s).toLocaleString(undefined, o);
+  }
+}
+async function loadAudit() {
+  try {
+    const data = await api(`/admin/audit?page=${auditPage}`);
+    const body = data.rows.map((a) => `
+      <tr>
+        <td>${a.admin_name ? `${a.admin_name} <span class="muted" style="font-size:11px">${a.admin_email || ''}</span>` : '<span class="muted">—</span>'}</td>
+        <td>${tOr('action.' + a.action, a.action)}</td>
+        <td>${a.entity ? tOr('entity.' + a.entity, a.entity) : '—'}</td>
+        <td class="rt">${fmtDateTime(a.at)}</td>
+      </tr>`).join('');
+    document.getElementById('auditTable').innerHTML = `
+      <thead><tr><th>${I18N.t('audit.who')}</th><th>${I18N.t('audit.action')}</th><th>${I18N.t('audit.entity')}</th><th class="rt">${I18N.t('audit.when')}</th></tr></thead>
+      <tbody>${body || `<tr><td colspan="4" class="muted">${I18N.t('audit.none')}</td></tr>`}</tbody>`;
+    const pages = Math.max(1, Math.ceil(data.total / data.pageSize));
+    document.getElementById('aPageInfo').textContent = I18N.t('pager.info', { page: data.page, pages, total: data.total });
+    document.getElementById('aPrev').disabled = auditPage <= 1;
+    document.getElementById('aNext').disabled = auditPage >= pages;
+  } catch (e) {
+    document.getElementById('auditTable').innerHTML = `<tbody><tr><td class="muted">${e.message}</td></tr></tbody>`;
+  }
+}
+document.getElementById('aPrev').addEventListener('click', () => { if (auditPage > 1) { auditPage--; loadAudit(); } });
+document.getElementById('aNext').addEventListener('click', () => { auditPage++; loadAudit(); });
 
 // ---------- Boot ----------
 async function loadMe() {
@@ -475,6 +683,7 @@ async function syncFromServer() {
 
 (async function boot() {
   await loadMe();
+  await fetchRoles(); // so the Users table can show role names
   await syncFromServer();
   fillLangSelectors();
   I18N.setLocale(I18N.getLocale()); // apply static translations + dir/lang

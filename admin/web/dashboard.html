@@ -17,7 +17,9 @@
         <a data-section="plans" data-i18n="nav.plans">Plans</a>
         <div class="grp" data-i18n="nav.system">System</div>
         <a data-section="users" data-i18n="nav.users">Users</a>
+        <a data-section="roles" data-i18n="nav.roles">Roles</a>
         <a data-section="settings" data-i18n="nav.settings">Settings</a>
+        <a data-section="audit" data-i18n="nav.audit">Activity</a>
         <a class="logout" id="logout" data-i18n="nav.logout">Log out</a>
       </nav>
     </aside>
@@ -116,9 +118,14 @@
             </label>
           </div>
           <div id="uPermsWrap">
-            <label><span data-i18n="users.permissions">Permissions</span></label>
-            <p class="muted" data-i18n="users.permsHint">Permissions apply to admin accounts.</p>
-            <div class="perm-grid" id="uPerms"></div>
+            <div class="form-row">
+              <label><span data-i18n="users.access">Access</span>
+                <select id="uAccess"></select></label>
+            </div>
+            <div id="uMatrixWrap" style="display:none">
+              <p class="muted" data-i18n="users.permsHint">Permissions apply to admin accounts.</p>
+              <div class="perm-grid" id="uPerms"></div>
+            </div>
           </div>
           <div class="form-actions">
             <button class="btn" id="saveUser" data-i18n="users.save">Save</button>
@@ -128,6 +135,45 @@
         </div>
 
         <div class="card"><table id="usersTable"></table></div>
+      </section>
+
+      <!-- Roles -->
+      <section class="section" id="section-roles">
+        <p class="muted section-intro" data-i18n="roles.subtitle">Bundle permissions into a named role.</p>
+        <div class="toolbar">
+          <button class="btn" id="addRole" data-i18n="roles.add">Add role</button>
+        </div>
+        <div class="card" id="roleFormCard" style="display:none">
+          <h3 id="roleFormTitle" data-i18n="roles.add">Add role</h3>
+          <div class="form-row">
+            <label><span data-i18n="roles.name">Role name</span>
+              <input id="rName" data-i18n-ph="roles.namePh" /></label>
+            <label><span data-i18n="roles.key">Key</span>
+              <input id="rKey" data-i18n-ph="roles.keyPh" />
+              <small class="muted" data-i18n="roles.keyHint">A short identifier.</small></label>
+          </div>
+          <label><span data-i18n="roles.permissions">Permissions</span></label>
+          <div class="perm-grid" id="rPerms"></div>
+          <div class="form-actions">
+            <button class="btn" id="saveRole" data-i18n="roles.save">Save role</button>
+            <button class="btn ghost" id="cancelRole" data-i18n="roles.cancel">Cancel</button>
+            <span id="roleMsg" class="ok-msg"></span>
+          </div>
+        </div>
+        <div class="card"><table id="rolesTable"></table></div>
+      </section>
+
+      <!-- Activity / audit -->
+      <section class="section" id="section-audit">
+        <p class="muted section-intro" data-i18n="audit.subtitle">Recent actions.</p>
+        <div class="card">
+          <table id="auditTable"></table>
+          <div class="pager">
+            <button id="aPrev" data-i18n="pager.prev">Prev</button>
+            <span id="aPageInfo" class="muted"></span>
+            <button id="aNext" data-i18n="pager.next">Next</button>
+          </div>
+        </div>
       </section>
 
       <!-- Settings -->

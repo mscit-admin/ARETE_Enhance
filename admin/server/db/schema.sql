@@ -245,3 +245,16 @@ CREATE TABLE IF NOT EXISTS admin_locales (
 
 -- Per-user admin-console permissions (NULL for a full-access admin).
 ALTER TABLE users ADD COLUMN IF NOT EXISTS permissions jsonb;
+
+-- Custom admin roles: named permission bundles assigned to console users.
+CREATE TABLE IF NOT EXISTS admin_roles (
+  key         text PRIMARY KEY,                 -- e.g. 'reception', 'manager'
+  name        text NOT NULL,
+  permissions jsonb NOT NULL DEFAULT '[]'::jsonb,
+  is_system   boolean NOT NULL DEFAULT false,
+  updated_at  timestamptz NOT NULL DEFAULT now()
+);
+
+-- Which custom admin role a console user has (NULL = per-user override or,
+-- when permissions is also NULL, full access).
+ALTER TABLE users ADD COLUMN IF NOT EXISTS role_key text;
