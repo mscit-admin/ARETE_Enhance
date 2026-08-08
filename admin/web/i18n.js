@@ -181,6 +181,14 @@
     'entity.members': 'Members',
     'entity.app_settings': 'Settings',
     'entity.admin_roles': 'Roles',
+    'entity.trainers': 'Trainers',
+    'action.update_trainer': 'Updated a trainer',
+    'freeze.freeze': 'Freeze',
+    'freeze.unfreeze': 'Unfreeze',
+    'freeze.suspended': 'Suspended',
+    'freeze.confirmFreeze': "Freeze this account? They won't be able to sign in.",
+    'freeze.confirmUnfreeze': 'Reactivate this account?',
+    'table.actions': 'Actions',
   };
 
   const AR = {
@@ -355,6 +363,14 @@
     'entity.members': 'الأعضاء',
     'entity.app_settings': 'الإعدادات',
     'entity.admin_roles': 'الأدوار',
+    'entity.trainers': 'المدربون',
+    'action.update_trainer': 'عدّل مدربًا',
+    'freeze.freeze': 'تجميد',
+    'freeze.unfreeze': 'إلغاء التجميد',
+    'freeze.suspended': 'مُجمّد',
+    'freeze.confirmFreeze': 'تجميد هذا الحساب؟ لن يتمكّن من تسجيل الدخول.',
+    'freeze.confirmUnfreeze': 'إعادة تفعيل هذا الحساب؟',
+    'table.actions': 'إجراءات',
   };
 
   const FR = {
@@ -529,6 +545,14 @@
     'entity.members': 'Membres',
     'entity.app_settings': 'Réglages',
     'entity.admin_roles': 'Rôles',
+    'entity.trainers': 'Coachs',
+    'action.update_trainer': 'A modifié un coach',
+    'freeze.freeze': 'Geler',
+    'freeze.unfreeze': 'Réactiver',
+    'freeze.suspended': 'Gelé',
+    'freeze.confirmFreeze': 'Geler ce compte ? Il ne pourra plus se connecter.',
+    'freeze.confirmUnfreeze': 'Réactiver ce compte ?',
+    'table.actions': 'Actions',
   };
 
   const BASE = { en: EN, ar: AR, fr: FR };

@@ -5,6 +5,11 @@ if (!token) location.replace('index.html');
 const user = JSON.parse(localStorage.getItem('arete_user') || '{}');
 let me = null; // { id, name, email, role, permissions, allPermissions, sections }
 
+// True if the signed-in admin holds a permission (or is a full-access admin).
+function can(perm) {
+  return !me || !me.permissions || me.permissions.includes(perm);
+}
+
 // Hide nav sections the signed-in admin lacks permission for. A null
 // permissions list (older server / super admin) shows everything.
 function applyNavVisibility() {
@@ -166,18 +171,31 @@ async function loadMembers() {
       `/admin/members?query=${encodeURIComponent(q)}&status=${status}&page=${page}`,
     );
     membersState = data;
-    const body = data.rows.map((m) => `
-      <tr>
+    const manage = can('members.manage');
+    const body = data.rows.map((m) => {
+      const suspended = m.account_status === 'suspended';
+      const tag = suspended ? ` <span class="pill expired">${I18N.t('freeze.suspended')}</span>` : '';
+      const actions = manage ? `<td class="rt"><div class="row-actions">
+          <button class="btn ghost" data-freeze="${m.id}" data-cur="${m.account_status || 'active'}">${suspended ? I18N.t('freeze.unfreeze') : I18N.t('freeze.freeze')}</button>
+        </div></td>` : '';
+      return `<tr>
         <td><div class="who2"><div class="a">${initials(m.full_name)}</div>
-          <div><div>${m.full_name}</div><div class="muted" style="font-size:11px">${m.email}</div></div></div></td>
+          <div><div>${m.full_name}${tag}</div><div class="muted" style="font-size:11px">${m.email}</div></div></div></td>
         <td style="text-transform:capitalize">${m.tier || '—'}</td>
         <td>${m.trainer_name || '<span class="muted">—</span>'}</td>
         <td><span class="pill ${m.status || 'expired'}">${m.status ? I18N.t('status.' + m.status) : '—'}</span></td>
         <td class="rt">${fmtDate(m.renews_on)}</td>
-      </tr>`).join('');
+        ${actions}
+      </tr>`;
+    }).join('');
+    const aHead = manage ? `<th class="rt">${I18N.t('table.actions')}</th>` : '';
+    const cols = manage ? 6 : 5;
     document.getElementById('membersTable').innerHTML = `
-      <thead><tr><th>${I18N.t('table.member')}</th><th>${I18N.t('table.tier')}</th><th>${I18N.t('table.trainer')}</th><th>${I18N.t('table.status')}</th><th class="rt">${I18N.t('table.renews')}</th></tr></thead>
-      <tbody>${body || `<tr><td colspan="5" class="muted">${I18N.t('members.none')}</td></tr>`}</tbody>`;
+      <thead><tr><th>${I18N.t('table.member')}</th><th>${I18N.t('table.tier')}</th><th>${I18N.t('table.trainer')}</th><th>${I18N.t('table.status')}</th><th class="rt">${I18N.t('table.renews')}</th>${aHead}</tr></thead>
+      <tbody>${body || `<tr><td colspan="${cols}" class="muted">${I18N.t('members.none')}</td></tr>`}</tbody>`;
+    document.querySelectorAll('#membersTable [data-freeze]').forEach((b) => {
+      b.addEventListener('click', () => freezeMember(b.dataset.freeze, b.dataset.cur));
+    });
 
     const pages = Math.max(1, Math.ceil(data.total / data.pageSize));
     document.getElementById('pageInfo').textContent =
@@ -188,6 +206,18 @@ async function loadMembers() {
     document.getElementById('membersTable').innerHTML = `<tbody><tr><td class="muted">${e.message}</td></tr></tbody>`;
   }
 }
+async function freezeMember(id, cur) {
+  const next = cur === 'suspended' ? 'active' : 'suspended';
+  const confirmKey = next === 'suspended' ? 'freeze.confirmFreeze' : 'freeze.confirmUnfreeze';
+  if (!confirm(I18N.t(confirmKey))) return;
+  try {
+    await apiSend('PATCH', `/admin/members/${id}`, { accountStatus: next });
+    loadMembers();
+  } catch (e) {
+    alert(e.message);
+  }
+}
+
 let searchTimer;
 document.getElementById('q').addEventListener('input', () => {
   clearTimeout(searchTimer);
@@ -201,17 +231,42 @@ document.getElementById('next').addEventListener('click', () => { page++; loadMe
 async function loadTrainers() {
   try {
     const data = await api('/admin/trainers');
-    const body = data.rows.map((t) => `
-      <tr><td><div class="who2"><div class="a">${initials(t.full_name)}</div>${t.full_name}</div></td>
+    const manage = can('trainers.manage');
+    const body = data.rows.map((t) => {
+      const suspended = t.account_status === 'suspended';
+      const tag = suspended ? ` <span class="pill expired">${I18N.t('freeze.suspended')}</span>` : '';
+      const actions = manage ? `<td class="rt"><div class="row-actions">
+          <button class="btn ghost" data-tfreeze="${t.id}" data-cur="${t.account_status || 'active'}">${suspended ? I18N.t('freeze.unfreeze') : I18N.t('freeze.freeze')}</button>
+        </div></td>` : '';
+      return `<tr>
+        <td><div class="who2"><div class="a">${initials(t.full_name)}</div>${t.full_name}${tag}</div></td>
         <td>${t.specialty || '—'}</td>
         <td class="rt tabular">${t.clients}</td>
         <td class="rt tabular">${Number(t.rating).toFixed(1)}</td>
-        <td class="rt tabular">~${t.avg_response_h}h</td></tr>`).join('');
+        <td class="rt tabular">~${t.avg_response_h}h</td>
+        ${actions}</tr>`;
+    }).join('');
+    const aHead = manage ? `<th class="rt">${I18N.t('table.actions')}</th>` : '';
     document.getElementById('trainersTable').innerHTML = `
-      <thead><tr><th>${I18N.t('table.trainer')}</th><th>${I18N.t('table.specialty')}</th><th class="rt">${I18N.t('table.clients')}</th><th class="rt">${I18N.t('table.rating')}</th><th class="rt">${I18N.t('table.reply')}</th></tr></thead>
+      <thead><tr><th>${I18N.t('table.trainer')}</th><th>${I18N.t('table.specialty')}</th><th class="rt">${I18N.t('table.clients')}</th><th class="rt">${I18N.t('table.rating')}</th><th class="rt">${I18N.t('table.reply')}</th>${aHead}</tr></thead>
       <tbody>${body}</tbody>`;
+    document.querySelectorAll('#trainersTable [data-tfreeze]').forEach((b) => {
+      b.addEventListener('click', () => freezeTrainer(b.dataset.tfreeze, b.dataset.cur));
+    });
   } catch (e) {
     document.getElementById('trainersTable').innerHTML = `<tbody><tr><td class="muted">${e.message}</td></tr></tbody>`;
+  }
+}
+
+async function freezeTrainer(id, cur) {
+  const next = cur === 'suspended' ? 'active' : 'suspended';
+  const confirmKey = next === 'suspended' ? 'freeze.confirmFreeze' : 'freeze.confirmUnfreeze';
+  if (!confirm(I18N.t(confirmKey))) return;
+  try {
+    await apiSend('PATCH', `/admin/trainers/${id}`, { status: next });
+    loadTrainers();
+  } catch (e) {
+    alert(e.message);
   }
 }
 

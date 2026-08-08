@@ -136,7 +136,7 @@ router.get('/members', need('members.view'), async (req, res) => {
         SELECT DISTINCT ON (member_id) member_id, tier, status, renews_on
           FROM memberships ORDER BY member_id, renews_on DESC
       )
-      SELECT u.id, u.full_name, u.email, u.created_at,
+      SELECT u.id, u.full_name, u.email, u.created_at, u.status AS account_status,
              ms.tier, ms.status, ms.renews_on,
              tu.full_name AS trainer_name,
              count(*) OVER()::int AS total
@@ -201,8 +201,18 @@ router.get('/members/:id', need('members.view'), async (req, res) => {
 
 // PATCH /api/admin/members/:id  { status?, tier?, trainerId? }
 router.patch('/members/:id', need('members.manage'), async (req, res) => {
-  const { status, tier, trainerId } = req.body || {};
+  const { status, tier, trainerId, accountStatus } = req.body || {};
+  if (accountStatus !== undefined && !['active', 'suspended'].includes(accountStatus)) {
+    return res.status(400).json({ error: 'Invalid account status.' });
+  }
   try {
+    // Freeze/unfreeze the member's app account (blocks login).
+    if (accountStatus !== undefined) {
+      await db.query('UPDATE users SET status = $1, updated_at = now() WHERE id = $2', [
+        accountStatus,
+        req.params.id,
+      ]);
+    }
     if (trainerId !== undefined) {
       await db.query('UPDATE members SET trainer_id = $1 WHERE user_id = $2', [
         trainerId || null,
@@ -236,17 +246,42 @@ router.patch('/members/:id', need('members.manage'), async (req, res) => {
 router.get('/trainers', need('trainers.view'), async (_req, res) => {
   try {
     const { rows } = await db.query(
-      `SELECT u.id, u.full_name, u.email, t.specialty, t.rating, t.avg_response_h,
+      `SELECT u.id, u.full_name, u.email, u.status AS account_status,
+              t.specialty, t.rating, t.avg_response_h,
               count(m.user_id)::int AS clients
          FROM trainers t
          JOIN users u ON u.id = t.user_id
          LEFT JOIN members m ON m.trainer_id = t.user_id
-        GROUP BY u.id, u.full_name, u.email, t.specialty, t.rating, t.avg_response_h
+        GROUP BY u.id, u.full_name, u.email, u.status, t.specialty, t.rating, t.avg_response_h
         ORDER BY clients DESC`,
     );
     res.json({ rows });
   } catch (e) {
     res.status(500).json({ error: 'Failed to load trainers' });
+  }
+});
+
+// PATCH /api/admin/trainers/:id  { status } — freeze/unfreeze a trainer's account.
+router.patch('/trainers/:id', need('trainers.manage'), async (req, res) => {
+  const { status } = req.body || {};
+  if (!['active', 'suspended'].includes(status)) {
+    return res.status(400).json({ error: 'Invalid account status.' });
+  }
+  try {
+    const { rowCount } = await db.query(
+      `UPDATE users SET status = $1, updated_at = now()
+         WHERE id = $2 AND role = 'trainer'`,
+      [status, req.params.id],
+    );
+    if (!rowCount) return res.status(404).json({ error: 'Trainer not found' });
+    await db.query(
+      `INSERT INTO audit_log (admin_id, action, entity, entity_id)
+       VALUES ($1, 'update_trainer', 'trainers', $2)`,
+      [req.user.sub, req.params.id],
+    );
+    res.json({ ok: true });
+  } catch (e) {
+    res.status(500).json({ error: 'Failed to update trainer' });
   }
 });
 

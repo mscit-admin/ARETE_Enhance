@@ -185,7 +185,7 @@ router.post('/auth/login', async (req, res) => {
   }
   try {
     const { rows } = await db.query(
-      `SELECT id, email, full_name, role, password_hash FROM users WHERE email = $1`,
+      `SELECT id, email, full_name, role, status, password_hash FROM users WHERE email = $1`,
       [email],
     );
     const user = rows[0];
@@ -194,6 +194,9 @@ router.post('/auth/login', async (req, res) => {
     }
     if (user.role === 'admin') {
       return res.status(403).json({ error: 'Use the admin console for this account' });
+    }
+    if (user.status === 'suspended') {
+      return res.status(403).json({ error: 'Your account has been suspended. Please contact your gym.' });
     }
     const token = signToken(user);
     const profile = await loadProfile(user.id);

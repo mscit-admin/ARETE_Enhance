@@ -13,7 +13,7 @@ router.post('/login', async (req, res) => {
   }
   try {
     const { rows } = await db.query(
-      'SELECT id, email, full_name, role, password_hash FROM users WHERE email = $1',
+      'SELECT id, email, full_name, role, status, password_hash FROM users WHERE email = $1',
       [String(email).trim().toLowerCase()],
     );
     const user = rows[0];
@@ -25,6 +25,9 @@ router.post('/login', async (req, res) => {
     // The web console is admin-only.
     if (user.role !== 'admin') {
       return res.status(403).json({ error: 'This console is for admins only' });
+    }
+    if (user.status === 'suspended') {
+      return res.status(403).json({ error: 'This account has been suspended.' });
     }
 
     const token = signToken(user);
