@@ -28,9 +28,6 @@ jobs:
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
-          # Pinned to a known-good version. Leaving this on the moving `stable`
-          # channel previously broke the Android build when Flutter advanced.
-          flutter-version: 3.29.0
           channel: stable
           cache: true
 

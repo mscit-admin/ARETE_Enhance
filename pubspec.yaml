@@ -23,7 +23,9 @@ dependencies:
   http: ^1.2.2
   qr_flutter: ^4.1.0
   # A modern build is required: 5.x throws a native NPE on current toolchains.
-  mobile_scanner: ">=6.0.0 <8.0.0"
+  # Capped below 7.x: the 7.x major changed Android build requirements and
+  # started breaking the CI APK build once it was published.
+  mobile_scanner: ">=6.0.0 <7.0.0"
   permission_handler: ^11.3.1
 
 dev_dependencies:
