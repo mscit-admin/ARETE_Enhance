@@ -258,3 +258,67 @@ CREATE TABLE IF NOT EXISTS admin_roles (
 -- Which custom admin role a console user has (NULL = per-user override or,
 -- when permissions is also NULL, full access).
 ALTER TABLE users ADD COLUMN IF NOT EXISTS role_key text;
+
+-- ======================================================================
+--  Workout library & richer coach→trainee plans (Phase 1)
+-- ======================================================================
+
+-- Exercise library: shared catalogue + (later) coach/trainee custom entries.
+ALTER TABLE exercises ADD COLUMN IF NOT EXISTS name_ar        text;
+ALTER TABLE exercises ADD COLUMN IF NOT EXISTS category       text;      -- 'gym' | 'calisthenics'
+ALTER TABLE exercises ADD COLUMN IF NOT EXISTS level          text;      -- beginner|intermediate|advanced
+ALTER TABLE exercises ADD COLUMN IF NOT EXISTS target_muscles text[] NOT NULL DEFAULT '{}';
+ALTER TABLE exercises ADD COLUMN IF NOT EXISTS image_url      text;
+ALTER TABLE exercises ADD COLUMN IF NOT EXISTS slug           text;
+ALTER TABLE exercises ADD COLUMN IF NOT EXISTS created_by     uuid REFERENCES users(id) ON DELETE SET NULL;
+ALTER TABLE exercises ADD COLUMN IF NOT EXISTS visibility     text NOT NULL DEFAULT 'global';
+-- Unique slug for the seeded catalogue (NULLs allowed for user-created ones).
+CREATE UNIQUE INDEX IF NOT EXISTS idx_exercises_slug ON exercises(slug);
+CREATE INDEX IF NOT EXISTS idx_exercises_category ON exercises(category);
+
+-- Per-exercise coaching parameters on a plan day.
+ALTER TABLE plan_exercises ADD COLUMN IF NOT EXISTS target_weight numeric(6,2);
+ALTER TABLE plan_exercises ADD COLUMN IF NOT EXISTS rest_seconds  int;
+ALTER TABLE plan_exercises ADD COLUMN IF NOT EXISTS notes         text;
+
+-- Which plan day a logged session belongs to (for adherence tracking).
+ALTER TABLE workout_sessions ADD COLUMN IF NOT EXISTS day_index int;
+
+-- ---------- Seed: exercise catalogue (idempotent via slug) ----------
+INSERT INTO exercises (slug, name, name_ar, muscle_group, category, level, equipment, target_muscles)
+VALUES
+  -- Chest (gym)
+  ('flat-barbell-bench-press','Flat Barbell Bench Press','بنش برس مستوٍ بالبار','chest','gym','intermediate','barbell','{chest}'),
+  ('incline-dumbbell-press','Incline Dumbbell Press','ضغط دمبل مائل','chest','gym','intermediate','dumbbell','{upper_chest}'),
+  ('chest-fly-pec-deck','Chest Fly (Pec Deck)','تجميع صدر (بيك دِك)','chest','gym','beginner','machine','{chest}'),
+  ('cable-crossover','Cable Crossover','كروس أوفر بالكيبل','chest','gym','intermediate','cable','{lower_chest}'),
+  -- Back (gym)
+  ('lat-pulldown','Lat Pulldown','سحب عالٍ قبضة واسعة','back','gym','beginner','machine','{lats}'),
+  ('seated-cable-row','Seated Cable Row','سحب أرضي بالكيبل','back','gym','beginner','cable','{mid_back}'),
+  ('deadlift','Deadlift','الرفعة الميتة','back','gym','advanced','barbell','{lower_back,hamstrings,glutes}'),
+  ('t-bar-row','T-Bar Row','سحب تي-بار','back','gym','intermediate','barbell','{upper_back}'),
+  -- Shoulders (gym)
+  ('overhead-press','Overhead Press','ضغط أكتاف','shoulders','gym','intermediate','barbell','{front_delts,side_delts}'),
+  ('dumbbell-lateral-raise','Dumbbell Lateral Raise','رفرفة جانبية بالدمبل','shoulders','gym','beginner','dumbbell','{side_delts}'),
+  ('face-pulls','Face Pulls','سحب كيبل للوجه','shoulders','gym','beginner','cable','{rear_delts}'),
+  ('shrugs','Shrugs','شراجز','shoulders','gym','beginner','dumbbell','{traps}'),
+  -- Arms (gym)
+  ('dumbbell-curls','Dumbbell Curls','تبادل بايسبس بالدمبل','arms','gym','beginner','dumbbell','{biceps}'),
+  ('preacher-curls','Preacher Curls','بايسبس على المقعد','arms','gym','beginner','barbell','{biceps}'),
+  ('cable-pushdown','Cable Pushdown','ترايسبس بالكيبل','arms','gym','beginner','cable','{triceps}'),
+  ('overhead-dumbbell-extension','Overhead Dumbbell Extension','ترايسبس فرنساوي بالدمبل','arms','gym','beginner','dumbbell','{triceps}'),
+  -- Legs (gym)
+  ('barbell-squat','Barbell Squat','سكوات بالبار','legs','gym','intermediate','barbell','{quads,glutes}'),
+  ('leg-press','Leg Press','ضغط الأرجل بالجهاز','legs','gym','beginner','machine','{quads}'),
+  ('lying-leg-curls','Lying Leg Curls','تلفيح أرجل خلفي','legs','gym','beginner','machine','{hamstrings}'),
+  ('standing-calf-raises','Standing Calf Raises','صعود السمانة واقفًا','legs','gym','beginner','machine','{calves}'),
+  -- Calisthenics
+  ('push-ups','Push-ups','الضغط','chest','calisthenics','beginner','bodyweight','{chest,shoulders,triceps}'),
+  ('pull-ups','Pull-ups','العقلة','back','calisthenics','intermediate','bodyweight','{back,biceps}'),
+  ('bodyweight-squats','Bodyweight Squats','سكوات بوزن الجسم','legs','calisthenics','beginner','bodyweight','{quads,glutes}'),
+  ('lunges','Lunges','الطعن','legs','calisthenics','beginner','bodyweight','{quads,glutes}'),
+  ('dips-bodyweight','Dips','المتوازي','chest','calisthenics','intermediate','bodyweight','{triceps,lower_chest}'),
+  ('plank','Plank','البلانك','core','calisthenics','beginner','bodyweight','{core}'),
+  ('crunches','Crunches','تمرين البطن','core','calisthenics','beginner','bodyweight','{abs}'),
+  ('mountain-climbers','Mountain Climbers','تسلق الجبال','core','calisthenics','beginner','bodyweight','{core,cardio}')
+ON CONFLICT (slug) DO NOTHING;

@@ -386,10 +386,12 @@ async function planWithExercises(planId) {
   );
   if (!p.rows[0]) return null;
   const ex = await db.query(
-    `SELECT e.name, pe.target_sets, pe.target_reps, pe.position
+    `SELECT e.id AS exercise_id, e.name, e.name_ar, e.muscle_group, e.category,
+            pe.day_index, pe.position, pe.target_sets, pe.target_reps,
+            pe.target_weight, pe.rest_seconds, pe.notes
        FROM plan_exercises pe JOIN exercises e ON e.id = pe.exercise_id
       WHERE pe.plan_id = $1
-      ORDER BY pe.position, pe.day_index`,
+      ORDER BY pe.day_index, pe.position`,
     [planId],
   );
   const r = p.rows[0];
@@ -401,10 +403,20 @@ async function planWithExercises(planId) {
     weeks: r.weeks,
     split: r.split || '',
     createdAt: r.created_at,
+    // Flat list; each item carries its `day` so any client can group by day.
+    // Extra fields are additive — older clients simply ignore them.
     exercises: ex.rows.map((x) => ({
+      exerciseId: x.exercise_id,
       name: x.name,
+      nameAr: x.name_ar || '',
+      muscleGroup: x.muscle_group || '',
+      category: x.category || '',
+      day: x.day_index,
       sets: x.target_sets,
       reps: x.target_reps,
+      weight: x.target_weight != null ? Number(x.target_weight) : null,
+      rest: x.rest_seconds,
+      notes: x.notes || '',
     })),
   };
 }
@@ -437,20 +449,45 @@ router.post('/trainer/plans', requireAuth, async (req, res) => {
       ],
     );
     const planId = plan.rows[0].id;
-    let pos = 0;
+    // Track a running position per day so the ordering is stable.
+    const posByDay = {};
     for (const e of exercises) {
-      const exName = String(e?.name || '').trim();
-      if (!exName) continue;
-      const exRow = await client.query(
-        `INSERT INTO exercises (name) VALUES ($1) RETURNING id`,
-        [exName],
-      );
+      // Prefer a library exercise by id; fall back to creating one by name so
+      // the older app (which sends {name, sets, reps}) still works.
+      let exerciseId = e && e.exerciseId ? String(e.exerciseId) : null;
+      if (exerciseId) {
+        const chk = await client.query('SELECT 1 FROM exercises WHERE id = $1', [exerciseId]);
+        if (!chk.rowCount) exerciseId = null;
+      }
+      if (!exerciseId) {
+        const exName = String(e?.name || '').trim();
+        if (!exName) continue;
+        const exRow = await client.query(
+          `INSERT INTO exercises (name, created_by, visibility) VALUES ($1, $2, 'private') RETURNING id`,
+          [exName, uid],
+        );
+        exerciseId = exRow.rows[0].id;
+      }
+      const day = Number(e?.day) || 0;
+      const pos = posByDay[day] || 0;
+      posByDay[day] = pos + 1;
       await client.query(
-        `INSERT INTO plan_exercises (plan_id, exercise_id, day_index, position, target_sets, target_reps)
-         VALUES ($1, $2, 0, $3, $4, $5)`,
-        [planId, exRow.rows[0].id, pos, Number(e?.sets) || 3, Number(e?.reps) || 10],
+        `INSERT INTO plan_exercises
+           (plan_id, exercise_id, day_index, position, target_sets, target_reps,
+            target_weight, rest_seconds, notes)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+         ON CONFLICT (plan_id, exercise_id, day_index) DO UPDATE
+           SET position = EXCLUDED.position, target_sets = EXCLUDED.target_sets,
+               target_reps = EXCLUDED.target_reps, target_weight = EXCLUDED.target_weight,
+               rest_seconds = EXCLUDED.rest_seconds, notes = EXCLUDED.notes`,
+        [
+          planId, exerciseId, day, pos,
+          Number(e?.sets) || 3, Number(e?.reps) || 10,
+          e?.weight != null && e.weight !== '' ? Number(e.weight) : null,
+          e?.rest != null && e.rest !== '' ? Number(e.rest) : null,
+          String(e?.notes || '').trim() || null,
+        ],
       );
-      pos += 1;
     }
     await client.query('COMMIT');
     return res.status(201).json({ plan: await planWithExercises(planId) });
@@ -576,6 +613,103 @@ router.get('/my-plans', requireAuth, async (req, res) => {
     return res.json({ rows: plans });
   } catch (e) {
     return res.status(500).json({ error: 'Failed to load plans' });
+  }
+});
+
+// GET /api/app/exercises?category=&muscle=&level=&query= — the shared library.
+router.get('/exercises', requireAuth, async (req, res) => {
+  const category = String(req.query.category || '').trim();
+  const muscle = String(req.query.muscle || '').trim();
+  const level = String(req.query.level || '').trim();
+  const query = String(req.query.query || '').trim();
+  const where = ["(visibility = 'global' OR created_by IS NULL)"];
+  const params = [];
+  if (category) { params.push(category); where.push(`category = $${params.length}`); }
+  if (muscle) { params.push(muscle); where.push(`muscle_group = $${params.length}`); }
+  if (level) { params.push(level); where.push(`level = $${params.length}`); }
+  if (query) {
+    params.push(`%${query}%`);
+    where.push(`(name ILIKE $${params.length} OR name_ar ILIKE $${params.length})`);
+  }
+  try {
+    const { rows } = await db.query(
+      `SELECT id, name, name_ar, muscle_group, category, level, equipment,
+              target_muscles, video_url, image_url
+         FROM exercises WHERE ${where.join(' AND ')}
+        ORDER BY category, muscle_group, name LIMIT 300`,
+      params,
+    );
+    res.json({
+      rows: rows.map((e) => ({
+        id: e.id,
+        name: e.name,
+        nameAr: e.name_ar || '',
+        muscleGroup: e.muscle_group || '',
+        category: e.category || '',
+        level: e.level || '',
+        equipment: e.equipment || '',
+        targetMuscles: e.target_muscles || [],
+        videoUrl: e.video_url || '',
+        imageUrl: e.image_url || '',
+      })),
+    });
+  } catch (e) {
+    res.status(500).json({ error: 'Failed to load exercises' });
+  }
+});
+
+// POST /api/app/sessions  (member) — log a completed session's real performance.
+// { planId?, dayIndex?, title?, sets: [{exerciseId?, exerciseName?, setNumber, weight, reps}] }
+router.post('/sessions', requireAuth, async (req, res) => {
+  const uid = req.user.sub;
+  const isMember = await db.query('SELECT 1 FROM members WHERE user_id = $1', [uid]);
+  if (!isMember.rowCount) return res.status(403).json({ error: 'Members only' });
+  const b = req.body || {};
+  const sets = Array.isArray(b.sets) ? b.sets : [];
+
+  const client = await db.pool.connect();
+  try {
+    await client.query('BEGIN');
+    let volume = 0;
+    for (const s of sets) volume += (Number(s?.weight) || 0) * (Number(s?.reps) || 0);
+    const sess = await client.query(
+      `INSERT INTO workout_sessions (member_id, plan_id, day_index, title, finished_at, total_volume)
+       VALUES ($1, $2, $3, $4, now(), $5) RETURNING id`,
+      [
+        uid,
+        b.planId || null,
+        b.dayIndex != null ? Number(b.dayIndex) : null,
+        String(b.title || '').trim() || null,
+        volume,
+      ],
+    );
+    const sessionId = sess.rows[0].id;
+    for (const s of sets) {
+      let exId = s && s.exerciseId ? String(s.exerciseId) : null;
+      if (exId) {
+        const chk = await client.query('SELECT 1 FROM exercises WHERE id = $1', [exId]);
+        if (!chk.rowCount) exId = null;
+      }
+      if (!exId && s && s.exerciseName) {
+        const exRow = await client.query(
+          `INSERT INTO exercises (name, created_by, visibility) VALUES ($1, $2, 'private') RETURNING id`,
+          [String(s.exerciseName).trim(), uid],
+        );
+        exId = exRow.rows[0].id;
+      }
+      await client.query(
+        `INSERT INTO set_logs (session_id, exercise_id, set_number, weight_kg, reps)
+         VALUES ($1, $2, $3, $4, $5)`,
+        [sessionId, exId, Number(s?.setNumber) || 1, Number(s?.weight) || 0, Number(s?.reps) || 0],
+      );
+    }
+    await client.query('COMMIT');
+    res.status(201).json({ id: sessionId, totalVolume: volume });
+  } catch (e) {
+    await client.query('ROLLBACK');
+    res.status(500).json({ error: 'Failed to log session' });
+  } finally {
+    client.release();
   }
 });
 
