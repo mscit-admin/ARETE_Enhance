@@ -62,6 +62,10 @@ void main() {
     },
   )..bootstrap();
 
+  // If the server reports the account was frozen, sign out immediately so the
+  // member/trainer is returned to the login screen instead of seeing errors.
+  apiClient.onSuspended = () => authController.signOut();
+
   runApp(
     MultiProvider(
       providers: [

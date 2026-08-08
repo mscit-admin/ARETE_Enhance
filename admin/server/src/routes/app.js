@@ -196,7 +196,10 @@ router.post('/auth/login', async (req, res) => {
       return res.status(403).json({ error: 'Use the admin console for this account' });
     }
     if (user.status === 'suspended') {
-      return res.status(403).json({ error: 'Your account has been suspended. Please contact your gym.' });
+      return res.status(403).json({
+        error: 'Your account has been suspended. Please contact your gym.',
+        code: 'account_suspended',
+      });
     }
     const token = signToken(user);
     const profile = await loadProfile(user.id);

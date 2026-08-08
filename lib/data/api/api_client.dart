@@ -7,9 +7,12 @@ import '../../core/config/api_config.dart';
 
 /// Raised for any API failure; [message] is safe to show to the user.
 class ApiException implements Exception {
-  const ApiException(this.message, {this.statusCode});
+  const ApiException(this.message, {this.statusCode, this.code});
   final String message;
   final int? statusCode;
+
+  /// Machine-readable server code, e.g. 'account_suspended'.
+  final String? code;
   @override
   String toString() => message;
 }
@@ -22,6 +25,10 @@ class ApiClient {
   final http.Client _http;
   static const _tokenKey = 'api_token_v1';
   String? _token;
+
+  /// Invoked when the server reports the account has been suspended, so the
+  /// app can sign the user out immediately. Wired up in main().
+  void Function()? onSuspended;
 
   Future<SharedPreferences> get _prefs => SharedPreferences.getInstance();
 
@@ -94,6 +101,15 @@ class ApiClient {
     final message = (decoded is Map && decoded['error'] is String)
         ? decoded['error'] as String
         : 'Request failed (${res.statusCode}).';
-    throw ApiException(message, statusCode: res.statusCode);
+    final code = (decoded is Map && decoded['code'] is String)
+        ? decoded['code'] as String
+        : null;
+
+    // A freeze that lands mid-session: sign the user out immediately.
+    if (res.statusCode == 403 && code == 'account_suspended') {
+      onSuspended?.call();
+    }
+
+    throw ApiException(message, statusCode: res.statusCode, code: code);
   }
 }

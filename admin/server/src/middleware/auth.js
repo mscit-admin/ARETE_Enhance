@@ -30,7 +30,9 @@ async function requireAuth(req, res, next) {
     const { rows } = await db.query('SELECT status FROM users WHERE id = $1', [payload.sub]);
     if (!rows[0]) return res.status(401).json({ error: 'Account not found' });
     if (rows[0].status === 'suspended') {
-      return res.status(403).json({ error: 'Your account has been suspended.' });
+      return res
+        .status(403)
+        .json({ error: 'Your account has been suspended.', code: 'account_suspended' });
     }
   } catch (e) {
     return res.status(500).json({ error: 'Authorization failed' });
