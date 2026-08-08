@@ -3,6 +3,20 @@ const token = localStorage.getItem('arete_token');
 if (!token) location.replace('index.html');
 
 const user = JSON.parse(localStorage.getItem('arete_user') || '{}');
+let me = null; // { id, name, email, role, permissions, allPermissions }
+const PERMS_FALLBACK = ['members', 'trainers', 'plans', 'billing', 'settings', 'users'];
+
+// Hide nav sections the signed-in admin lacks permission for. A null
+// permissions list (older server / super admin) shows everything.
+function applyNavVisibility() {
+  const need = { members: 'members', trainers: 'trainers', plans: 'plans', settings: 'settings', users: 'users' };
+  const perms = me && me.permissions ? me.permissions : null;
+  document.querySelectorAll('.nav a[data-section]').forEach((a) => {
+    const key = need[a.dataset.section];
+    const allowed = !key || !perms || perms.includes(key);
+    a.style.display = allowed ? '' : 'none';
+  });
+}
 
 async function api(path) {
   const res = await fetch(`/api${path}`, {
@@ -75,6 +89,7 @@ function refreshActive() {
   else if (active === 'members') loadMembers();
   else if (active === 'trainers') loadTrainers();
   else if (active === 'plans') loadPlans();
+  else if (active === 'users') loadUsers();
   else if (active === 'settings') loadSettings();
 }
 
@@ -90,6 +105,7 @@ document.querySelectorAll('.nav a[data-section]').forEach((a) => {
     if (s === 'members') loadMembers();
     if (s === 'trainers') loadTrainers();
     if (s === 'plans') loadPlans();
+    if (s === 'users') loadUsers();
     if (s === 'settings') loadSettings();
   });
 });
@@ -299,7 +315,147 @@ function renderCustomLangs() {
   });
 }
 
+// ---------- Users, roles & permissions ----------
+let editingUserId = null;
+
+function roleBadge(role) {
+  return `<span class="role-badge ${role}">${I18N.t('role.' + role)}</span>`;
+}
+function permsSummary(u) {
+  if (u.role !== 'admin') return `<span class="muted">${I18N.t('users.noConsole')}</span>`;
+  const p = u.permissions;
+  if (p == null) return I18N.t('users.fullAccess');
+  if (!p.length) return '<span class="muted">—</span>';
+  return p.map((k) => I18N.t('perm.' + k)).join(', ');
+}
+
+function buildPermChecks(selected) {
+  const all = (me && me.allPermissions) || PERMS_FALLBACK;
+  const set = new Set(selected || all); // default: everything checked
+  document.getElementById('uPerms').innerHTML = all.map((k) =>
+    `<label><input type="checkbox" value="${k}" ${set.has(k) ? 'checked' : ''}/> ${I18N.t('perm.' + k)}</label>`,
+  ).join('');
+}
+function togglePermsVisibility() {
+  const role = document.getElementById('uRole').value;
+  document.getElementById('uPermsWrap').style.display = role === 'admin' ? '' : 'none';
+}
+
+function showUserForm(u) {
+  editingUserId = u ? u.id : null;
+  document.getElementById('userFormTitle').textContent = I18N.t(u ? 'users.edit' : 'users.add');
+  document.getElementById('uName').value = u ? u.full_name : '';
+  document.getElementById('uEmail').value = u ? u.email : '';
+  document.getElementById('uEmail').disabled = !!u; // email is the identity — immutable on edit
+  document.getElementById('uRole').value = u ? u.role : 'admin';
+  document.getElementById('uStatus').value = u ? u.status || 'active' : 'active';
+  document.getElementById('uPassword').value = '';
+  document.getElementById('uPwLabel').textContent = I18N.t(u ? 'users.newPassword' : 'users.password');
+  document.getElementById('uPwHint').style.display = u ? '' : 'none';
+  buildPermChecks(u && u.role === 'admin' ? u.permissions || undefined : undefined);
+  togglePermsVisibility();
+  const msg = document.getElementById('userMsg');
+  msg.className = 'ok-msg';
+  msg.textContent = '';
+  document.getElementById('userFormCard').style.display = '';
+}
+function hideUserForm() {
+  document.getElementById('userFormCard').style.display = 'none';
+  editingUserId = null;
+}
+
+async function loadUsers() {
+  const q = document.getElementById('uq').value.trim();
+  const role = document.getElementById('uRoleFilter').value;
+  try {
+    const data = await api(`/admin/users?query=${encodeURIComponent(q)}&role=${role}`);
+    const body = data.rows.map((u) => `
+      <tr>
+        <td><div class="who2"><div class="a">${initials(u.full_name)}</div>
+          <div><div>${u.full_name}</div><div class="muted" style="font-size:11px">${u.email}</div></div></div></td>
+        <td>${roleBadge(u.role)}</td>
+        <td>${permsSummary(u)}</td>
+        <td><span class="pill ${u.status === 'active' ? 'active' : 'expired'}">${I18N.t('status.' + (u.status || 'active'))}</span></td>
+        <td class="rt">${fmtDate(u.created_at)}</td>
+        <td class="rt"><div class="row-actions">
+          <button class="btn ghost" data-edit="${u.id}">${I18N.t('users.edit')}</button>
+          <button class="btn ghost" data-del="${u.id}">${I18N.t('users.delete')}</button>
+        </div></td>
+      </tr>`).join('');
+    document.getElementById('usersTable').innerHTML = `
+      <thead><tr><th>${I18N.t('users.name')}</th><th>${I18N.t('users.role')}</th><th>${I18N.t('users.permissions')}</th><th>${I18N.t('users.status')}</th><th class="rt">${I18N.t('users.created')}</th><th class="rt">${I18N.t('users.actions')}</th></tr></thead>
+      <tbody>${body || `<tr><td colspan="6" class="muted">${I18N.t('users.none')}</td></tr>`}</tbody>`;
+
+    const table = document.getElementById('usersTable');
+    table.querySelectorAll('[data-edit]').forEach((b) => {
+      b.addEventListener('click', () => {
+        const u = data.rows.find((x) => x.id === b.dataset.edit);
+        if (u) showUserForm(u);
+      });
+    });
+    table.querySelectorAll('[data-del]').forEach((b) => {
+      b.addEventListener('click', () => deleteUser(b.dataset.del));
+    });
+  } catch (e) {
+    document.getElementById('usersTable').innerHTML = `<tbody><tr><td class="muted">${e.message}</td></tr></tbody>`;
+  }
+}
+
+async function deleteUser(id) {
+  if (!confirm(I18N.t('users.confirmDelete'))) return;
+  try {
+    await apiSend('DELETE', `/admin/users/${id}`);
+    loadUsers();
+  } catch (e) {
+    alert(e.message);
+  }
+}
+
+async function saveUser() {
+  const msg = document.getElementById('userMsg');
+  const fail = (m) => { msg.textContent = m; msg.className = 'ok-msg show err'; };
+  const name = document.getElementById('uName').value.trim();
+  const email = document.getElementById('uEmail').value.trim();
+  const role = document.getElementById('uRole').value;
+  const status = document.getElementById('uStatus').value;
+  const password = document.getElementById('uPassword').value;
+  const permissions = [...document.querySelectorAll('#uPerms input:checked')].map((i) => i.value);
+  try {
+    if (editingUserId) {
+      const body = { name, role, status, permissions };
+      if (password) body.password = password;
+      await apiSend('PATCH', `/admin/users/${editingUserId}`, body);
+    } else {
+      await apiSend('POST', '/admin/users', { name, email, password, role, permissions });
+    }
+    hideUserForm();
+    loadUsers();
+  } catch (e) {
+    fail(e.message);
+  }
+}
+
+document.getElementById('addUser').addEventListener('click', () => showUserForm(null));
+document.getElementById('cancelUser').addEventListener('click', hideUserForm);
+document.getElementById('saveUser').addEventListener('click', saveUser);
+document.getElementById('uRole').addEventListener('change', togglePermsVisibility);
+let uSearchTimer;
+document.getElementById('uq').addEventListener('input', () => {
+  clearTimeout(uSearchTimer);
+  uSearchTimer = setTimeout(loadUsers, 250);
+});
+document.getElementById('uRoleFilter').addEventListener('change', loadUsers);
+
 // ---------- Boot ----------
+async function loadMe() {
+  try {
+    me = await api('/admin/me');
+  } catch (_) {
+    me = null; // older server without /me → treat as full access
+  }
+  applyNavVisibility();
+}
+
 async function syncFromServer() {
   try {
     const s = await api('/admin/settings');
@@ -318,6 +474,7 @@ async function syncFromServer() {
 }
 
 (async function boot() {
+  await loadMe();
   await syncFromServer();
   fillLangSelectors();
   I18N.setLocale(I18N.getLocale()); // apply static translations + dir/lang

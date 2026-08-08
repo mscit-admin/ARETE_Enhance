@@ -16,6 +16,7 @@
         <a data-section="trainers" data-i18n="nav.trainers">Trainers</a>
         <a data-section="plans" data-i18n="nav.plans">Plans</a>
         <div class="grp" data-i18n="nav.system">System</div>
+        <a data-section="users" data-i18n="nav.users">Users</a>
         <a data-section="settings" data-i18n="nav.settings">Settings</a>
         <a class="logout" id="logout" data-i18n="nav.logout">Log out</a>
       </nav>
@@ -74,6 +75,59 @@
       <!-- Plans -->
       <section class="section" id="section-plans">
         <div class="card"><table id="plansTable"></table></div>
+      </section>
+
+      <!-- Users -->
+      <section class="section" id="section-users">
+        <p class="muted section-intro" data-i18n="users.subtitle">Create accounts, assign roles and control what each admin can access.</p>
+        <div class="toolbar">
+          <input id="uq" data-i18n-ph="users.searchPh" placeholder="Search by name or email…" />
+          <select id="uRoleFilter">
+            <option value="" data-i18n="users.allRoles">All roles</option>
+            <option value="admin" data-i18n="role.admin">Admin</option>
+            <option value="trainer" data-i18n="role.trainer">Trainer</option>
+            <option value="member" data-i18n="role.member">Member</option>
+          </select>
+          <button class="btn" id="addUser" data-i18n="users.add">Add user</button>
+        </div>
+
+        <div class="card" id="userFormCard" style="display:none">
+          <h3 id="userFormTitle" data-i18n="users.add">Add user</h3>
+          <div class="form-row">
+            <label><span data-i18n="users.name">Name</span><input id="uName" /></label>
+            <label><span data-i18n="users.email">Email</span><input id="uEmail" type="email" autocomplete="off" /></label>
+          </div>
+          <div class="form-row">
+            <label><span data-i18n="users.role">Role</span>
+              <select id="uRole">
+                <option value="admin" data-i18n="role.admin">Admin</option>
+                <option value="trainer" data-i18n="role.trainer">Trainer</option>
+                <option value="member" data-i18n="role.member">Member</option>
+              </select></label>
+            <label><span data-i18n="users.status">Status</span>
+              <select id="uStatus">
+                <option value="active" data-i18n="status.active">Active</option>
+                <option value="suspended" data-i18n="status.suspended">Suspended</option>
+              </select></label>
+            <label>
+              <span id="uPwLabel" data-i18n="users.password">Password</span>
+              <input id="uPassword" type="password" autocomplete="new-password" />
+              <small id="uPwHint" class="muted" style="display:none" data-i18n="users.newPasswordHint">Leave blank to keep the current password.</small>
+            </label>
+          </div>
+          <div id="uPermsWrap">
+            <label><span data-i18n="users.permissions">Permissions</span></label>
+            <p class="muted" data-i18n="users.permsHint">Permissions apply to admin accounts.</p>
+            <div class="perm-grid" id="uPerms"></div>
+          </div>
+          <div class="form-actions">
+            <button class="btn" id="saveUser" data-i18n="users.save">Save</button>
+            <button class="btn ghost" id="cancelUser" data-i18n="users.cancel">Cancel</button>
+            <span id="userMsg" class="ok-msg"></span>
+          </div>
+        </div>
+
+        <div class="card"><table id="usersTable"></table></div>
       </section>
 
       <!-- Settings -->

@@ -242,3 +242,6 @@ CREATE TABLE IF NOT EXISTS admin_locales (
   strings     jsonb NOT NULL DEFAULT '{}'::jsonb,
   updated_at  timestamptz NOT NULL DEFAULT now()
 );
+
+-- Per-user admin-console permissions (NULL for a full-access admin).
+ALTER TABLE users ADD COLUMN IF NOT EXISTS permissions jsonb;
