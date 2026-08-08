@@ -1,0 +1,488 @@
+/* ARETE admin console — localization + currency.
+ *
+ * Three languages ship in the client (en/ar/fr). Extra languages are added
+ * from Settings by downloading the CSV template, translating the last column
+ * and uploading it; those are stored on the server (admin_locales) and merged
+ * on top of English as a fallback.
+ */
+(function (global) {
+  'use strict';
+
+  // ---- Base dictionaries (the master key list is EN's key order) ----
+  const EN = {
+    'common.language': 'Language',
+    'common.noData': 'No data yet',
+    'common.loading': 'Loading…',
+
+    'login.title': 'Admin console',
+    'login.subtitle': 'Sign in to manage members, trainers and billing.',
+    'login.email': 'Email',
+    'login.password': 'Password',
+    'login.signIn': 'Sign in',
+    'login.signingIn': 'Signing in…',
+    'login.failed': 'Login failed',
+
+    'nav.overview': 'Overview',
+    'nav.members': 'Members',
+    'nav.trainers': 'Trainers',
+    'nav.plans': 'Plans',
+    'nav.system': 'System',
+    'nav.settings': 'Settings',
+    'nav.logout': 'Log out',
+
+    'head.admin': 'Admin',
+
+    'kpi.totalMembers': 'Total members',
+    'kpi.active': 'Active',
+    'kpi.activeDesc': 'with active plan',
+    'kpi.expiring': 'Expiring ≤7d',
+    'kpi.expiringDesc': 'needs follow-up',
+    'kpi.mrr': 'MRR',
+    'kpi.mrrDesc': '{trainers} trainers · {sessions} sessions today',
+    'card.growth': 'Member growth',
+    'card.growthSub': 'new sign-ups · last 12 weeks',
+    'card.byTier': 'By tier',
+
+    'members.searchPh': 'Search members by name or email…',
+    'members.allStatuses': 'All statuses',
+    'members.none': 'No members found',
+    'status.active': 'Active',
+    'status.frozen': 'Frozen',
+    'status.expired': 'Expired',
+
+    'table.member': 'Member',
+    'table.tier': 'Tier',
+    'table.trainer': 'Trainer',
+    'table.status': 'Status',
+    'table.renews': 'Renews',
+    'table.specialty': 'Specialty',
+    'table.clients': 'Clients',
+    'table.rating': 'Rating',
+    'table.reply': 'Reply',
+    'table.plan': 'Plan',
+    'table.split': 'Split',
+    'table.days': 'Days',
+    'table.goal': 'Goal',
+    'table.level': 'Level',
+
+    'pager.prev': 'Prev',
+    'pager.next': 'Next',
+    'pager.info': 'Page {page} of {pages} · {total} total',
+
+    'settings.title': 'Settings',
+    'settings.currency': 'Currency',
+    'settings.currencyDesc': 'Used across all revenue and price figures.',
+    'settings.symbolPosition': 'Symbol position',
+    'settings.posBefore': 'Before amount (e.g. $100)',
+    'settings.posAfter': 'After amount (e.g. 100 $)',
+    'settings.save': 'Save settings',
+    'settings.saved': 'Saved',
+    'settings.saveFailed': 'Could not save',
+    'settings.languages': 'Languages',
+    'settings.languagesDesc':
+      'Arabic, English and French are built in. Add more by downloading the template, translating the last column, then uploading it.',
+    'settings.downloadTemplate': 'Download translation template (CSV)',
+    'settings.addLanguage': 'Add / update a language',
+    'settings.langCode': 'Language code',
+    'settings.langCodePh': 'e.g. es, tr, de',
+    'settings.langName': 'Language name',
+    'settings.langNamePh': 'e.g. Español',
+    'settings.direction': 'Text direction',
+    'settings.ltr': 'Left-to-right',
+    'settings.rtl': 'Right-to-left',
+    'settings.csvFile': 'Translated CSV file',
+    'settings.upload': 'Upload language',
+    'settings.customLangs': 'Custom languages',
+    'settings.noCustom': 'No custom languages yet.',
+    'settings.delete': 'Delete',
+    'settings.uploaded': 'Language added',
+    'settings.needCode': 'Enter a language code and name.',
+    'settings.badCsv': 'Could not read that CSV. Use the downloaded template.',
+    'settings.confirmDelete': 'Delete this language?',
+  };
+
+  const AR = {
+    'common.language': 'اللغة',
+    'common.noData': 'لا توجد بيانات بعد',
+    'common.loading': 'جارٍ التحميل…',
+
+    'login.title': 'لوحة التحكم',
+    'login.subtitle': 'سجّل الدخول لإدارة الأعضاء والمدربين والفوترة.',
+    'login.email': 'البريد الإلكتروني',
+    'login.password': 'كلمة المرور',
+    'login.signIn': 'تسجيل الدخول',
+    'login.signingIn': 'جارٍ تسجيل الدخول…',
+    'login.failed': 'فشل تسجيل الدخول',
+
+    'nav.overview': 'نظرة عامة',
+    'nav.members': 'الأعضاء',
+    'nav.trainers': 'المدربون',
+    'nav.plans': 'الخطط',
+    'nav.system': 'النظام',
+    'nav.settings': 'الإعدادات',
+    'nav.logout': 'تسجيل الخروج',
+
+    'head.admin': 'المشرف',
+
+    'kpi.totalMembers': 'إجمالي الأعضاء',
+    'kpi.active': 'نشط',
+    'kpi.activeDesc': 'باشتراك نشط',
+    'kpi.expiring': 'ينتهي خلال ٧ أيام',
+    'kpi.expiringDesc': 'يحتاج متابعة',
+    'kpi.mrr': 'الإيراد الشهري',
+    'kpi.mrrDesc': '{trainers} مدرب · {sessions} جلسة اليوم',
+    'card.growth': 'نمو الأعضاء',
+    'card.growthSub': 'اشتراكات جديدة · آخر ١٢ أسبوعًا',
+    'card.byTier': 'حسب الفئة',
+
+    'members.searchPh': 'ابحث عن الأعضاء بالاسم أو البريد…',
+    'members.allStatuses': 'كل الحالات',
+    'members.none': 'لا يوجد أعضاء',
+    'status.active': 'نشط',
+    'status.frozen': 'مجمّد',
+    'status.expired': 'منتهٍ',
+
+    'table.member': 'العضو',
+    'table.tier': 'الفئة',
+    'table.trainer': 'المدرب',
+    'table.status': 'الحالة',
+    'table.renews': 'التجديد',
+    'table.specialty': 'التخصص',
+    'table.clients': 'العملاء',
+    'table.rating': 'التقييم',
+    'table.reply': 'الرد',
+    'table.plan': 'الخطة',
+    'table.split': 'التقسيم',
+    'table.days': 'الأيام',
+    'table.goal': 'الهدف',
+    'table.level': 'المستوى',
+
+    'pager.prev': 'السابق',
+    'pager.next': 'التالي',
+    'pager.info': 'صفحة {page} من {pages} · {total} إجمالًا',
+
+    'settings.title': 'الإعدادات',
+    'settings.currency': 'العملة',
+    'settings.currencyDesc': 'تُستخدم في جميع أرقام الإيرادات والأسعار.',
+    'settings.symbolPosition': 'موضع الرمز',
+    'settings.posBefore': 'قبل المبلغ (مثال: $100)',
+    'settings.posAfter': 'بعد المبلغ (مثال: 100 $)',
+    'settings.save': 'حفظ الإعدادات',
+    'settings.saved': 'تم الحفظ',
+    'settings.saveFailed': 'تعذّر الحفظ',
+    'settings.languages': 'اللغات',
+    'settings.languagesDesc':
+      'العربية والإنجليزية والفرنسية مدمجة. أضِف غيرها بتنزيل القالب وترجمة العمود الأخير ثم رفعه.',
+    'settings.downloadTemplate': 'تنزيل قالب الترجمة (CSV)',
+    'settings.addLanguage': 'إضافة / تحديث لغة',
+    'settings.langCode': 'رمز اللغة',
+    'settings.langCodePh': 'مثال: es، tr، de',
+    'settings.langName': 'اسم اللغة',
+    'settings.langNamePh': 'مثال: Español',
+    'settings.direction': 'اتجاه النص',
+    'settings.ltr': 'من اليسار لليمين',
+    'settings.rtl': 'من اليمين لليسار',
+    'settings.csvFile': 'ملف CSV المترجم',
+    'settings.upload': 'رفع اللغة',
+    'settings.customLangs': 'اللغات المُضافة',
+    'settings.noCustom': 'لا توجد لغات مُضافة بعد.',
+    'settings.delete': 'حذف',
+    'settings.uploaded': 'تمت إضافة اللغة',
+    'settings.needCode': 'أدخل رمز اللغة واسمها.',
+    'settings.badCsv': 'تعذّرت قراءة ملف CSV. استخدم القالب المنزَّل.',
+    'settings.confirmDelete': 'حذف هذه اللغة؟',
+  };
+
+  const FR = {
+    'common.language': 'Langue',
+    'common.noData': 'Aucune donnée',
+    'common.loading': 'Chargement…',
+
+    'login.title': "Console d'administration",
+    'login.subtitle': 'Connectez-vous pour gérer membres, coachs et facturation.',
+    'login.email': 'E-mail',
+    'login.password': 'Mot de passe',
+    'login.signIn': 'Se connecter',
+    'login.signingIn': 'Connexion…',
+    'login.failed': 'Échec de connexion',
+
+    'nav.overview': "Vue d'ensemble",
+    'nav.members': 'Membres',
+    'nav.trainers': 'Coachs',
+    'nav.plans': 'Programmes',
+    'nav.system': 'Système',
+    'nav.settings': 'Réglages',
+    'nav.logout': 'Se déconnecter',
+
+    'head.admin': 'Admin',
+
+    'kpi.totalMembers': 'Membres au total',
+    'kpi.active': 'Actifs',
+    'kpi.activeDesc': 'avec un abonnement actif',
+    'kpi.expiring': 'Expire ≤7 j',
+    'kpi.expiringDesc': 'à relancer',
+    'kpi.mrr': 'MRR',
+    'kpi.mrrDesc': '{trainers} coachs · {sessions} séances aujourd’hui',
+    'card.growth': 'Croissance des membres',
+    'card.growthSub': 'nouvelles inscriptions · 12 dernières semaines',
+    'card.byTier': 'Par formule',
+
+    'members.searchPh': 'Rechercher par nom ou e-mail…',
+    'members.allStatuses': 'Tous les statuts',
+    'members.none': 'Aucun membre trouvé',
+    'status.active': 'Actif',
+    'status.frozen': 'Gelé',
+    'status.expired': 'Expiré',
+
+    'table.member': 'Membre',
+    'table.tier': 'Formule',
+    'table.trainer': 'Coach',
+    'table.status': 'Statut',
+    'table.renews': 'Renouvelle',
+    'table.specialty': 'Spécialité',
+    'table.clients': 'Clients',
+    'table.rating': 'Note',
+    'table.reply': 'Réponse',
+    'table.plan': 'Programme',
+    'table.split': 'Répartition',
+    'table.days': 'Jours',
+    'table.goal': 'Objectif',
+    'table.level': 'Niveau',
+
+    'pager.prev': 'Préc.',
+    'pager.next': 'Suiv.',
+    'pager.info': 'Page {page} sur {pages} · {total} au total',
+
+    'settings.title': 'Réglages',
+    'settings.currency': 'Devise',
+    'settings.currencyDesc': 'Utilisée pour tous les montants de revenus et de prix.',
+    'settings.symbolPosition': 'Position du symbole',
+    'settings.posBefore': 'Avant le montant (ex. 100 $)',
+    'settings.posAfter': 'Après le montant (ex. 100 $)',
+    'settings.save': 'Enregistrer',
+    'settings.saved': 'Enregistré',
+    'settings.saveFailed': "Échec de l'enregistrement",
+    'settings.languages': 'Langues',
+    'settings.languagesDesc':
+      "L'arabe, l'anglais et le français sont intégrés. Ajoutez-en d'autres en téléchargeant le modèle, en traduisant la dernière colonne puis en l'important.",
+    'settings.downloadTemplate': 'Télécharger le modèle de traduction (CSV)',
+    'settings.addLanguage': 'Ajouter / mettre à jour une langue',
+    'settings.langCode': 'Code de langue',
+    'settings.langCodePh': 'ex. es, tr, de',
+    'settings.langName': 'Nom de la langue',
+    'settings.langNamePh': 'ex. Español',
+    'settings.direction': 'Sens du texte',
+    'settings.ltr': 'Gauche à droite',
+    'settings.rtl': 'Droite à gauche',
+    'settings.csvFile': 'Fichier CSV traduit',
+    'settings.upload': 'Importer la langue',
+    'settings.customLangs': 'Langues personnalisées',
+    'settings.noCustom': 'Aucune langue personnalisée.',
+    'settings.delete': 'Supprimer',
+    'settings.uploaded': 'Langue ajoutée',
+    'settings.needCode': 'Saisissez un code et un nom de langue.',
+    'settings.badCsv': 'Impossible de lire ce CSV. Utilisez le modèle téléchargé.',
+    'settings.confirmDelete': 'Supprimer cette langue ?',
+  };
+
+  const BASE = { en: EN, ar: AR, fr: FR };
+  const BASE_META = [
+    { code: 'en', name: 'English', dir: 'ltr' },
+    { code: 'ar', name: 'العربية', dir: 'rtl' },
+    { code: 'fr', name: 'Français', dir: 'ltr' },
+  ];
+
+  // Curated currency list (code → symbol). Admins can pick position too.
+  const CURRENCIES = [
+    { code: 'USD', symbol: '$' },
+    { code: 'EUR', symbol: '€' },
+    { code: 'GBP', symbol: '£' },
+    { code: 'SAR', symbol: 'ر.س' },
+    { code: 'AED', symbol: 'د.إ' },
+    { code: 'QAR', symbol: 'ر.ق' },
+    { code: 'KWD', symbol: 'د.ك' },
+    { code: 'BHD', symbol: '.د.ب' },
+    { code: 'OMR', symbol: 'ر.ع' },
+    { code: 'EGP', symbol: 'ج.م' },
+    { code: 'LYD', symbol: 'ل.د' },
+    { code: 'TND', symbol: 'د.ت' },
+    { code: 'DZD', symbol: 'د.ج' },
+    { code: 'MAD', symbol: 'د.م' },
+    { code: 'JOD', symbol: 'د.ا' },
+    { code: 'TRY', symbol: '₺' },
+    { code: 'INR', symbol: '₹' },
+  ];
+
+  const LS_LOCALE = 'arete_locale';
+  const LS_CUSTOM = 'arete_custom_locales'; // {code:{name,dir,strings}}
+  const LS_CURRENCY = 'arete_currency';
+
+  let current = localStorage.getItem(LS_LOCALE) || 'en';
+  let custom = safeParse(localStorage.getItem(LS_CUSTOM)) || {};
+  let currency =
+    safeParse(localStorage.getItem(LS_CURRENCY)) ||
+    { code: 'USD', symbol: '$', position: 'before' };
+
+  function safeParse(s) {
+    try { return s ? JSON.parse(s) : null; } catch (_) { return null; }
+  }
+
+  function dict(code) {
+    if (BASE[code]) return BASE[code];
+    if (custom[code]) return custom[code].strings || {};
+    return EN;
+  }
+
+  // Translate a key with {var} interpolation; falls back to EN then the key.
+  function t(key, vars) {
+    const d = dict(current);
+    let s = d[key];
+    if (s == null) s = EN[key];
+    if (s == null) s = key;
+    if (vars) {
+      s = s.replace(/\{(\w+)\}/g, (m, k) => (vars[k] != null ? vars[k] : m));
+    }
+    return s;
+  }
+
+  function dirOf(code) {
+    if (code === 'ar') return 'rtl';
+    const m = BASE_META.find((x) => x.code === code);
+    if (m) return m.dir;
+    if (custom[code]) return custom[code].dir || 'ltr';
+    return 'ltr';
+  }
+
+  function getLocale() { return current; }
+
+  function setLocale(code) {
+    current = code;
+    localStorage.setItem(LS_LOCALE, code);
+    document.documentElement.lang = code;
+    document.documentElement.dir = dirOf(code);
+    apply(document);
+  }
+
+  function available() {
+    const list = BASE_META.slice();
+    Object.keys(custom).forEach((code) => {
+      list.push({ code, name: custom[code].name || code, dir: custom[code].dir || 'ltr' });
+    });
+    return list;
+  }
+
+  // Apply translations to any element carrying data-i18n / data-i18n-ph.
+  function apply(root) {
+    (root || document).querySelectorAll('[data-i18n]').forEach((el) => {
+      el.textContent = t(el.getAttribute('data-i18n'));
+    });
+    (root || document).querySelectorAll('[data-i18n-ph]').forEach((el) => {
+      el.setAttribute('placeholder', t(el.getAttribute('data-i18n-ph')));
+    });
+    (root || document).querySelectorAll('[data-i18n-title]').forEach((el) => {
+      el.setAttribute('title', t(el.getAttribute('data-i18n-title')));
+    });
+  }
+
+  // ---- Currency ----
+  function setCurrency(c) {
+    currency = {
+      code: c.code || 'USD',
+      symbol: c.symbol || '$',
+      position: c.position === 'after' ? 'after' : 'before',
+    };
+    localStorage.setItem(LS_CURRENCY, JSON.stringify(currency));
+  }
+  function getCurrency() { return currency; }
+  function money(n) {
+    const v = Number(n || 0).toLocaleString(undefined, { maximumFractionDigits: 2 });
+    return currency.position === 'after' ? `${v} ${currency.symbol}` : `${currency.symbol}${v}`;
+  }
+
+  // ---- Custom locales (server-synced) ----
+  function setCustomLocales(map) {
+    custom = map || {};
+    localStorage.setItem(LS_CUSTOM, JSON.stringify(custom));
+  }
+  function upsertCustom(code, entry) {
+    custom[code] = entry;
+    localStorage.setItem(LS_CUSTOM, JSON.stringify(custom));
+  }
+  function removeCustom(code) {
+    delete custom[code];
+    localStorage.setItem(LS_CUSTOM, JSON.stringify(custom));
+  }
+
+  // ---- CSV helpers (RFC-4180-ish, enough for translation tables) ----
+  function keys() { return Object.keys(EN); }
+
+  // Build the template: key, English, <locale or blank> columns.
+  function buildTemplateCSV() {
+    const rows = [['key', 'english', 'translation']];
+    keys().forEach((k) => rows.push([k, EN[k], '']));
+    return rows.map((r) => r.map(csvCell).join(',')).join('\r\n');
+  }
+
+  function csvCell(s) {
+    s = s == null ? '' : String(s);
+    if (/[",\r\n]/.test(s)) return '"' + s.replace(/"/g, '""') + '"';
+    return s;
+  }
+
+  // Parse CSV text → array of rows (arrays of cells).
+  function parseCSV(text) {
+    const rows = [];
+    let row = [], cell = '', i = 0, inQ = false;
+    text = text.replace(/^﻿/, ''); // strip BOM
+    while (i < text.length) {
+      const c = text[i];
+      if (inQ) {
+        if (c === '"') {
+          if (text[i + 1] === '"') { cell += '"'; i += 2; continue; }
+          inQ = false; i++; continue;
+        }
+        cell += c; i++; continue;
+      }
+      if (c === '"') { inQ = true; i++; continue; }
+      if (c === ',') { row.push(cell); cell = ''; i++; continue; }
+      if (c === '\r') { i++; continue; }
+      if (c === '\n') { row.push(cell); rows.push(row); row = []; cell = ''; i++; continue; }
+      cell += c; i++;
+    }
+    if (cell.length || row.length) { row.push(cell); rows.push(row); }
+    return rows;
+  }
+
+  // Turn a translated template into a {key: value} map. Uses the 3rd column
+  // (translation); ignores the header and rows whose key isn't recognised.
+  function stringsFromCSV(text) {
+    const rows = parseCSV(text);
+    if (!rows.length) return null;
+    const known = new Set(keys());
+    const out = {};
+    let used = 0;
+    rows.forEach((r, idx) => {
+      if (idx === 0 && String(r[0]).toLowerCase() === 'key') return; // header
+      const k = (r[0] || '').trim();
+      const v = (r[2] != null ? r[2] : '').trim();
+      if (k && known.has(k) && v) { out[k] = v; used++; }
+    });
+    return used ? out : null;
+  }
+
+  function download(filename, text) {
+    const blob = new Blob([text], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = filename;
+    document.body.appendChild(a); a.click();
+    document.body.removeChild(a); URL.revokeObjectURL(url);
+  }
+
+  global.I18N = {
+    t, apply, setLocale, getLocale, available, dirOf,
+    setCurrency, getCurrency, money,
+    setCustomLocales, upsertCustom, removeCustom,
+    CURRENCIES, keys, buildTemplateCSV, stringsFromCSV, download,
+  };
+})(window);

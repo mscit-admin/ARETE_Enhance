@@ -224,3 +224,21 @@ CREATE TABLE IF NOT EXISTS audit_log (
   entity_id  uuid,
   at         timestamptz NOT NULL DEFAULT now()
 );
+
+-- ---------- Admin console settings & localization ----------
+-- Simple key/value store for global admin settings (e.g. currency).
+CREATE TABLE IF NOT EXISTS app_settings (
+  key         text PRIMARY KEY,
+  value       text,
+  updated_at  timestamptz NOT NULL DEFAULT now()
+);
+
+-- Custom admin-console languages added via the CSV importer. The three base
+-- languages (en/ar/fr) ship in the web client; only extra languages live here.
+CREATE TABLE IF NOT EXISTS admin_locales (
+  code        text PRIMARY KEY,                 -- e.g. 'es', 'tr'
+  name        text NOT NULL,                    -- display name, e.g. 'Español'
+  dir         text NOT NULL DEFAULT 'ltr',      -- 'ltr' | 'rtl'
+  strings     jsonb NOT NULL DEFAULT '{}'::jsonb,
+  updated_at  timestamptz NOT NULL DEFAULT now()
+);

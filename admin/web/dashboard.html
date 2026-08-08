@@ -11,19 +11,23 @@
     <aside class="side">
       <div class="brand"><div class="mk">A</div><b>ARETE</b></div>
       <nav class="nav">
-        <a data-section="overview" class="active">Overview</a>
-        <a data-section="members">Members</a>
-        <a data-section="trainers">Trainers</a>
-        <a data-section="plans">Plans</a>
-        <div class="grp">System</div>
-        <a class="logout" id="logout">Log out</a>
+        <a data-section="overview" class="active" data-i18n="nav.overview">Overview</a>
+        <a data-section="members" data-i18n="nav.members">Members</a>
+        <a data-section="trainers" data-i18n="nav.trainers">Trainers</a>
+        <a data-section="plans" data-i18n="nav.plans">Plans</a>
+        <div class="grp" data-i18n="nav.system">System</div>
+        <a data-section="settings" data-i18n="nav.settings">Settings</a>
+        <a class="logout" id="logout" data-i18n="nav.logout">Log out</a>
       </nav>
     </aside>
 
     <main class="main">
       <div class="head">
-        <h2 id="pageTitle">Overview</h2>
-        <div class="who"><span id="whoName">Admin</span><div class="av" id="whoAv">A</div></div>
+        <h2 id="pageTitle" data-i18n="nav.overview">Overview</h2>
+        <div class="head-right">
+          <select id="lang" class="lang" aria-label="Language"></select>
+          <div class="who"><span id="whoName">Admin</span><div class="av" id="whoAv">A</div></div>
+        </div>
       </div>
 
       <!-- Overview -->
@@ -31,11 +35,11 @@
         <div class="kpis" id="kpis"></div>
         <div class="panels">
           <div class="card">
-            <h3>Member growth <span>new sign-ups · last 12 weeks</span></h3>
+            <h3><span class="h3-title" data-i18n="card.growth">Member growth</span> <span data-i18n="card.growthSub">new sign-ups · last 12 weeks</span></h3>
             <div class="bars" id="growth"></div>
           </div>
           <div class="card">
-            <h3>By tier</h3>
+            <h3 data-i18n="card.byTier">By tier</h3>
             <table id="tiers"></table>
           </div>
         </div>
@@ -44,20 +48,20 @@
       <!-- Members -->
       <section class="section" id="section-members">
         <div class="toolbar">
-          <input id="q" placeholder="Search members by name or email…" />
+          <input id="q" data-i18n-ph="members.searchPh" placeholder="Search members by name or email…" />
           <select id="statusFilter">
-            <option value="">All statuses</option>
-            <option value="active">Active</option>
-            <option value="frozen">Frozen</option>
-            <option value="expired">Expired</option>
+            <option value="" data-i18n="members.allStatuses">All statuses</option>
+            <option value="active" data-i18n="status.active">Active</option>
+            <option value="frozen" data-i18n="status.frozen">Frozen</option>
+            <option value="expired" data-i18n="status.expired">Expired</option>
           </select>
         </div>
         <div class="card">
           <table id="membersTable"></table>
           <div class="pager">
-            <button id="prev">Prev</button>
+            <button id="prev" data-i18n="pager.prev">Prev</button>
             <span id="pageInfo" class="muted"></span>
-            <button id="next">Next</button>
+            <button id="next" data-i18n="pager.next">Next</button>
           </div>
         </div>
       </section>
@@ -71,9 +75,65 @@
       <section class="section" id="section-plans">
         <div class="card"><table id="plansTable"></table></div>
       </section>
+
+      <!-- Settings -->
+      <section class="section" id="section-settings">
+        <div class="card">
+          <h3 data-i18n="settings.currency">Currency</h3>
+          <p class="muted" data-i18n="settings.currencyDesc">Used across all revenue and price figures.</p>
+          <div class="form-row">
+            <label>
+              <span data-i18n="settings.currency">Currency</span>
+              <select id="currencySel"></select>
+            </label>
+            <label>
+              <span data-i18n="settings.symbolPosition">Symbol position</span>
+              <select id="currencyPos">
+                <option value="before" data-i18n="settings.posBefore">Before amount</option>
+                <option value="after" data-i18n="settings.posAfter">After amount</option>
+              </select>
+            </label>
+          </div>
+          <div class="form-actions">
+            <button class="btn" id="saveCurrency" data-i18n="settings.save">Save settings</button>
+            <span id="currencyMsg" class="ok-msg"></span>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3 data-i18n="settings.languages">Languages</h3>
+          <p class="muted" data-i18n="settings.languagesDesc">Arabic, English and French are built in. Add more by downloading the template, translating the last column, then uploading it.</p>
+          <button class="btn ghost" id="dlTemplate" data-i18n="settings.downloadTemplate">Download translation template (CSV)</button>
+
+          <h4 class="sub-h" data-i18n="settings.addLanguage">Add / update a language</h4>
+          <div class="form-row">
+            <label><span data-i18n="settings.langCode">Language code</span>
+              <input id="langCode" data-i18n-ph="settings.langCodePh" placeholder="e.g. es" /></label>
+            <label><span data-i18n="settings.langName">Language name</span>
+              <input id="langName" data-i18n-ph="settings.langNamePh" placeholder="e.g. Español" /></label>
+            <label><span data-i18n="settings.direction">Text direction</span>
+              <select id="langDir">
+                <option value="ltr" data-i18n="settings.ltr">Left-to-right</option>
+                <option value="rtl" data-i18n="settings.rtl">Right-to-left</option>
+              </select></label>
+          </div>
+          <div class="form-row">
+            <label><span data-i18n="settings.csvFile">Translated CSV file</span>
+              <input id="langCsv" type="file" accept=".csv,text/csv" /></label>
+          </div>
+          <div class="form-actions">
+            <button class="btn" id="uploadLang" data-i18n="settings.upload">Upload language</button>
+            <span id="langMsg" class="ok-msg"></span>
+          </div>
+
+          <h4 class="sub-h" data-i18n="settings.customLangs">Custom languages</h4>
+          <div id="customLangs"></div>
+        </div>
+      </section>
     </main>
   </div>
 
+  <script src="i18n.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

@@ -9,26 +9,41 @@
 <body>
   <div class="login-wrap">
     <form class="login-card" id="loginForm">
-      <div class="brand"><div class="mk">A</div><b>ARETE</b></div>
-      <h1>Admin console</h1>
-      <p class="sub">Sign in to manage members, trainers and billing.</p>
+      <div class="login-top">
+        <div class="brand"><div class="mk">A</div><b>ARETE</b></div>
+        <select id="lang" class="lang" aria-label="Language"></select>
+      </div>
+      <h1 data-i18n="login.title">Admin console</h1>
+      <p class="sub" data-i18n="login.subtitle">Sign in to manage members, trainers and billing.</p>
 
-      <label for="email">Email</label>
+      <label for="email" data-i18n="login.email">Email</label>
       <input id="email" type="email" autocomplete="username" value="admin@arete.fit" required />
 
-      <label for="password">Password</label>
-      <input id="password" type="password" autocomplete="current-password" value="admin123" required />
+      <label for="password" data-i18n="login.password">Password</label>
+      <input id="password" type="password" autocomplete="current-password" required />
 
       <div class="error" id="err"></div>
-      <button class="btn" id="submit" type="submit">Sign in</button>
-      <p class="hint">Seed default: admin@arete.fit / admin123</p>
+      <button class="btn" id="submit" type="submit" data-i18n="login.signIn">Sign in</button>
     </form>
   </div>
 
+  <script src="i18n.js"></script>
   <script>
     const form = document.getElementById('loginForm');
     const err = document.getElementById('err');
     const btn = document.getElementById('submit');
+    const langSel = document.getElementById('lang');
+
+    // ---- Language switcher (base langs + any cached custom ones) ----
+    function fillLangs() {
+      langSel.innerHTML = I18N.available()
+        .map((l) => `<option value="${l.code}">${l.name}</option>`)
+        .join('');
+      langSel.value = I18N.getLocale();
+    }
+    fillLangs();
+    I18N.setLocale(I18N.getLocale()); // apply + set dir/lang
+    langSel.addEventListener('change', () => I18N.setLocale(langSel.value));
 
     // Already signed in? Go to the dashboard.
     if (localStorage.getItem('arete_token')) {
@@ -39,7 +54,7 @@
       e.preventDefault();
       err.classList.remove('show');
       btn.disabled = true;
-      btn.textContent = 'Signing in…';
+      btn.textContent = I18N.t('login.signingIn');
       try {
         const res = await fetch('/api/auth/login', {
           method: 'POST',
@@ -50,7 +65,7 @@
           }),
         });
         const data = await res.json();
-        if (!res.ok) throw new Error(data.error || 'Login failed');
+        if (!res.ok) throw new Error(data.error || I18N.t('login.failed'));
         localStorage.setItem('arete_token', data.token);
         localStorage.setItem('arete_user', JSON.stringify(data.user));
         location.replace('dashboard.html');
@@ -58,7 +73,7 @@
         err.textContent = ex.message;
         err.classList.add('show');
         btn.disabled = false;
-        btn.textContent = 'Sign in';
+        btn.textContent = I18N.t('login.signIn');
       }
     });
   </script>

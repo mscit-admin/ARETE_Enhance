@@ -206,6 +206,131 @@ router.get('/plans', async (_req, res) => {
   }
 });
 
+// ---------- Settings (currency) ----------
+
+// GET /api/admin/settings — currency + the list of custom languages.
+router.get('/settings', async (_req, res) => {
+  try {
+    const [s, locales] = await Promise.all([
+      db.query(`SELECT value FROM app_settings WHERE key = 'currency'`),
+      db.query(`SELECT code, name, dir FROM admin_locales ORDER BY name`),
+    ]);
+    let currency = { code: 'USD', symbol: '$', position: 'before' };
+    if (s.rows[0]?.value) {
+      try {
+        currency = { ...currency, ...JSON.parse(s.rows[0].value) };
+      } catch (_) {}
+    }
+    res.json({ currency, locales: locales.rows });
+  } catch (e) {
+    res.status(500).json({ error: 'Failed to load settings' });
+  }
+});
+
+// PUT /api/admin/settings — save the currency.
+router.put('/settings', async (req, res) => {
+  const { currency } = req.body || {};
+  if (!currency || typeof currency !== 'object') {
+    return res.status(400).json({ error: 'currency object is required' });
+  }
+  const clean = {
+    code: String(currency.code || 'USD').slice(0, 8).toUpperCase(),
+    symbol: String(currency.symbol || '$').slice(0, 6),
+    position: currency.position === 'after' ? 'after' : 'before',
+  };
+  try {
+    await db.query(
+      `INSERT INTO app_settings (key, value, updated_at)
+         VALUES ('currency', $1, now())
+       ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = now()`,
+      [JSON.stringify(clean)],
+    );
+    await db.query(
+      `INSERT INTO audit_log (admin_id, action, entity, entity_id)
+       VALUES ($1, 'update_settings', 'app_settings', NULL)`,
+      [req.user.sub],
+    );
+    res.json({ ok: true, currency: clean });
+  } catch (e) {
+    res.status(500).json({ error: 'Failed to save settings' });
+  }
+});
+
+// ---------- Custom languages (added via CSV import) ----------
+
+const CODE_RE = /^[a-z]{2,8}(-[a-z0-9]{2,8})?$/i;
+
+// GET /api/admin/locales — list custom language codes/names.
+router.get('/locales', async (_req, res) => {
+  try {
+    const { rows } = await db.query(
+      `SELECT code, name, dir FROM admin_locales ORDER BY name`,
+    );
+    res.json({ rows });
+  } catch (e) {
+    res.status(500).json({ error: 'Failed to load languages' });
+  }
+});
+
+// GET /api/admin/locales/:code — full string map for one custom language.
+router.get('/locales/:code', async (req, res) => {
+  try {
+    const { rows } = await db.query(
+      `SELECT code, name, dir, strings FROM admin_locales WHERE code = $1`,
+      [String(req.params.code).toLowerCase()],
+    );
+    if (!rows[0]) return res.status(404).json({ error: 'Language not found' });
+    res.json(rows[0]);
+  } catch (e) {
+    res.status(500).json({ error: 'Failed to load language' });
+  }
+});
+
+// POST /api/admin/locales — create or replace a custom language.
+// Body: { code, name, dir, strings:{key:value} } (parsed from the CSV client-side).
+router.post('/locales', async (req, res) => {
+  const { code, name, dir, strings } = req.body || {};
+  const c = String(code || '').trim().toLowerCase();
+  if (!CODE_RE.test(c)) {
+    return res.status(400).json({ error: 'Invalid language code (use e.g. es, tr, de).' });
+  }
+  if (['en', 'ar', 'fr'].includes(c)) {
+    return res.status(400).json({ error: 'en, ar and fr are built in and cannot be overridden.' });
+  }
+  if (!name || typeof name !== 'string') {
+    return res.status(400).json({ error: 'A language name is required.' });
+  }
+  if (!strings || typeof strings !== 'object' || Array.isArray(strings)) {
+    return res.status(400).json({ error: 'strings must be an object of key → translation.' });
+  }
+  const d = dir === 'rtl' ? 'rtl' : 'ltr';
+  try {
+    await db.query(
+      `INSERT INTO admin_locales (code, name, dir, strings, updated_at)
+         VALUES ($1, $2, $3, $4::jsonb, now())
+       ON CONFLICT (code) DO UPDATE
+         SET name = EXCLUDED.name, dir = EXCLUDED.dir,
+             strings = EXCLUDED.strings, updated_at = now()`,
+      [c, name.trim().slice(0, 60), d, JSON.stringify(strings)],
+    );
+    res.json({ ok: true, code: c, name: name.trim(), dir: d });
+  } catch (e) {
+    res.status(500).json({ error: 'Failed to save language' });
+  }
+});
+
+// DELETE /api/admin/locales/:code — remove a custom language.
+router.delete('/locales/:code', async (req, res) => {
+  try {
+    await db.query(`DELETE FROM admin_locales WHERE code = $1`, [
+      String(req.params.code).toLowerCase(),
+    ]);
+    res.json({ ok: true });
+  } catch (e) {
+    res.status(500).json({ error: 'Failed to delete language' });
+  }
+});
+
 // GET /api/admin/stats/growth — new members per week (last 12 weeks).
 router.get('/stats/growth', async (_req, res) => {
   try {
