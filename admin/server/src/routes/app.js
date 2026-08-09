@@ -616,14 +616,37 @@ router.get('/my-plans', requireAuth, async (req, res) => {
   }
 });
 
-// GET /api/app/exercises?category=&muscle=&level=&query= — the shared library.
+// Shape an exercises row for the app.
+function shapeExercise(e) {
+  return {
+    id: e.id,
+    name: e.name,
+    nameAr: e.name_ar || '',
+    muscleGroup: e.muscle_group || '',
+    category: e.category || '',
+    level: e.level || '',
+    equipment: e.equipment || '',
+    targetMuscles: e.target_muscles || [],
+    videoUrl: e.video_url || '',
+    imageUrl: e.image_url || '',
+    createdByMe: e.created_by_me === true,
+  };
+}
+
+// GET /api/app/exercises?category=&muscle=&level=&query= — catalogue the caller
+// can use: global + their own custom + (for a trainee) their coach's shared.
 router.get('/exercises', requireAuth, async (req, res) => {
+  const uid = req.user.sub;
   const category = String(req.query.category || '').trim();
   const muscle = String(req.query.muscle || '').trim();
   const level = String(req.query.level || '').trim();
   const query = String(req.query.query || '').trim();
-  const where = ["(visibility = 'global' OR created_by IS NULL)"];
-  const params = [];
+  const params = [uid];
+  const where = [
+    `(visibility = 'global' OR created_by IS NULL OR created_by = $1
+       OR (visibility = 'coach_shared'
+           AND created_by = (SELECT trainer_id FROM members WHERE user_id = $1)))`,
+  ];
   if (category) { params.push(category); where.push(`category = $${params.length}`); }
   if (muscle) { params.push(muscle); where.push(`muscle_group = $${params.length}`); }
   if (level) { params.push(level); where.push(`level = $${params.length}`); }
@@ -634,27 +657,67 @@ router.get('/exercises', requireAuth, async (req, res) => {
   try {
     const { rows } = await db.query(
       `SELECT id, name, name_ar, muscle_group, category, level, equipment,
-              target_muscles, video_url, image_url
+              target_muscles, video_url, image_url, (created_by = $1) AS created_by_me
          FROM exercises WHERE ${where.join(' AND ')}
         ORDER BY category, muscle_group, name LIMIT 300`,
       params,
     );
-    res.json({
-      rows: rows.map((e) => ({
-        id: e.id,
-        name: e.name,
-        nameAr: e.name_ar || '',
-        muscleGroup: e.muscle_group || '',
-        category: e.category || '',
-        level: e.level || '',
-        equipment: e.equipment || '',
-        targetMuscles: e.target_muscles || [],
-        videoUrl: e.video_url || '',
-        imageUrl: e.image_url || '',
-      })),
-    });
+    res.json({ rows: rows.map(shapeExercise) });
   } catch (e) {
     res.status(500).json({ error: 'Failed to load exercises' });
+  }
+});
+
+// POST /api/app/exercises — create a custom exercise.
+// { name, nameAr?, muscleGroup?, category?, level?, equipment?, visibility? }
+// A coach may set visibility 'coach_shared' (offered to their trainees);
+// everyone else's custom exercises are 'private'.
+router.post('/exercises', requireAuth, async (req, res) => {
+  const uid = req.user.sub;
+  const b = req.body || {};
+  const name = String(b.name || '').trim();
+  if (!name) return res.status(400).json({ error: 'An exercise name is required' });
+  try {
+    const coach = await isTrainer(uid);
+    const visibility =
+        coach && b.visibility === 'coach_shared' ? 'coach_shared' : 'private';
+    const category = ['gym', 'calisthenics'].includes(b.category) ? b.category : null;
+    const { rows } = await db.query(
+      `INSERT INTO exercises
+         (name, name_ar, muscle_group, category, level, equipment,
+          target_muscles, created_by, visibility)
+       VALUES ($1, $2, $3, $4, $5, $6, '{}', $7, $8)
+       RETURNING id, name, name_ar, muscle_group, category, level, equipment,
+                 target_muscles, video_url, image_url, true AS created_by_me`,
+      [
+        name,
+        String(b.nameAr || '').trim() || null,
+        String(b.muscleGroup || '').trim() || null,
+        category,
+        String(b.level || '').trim() || null,
+        String(b.equipment || '').trim() || null,
+        uid,
+        visibility,
+      ],
+    );
+    return res.status(201).json({ exercise: shapeExercise(rows[0]) });
+  } catch (e) {
+    return res.status(500).json({ error: 'Failed to create exercise' });
+  }
+});
+
+// DELETE /api/app/exercises/:id — remove one of your own custom exercises.
+router.delete('/exercises/:id', requireAuth, async (req, res) => {
+  const uid = req.user.sub;
+  try {
+    const { rowCount } = await db.query(
+      `DELETE FROM exercises WHERE id = $1 AND created_by = $2 AND visibility <> 'global'`,
+      [req.params.id, uid],
+    );
+    if (!rowCount) return res.status(404).json({ error: 'Not found or not yours' });
+    return res.json({ ok: true });
+  } catch (e) {
+    return res.status(500).json({ error: 'Failed to delete exercise' });
   }
 });
 

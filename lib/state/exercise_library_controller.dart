@@ -40,4 +40,49 @@ class ExerciseLibraryController extends ChangeNotifier {
       notifyListeners();
     }
   }
+
+  /// Create a custom exercise. Returns the created exercise, or null on error
+  /// (the message is exposed via [error]).
+  Future<LibraryExercise?> create({
+    required String name,
+    String nameAr = '',
+    String muscleGroup = '',
+    String category = '',
+    String level = '',
+    String equipment = '',
+    bool shareWithTrainees = false,
+  }) async {
+    try {
+      final j = await _client.post('/api/app/exercises', {
+        'name': name,
+        if (nameAr.isNotEmpty) 'nameAr': nameAr,
+        if (muscleGroup.isNotEmpty) 'muscleGroup': muscleGroup,
+        if (category.isNotEmpty) 'category': category,
+        if (level.isNotEmpty) 'level': level,
+        if (equipment.isNotEmpty) 'equipment': equipment,
+        if (shareWithTrainees) 'visibility': 'coach_shared',
+      }, auth: true) as Map<String, dynamic>;
+      final ex = LibraryExercise.fromJson(j['exercise'] as Map<String, dynamic>);
+      _items = [ex, ..._items];
+      _error = null;
+      notifyListeners();
+      return ex;
+    } on ApiException catch (e) {
+      _error = e.message;
+      notifyListeners();
+      return null;
+    }
+  }
+
+  /// Delete one of the caller's own custom exercises.
+  Future<String?> deleteExercise(String id) async {
+    try {
+      await _client.delete('/api/app/exercises/$id', auth: true);
+      _items = _items.where((e) => e.id != id).toList();
+      notifyListeners();
+      return null;
+    } on ApiException catch (e) {
+      return e.message;
+    }
+  }
 }

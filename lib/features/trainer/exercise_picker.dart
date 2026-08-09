@@ -8,7 +8,9 @@ import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_theme.dart';
 import '../../data/models/library_exercise.dart';
 import '../../l10n/app_localizations.dart';
+import '../../state/auth_controller.dart';
 import '../../state/exercise_library_controller.dart';
+import 'create_exercise_sheet.dart';
 
 /// Present the exercise catalogue and return the chosen exercise (or null).
 Future<LibraryExercise?> showExercisePicker(BuildContext context) {
@@ -118,6 +120,26 @@ class _ExercisePickerSheetState extends State<_ExercisePickerSheet> {
               ],
             ),
             const SizedBox(height: AppSpacing.sm),
+            OutlinedButton.icon(
+              onPressed: () async {
+                final isTrainer =
+                    context.read<AuthController>().user?.isTrainer ?? false;
+                final created =
+                    await showCreateExercise(context, allowShare: isTrainer);
+                if (created != null && context.mounted) {
+                  Navigator.of(context).pop(created);
+                }
+              },
+              style: OutlinedButton.styleFrom(
+                foregroundColor: AppColors.accent,
+                side: const BorderSide(color: AppColors.limeTintBorder),
+                backgroundColor: AppColors.limeTintBg,
+                minimumSize: const Size.fromHeight(42),
+              ),
+              icon: const Icon(Icons.add, size: 18),
+              label: Text(l.libCreateNew),
+            ),
+            const SizedBox(height: AppSpacing.sm),
             Expanded(
               child: ctrl.loading && ctrl.items.isEmpty
                   ? const Center(child: CircularProgressIndicator())
@@ -153,8 +175,18 @@ class _ExercisePickerSheetState extends State<_ExercisePickerSheet> {
                                 style: context.textStyles.bodySmall
                                     ?.copyWith(color: p.muted),
                               ),
-                              trailing: const Icon(Icons.add_circle_outline,
-                                  color: AppColors.accent),
+                              trailing: e.createdByMe
+                                  ? IconButton(
+                                      icon: const Icon(Icons.delete_outline,
+                                          color: AppColors.danger),
+                                      onPressed: () async {
+                                        await context
+                                            .read<ExerciseLibraryController>()
+                                            .deleteExercise(e.id);
+                                      },
+                                    )
+                                  : const Icon(Icons.add_circle_outline,
+                                      color: AppColors.accent),
                               onTap: () => Navigator.of(context).pop(e),
                             );
                           },

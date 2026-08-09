@@ -470,5 +470,17 @@
   "sessionWeight": "Weight",
   "sessionReps": "Reps",
   "sessionFinish": "Finish & save",
-  "sessionSavedOk": "Session saved"
+  "sessionSavedOk": "Session saved",
+  "sessionSaveFailed": "Couldn't save",
+  "libCreateNew": "Create new exercise",
+  "exCreateTitle": "New exercise",
+  "exNameAr": "Name (Arabic)",
+  "exMuscle": "Muscle group",
+  "exLevel": "Level",
+  "exEquipment": "Equipment (optional)",
+  "exShare": "Share with my trainees",
+  "exCreate": "Create",
+  "levelBeginner": "Beginner",
+  "levelIntermediate": "Intermediate",
+  "levelAdvanced": "Advanced"
 }

@@ -9,6 +9,7 @@ import '../../data/models/trainer_plan.dart';
 import '../../l10n/app_localizations.dart';
 import '../../shared/widgets/app_card.dart';
 import '../../state/my_plan_controller.dart';
+import '../trainer/exercise_picker.dart';
 
 /// Per-exercise logging state: one weight+reps controller pair per set.
 class _ExLog {
@@ -70,6 +71,21 @@ class _PlanSessionScreenState extends State<PlanSessionScreen> {
     super.dispose();
   }
 
+  // Add a personal exercise to today's session only (not the coach's plan).
+  Future<void> _addExercise() async {
+    final ex = await showExercisePicker(context);
+    if (ex == null || !mounted) return;
+    setState(() => _logs.add(_ExLog(PlanExercise(
+          name: ex.name,
+          nameAr: ex.nameAr,
+          muscleGroup: ex.muscleGroup,
+          exerciseId: ex.id,
+          day: widget.dayIndex,
+          sets: 3,
+          reps: 10,
+        ))));
+  }
+
   Future<void> _finish() async {
     final l = AppLocalizations.of(context);
     final sets = <Map<String, dynamic>>[];
@@ -119,6 +135,16 @@ class _PlanSessionScreenState extends State<PlanSessionScreen> {
               _ExerciseLogCard(log: log, arabic: ar),
               const SizedBox(height: AppSpacing.sm),
             ],
+            OutlinedButton.icon(
+              onPressed: _addExercise,
+              style: OutlinedButton.styleFrom(
+                foregroundColor: AppColors.accent,
+                side: const BorderSide(color: AppColors.limeTintBorder),
+                backgroundColor: AppColors.limeTintBg,
+              ),
+              icon: const Icon(Icons.add, size: 18),
+              label: Text(l.planAddExercise),
+            ),
           ],
         ),
       ),

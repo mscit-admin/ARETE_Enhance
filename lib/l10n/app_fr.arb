@@ -419,5 +419,17 @@
   "sessionWeight": "Poids",
   "sessionReps": "Répét.",
   "sessionFinish": "Terminer et enregistrer",
-  "sessionSavedOk": "Séance enregistrée"
+  "sessionSavedOk": "Séance enregistrée",
+  "sessionSaveFailed": "Échec de l'enregistrement",
+  "libCreateNew": "Créer un exercice",
+  "exCreateTitle": "Nouvel exercice",
+  "exNameAr": "Nom (arabe)",
+  "exMuscle": "Groupe musculaire",
+  "exLevel": "Niveau",
+  "exEquipment": "Équipement (facultatif)",
+  "exShare": "Partager avec mes clients",
+  "exCreate": "Créer",
+  "levelBeginner": "Débutant",
+  "levelIntermediate": "Intermédiaire",
+  "levelAdvanced": "Avancé"
 }

@@ -11,6 +11,7 @@ class LibraryExercise {
     this.targetMuscles = const [],
     this.videoUrl = '',
     this.imageUrl = '',
+    this.createdByMe = false,
   });
 
   final String id;
@@ -23,6 +24,9 @@ class LibraryExercise {
   final List<String> targetMuscles;
   final String videoUrl;
   final String imageUrl;
+
+  /// True when the signed-in user created this exercise (so it can be deleted).
+  final bool createdByMe;
 
   /// Best display name for the given text direction.
   String label(bool arabic) => (arabic && nameAr.isNotEmpty) ? nameAr : name;
@@ -40,5 +44,6 @@ class LibraryExercise {
                 const [],
         videoUrl: j['videoUrl'] as String? ?? '',
         imageUrl: j['imageUrl'] as String? ?? '',
+        createdByMe: j['createdByMe'] as bool? ?? false,
       );
 }

@@ -76,6 +76,11 @@ class ApiClient {
               headers: await _headers(auth: auth), body: jsonEncode(body))
           .timeout(ApiConfig.timeout));
 
+  Future<dynamic> delete(String path, {bool auth = true}) =>
+      _send(() async => _http
+          .delete(ApiConfig.uri(path), headers: await _headers(auth: auth))
+          .timeout(ApiConfig.timeout));
+
   Future<dynamic> _send(Future<http.Response> Function() request) async {
     http.Response res;
     try {

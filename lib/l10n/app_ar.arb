@@ -419,5 +419,17 @@
   "sessionWeight": "الوزن",
   "sessionReps": "التكرارات",
   "sessionFinish": "إنهاء وحفظ",
-  "sessionSavedOk": "تم حفظ الجلسة"
+  "sessionSavedOk": "تم حفظ الجلسة",
+  "sessionSaveFailed": "تعذّر الحفظ",
+  "libCreateNew": "إنشاء تمرين جديد",
+  "exCreateTitle": "تمرين جديد",
+  "exNameAr": "الاسم (بالعربية)",
+  "exMuscle": "المجموعة العضلية",
+  "exLevel": "المستوى",
+  "exEquipment": "المعدات (اختياري)",
+  "exShare": "مشاركته مع متدربيّ",
+  "exCreate": "إنشاء",
+  "levelBeginner": "مبتدئ",
+  "levelIntermediate": "متوسط",
+  "levelAdvanced": "متقدم"
 }
