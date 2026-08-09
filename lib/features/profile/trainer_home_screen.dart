@@ -18,6 +18,7 @@ import '../../state/connect_controller.dart';
 import '../../state/profile_controller.dart';
 import '../../state/session_controller.dart';
 import '../coach/trainer_qr_screen.dart';
+import '../notifications/notification_bell.dart';
 import '../shell/root_scaffold_key.dart';
 
 /// Trainer-role home: the signed-in trainer's own identity, their QR code and
@@ -109,6 +110,7 @@ class _TrainerHomeScreenState extends State<TrainerHomeScreen> {
                       .setRole(UserRole.member),
                   icon: const Icon(Icons.swap_horiz, color: AppColors.ember),
                 ),
+                const NotificationBell(),
                 LanguageMenuButton(color: p.text),
                 IconButton(
                   tooltip: l.profileSettingsTooltip,

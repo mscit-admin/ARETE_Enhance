@@ -586,6 +586,11 @@ router.post('/trainer/plans/:id/assign', requireAuth, async (req, res) => {
        VALUES ($1, $2, true, $3, 'planCard', $4)`,
       [memberId, uid, owns.rows[0].name, planId],
     );
+    // Notify the trainee that a plan was assigned/updated.
+    await notify(memberId, 'plan_assigned', owns.rows[0].name, null, {
+      planId,
+      coachId: uid,
+    });
     return res.json({ ok: true });
   } catch (e) {
     return res.status(500).json({ error: 'Failed to assign plan' });
@@ -767,12 +772,90 @@ router.post('/sessions', requireAuth, async (req, res) => {
       );
     }
     await client.query('COMMIT');
+    // Notify the member's coach that a session was completed.
+    try {
+      const info = await db.query(
+        `SELECT m.trainer_id, u.full_name
+           FROM members m JOIN users u ON u.id = m.user_id
+          WHERE m.user_id = $1`,
+        [uid],
+      );
+      const coachId = info.rows[0] && info.rows[0].trainer_id;
+      const memberName = (info.rows[0] && info.rows[0].full_name) || 'A member';
+      if (coachId) {
+        await notify(coachId, 'session_done', memberName, b.title || null, {
+          sessionId,
+          memberId: uid,
+        });
+      }
+    } catch (_) {}
     res.status(201).json({ id: sessionId, totalVolume: volume });
   } catch (e) {
     await client.query('ROLLBACK');
     res.status(500).json({ error: 'Failed to log session' });
   } finally {
     client.release();
+  }
+});
+
+// ---------- In-app notifications ----------
+
+// Insert a notification for a user (best-effort; never breaks the caller).
+async function notify(userId, type, title, body, data) {
+  if (!userId) return;
+  try {
+    await db.query(
+      `INSERT INTO notifications (user_id, type, title, body, data)
+       VALUES ($1, $2, $3, $4, $5::jsonb)`,
+      [userId, type, title, body || null, data ? JSON.stringify(data) : null],
+    );
+  } catch (_) {
+    // ignore — a missing notifications table (unmigrated) must not break flows
+  }
+}
+
+// GET /api/app/notifications — latest notifications + unread count.
+router.get('/notifications', requireAuth, async (req, res) => {
+  try {
+    const [list, unread] = await Promise.all([
+      db.query(
+        `SELECT id, type, title, body, data, read, created_at
+           FROM notifications WHERE user_id = $1
+          ORDER BY created_at DESC LIMIT 50`,
+        [req.user.sub],
+      ),
+      db.query(
+        `SELECT count(*)::int AS n FROM notifications WHERE user_id = $1 AND NOT read`,
+        [req.user.sub],
+      ),
+    ]);
+    res.json({
+      unread: unread.rows[0].n,
+      rows: list.rows.map((n) => ({
+        id: n.id,
+        type: n.type,
+        title: n.title,
+        body: n.body || '',
+        data: n.data || {},
+        read: n.read,
+        createdAt: n.created_at,
+      })),
+    });
+  } catch (e) {
+    res.json({ unread: 0, rows: [] }); // degrade gracefully pre-migration
+  }
+});
+
+// POST /api/app/notifications/read — mark all the caller's notifications read.
+router.post('/notifications/read', requireAuth, async (req, res) => {
+  try {
+    await db.query(
+      'UPDATE notifications SET read = true WHERE user_id = $1 AND NOT read',
+      [req.user.sub],
+    );
+    res.json({ ok: true });
+  } catch (e) {
+    res.json({ ok: true });
   }
 });
 

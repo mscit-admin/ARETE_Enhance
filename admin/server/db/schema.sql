@@ -322,3 +322,16 @@ VALUES
   ('crunches','Crunches','تمرين البطن','core','calisthenics','beginner','bodyweight','{abs}'),
   ('mountain-climbers','Mountain Climbers','تسلق الجبال','core','calisthenics','beginner','bodyweight','{core,cardio}')
 ON CONFLICT (slug) DO NOTHING;
+
+-- ---------- In-app notifications ----------
+CREATE TABLE IF NOT EXISTS notifications (
+  id         uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id    uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  type       text NOT NULL,
+  title      text NOT NULL,
+  body       text,
+  data       jsonb,
+  read       boolean NOT NULL DEFAULT false,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_notifications_user ON notifications(user_id, created_at DESC);

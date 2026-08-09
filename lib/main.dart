@@ -19,6 +19,7 @@ import 'state/hydration_controller.dart';
 import 'state/locale_controller.dart';
 import 'state/messaging_controller.dart';
 import 'state/my_plan_controller.dart';
+import 'state/notifications_controller.dart';
 import 'state/plans_controller.dart';
 import 'state/profile_controller.dart';
 import 'state/progress_controller.dart';
@@ -42,6 +43,7 @@ void main() {
   final sessionController = SessionController();
   final connectController = ConnectController(apiClient);
   final myPlanController = MyPlanController(apiClient);
+  final notificationsController = NotificationsController(apiClient);
   final assessmentController = AssessmentController();
 
   final authController = AuthController(
@@ -53,12 +55,14 @@ void main() {
       sessionController.setRole(UserRole.member);
       await profileController.load();
       await profileController.applyAccount(name: user.name, email: user.email);
+      notificationsController.load();
     },
     onSignedOut: () async {
       sessionController.setRole(UserRole.member);
       profileController.clear();
       connectController.clear();
       myPlanController.clear();
+      notificationsController.clear();
       assessmentController.clearSelectedPlan();
     },
   )..bootstrap();
@@ -99,6 +103,7 @@ void main() {
           create: (_) => ExerciseLibraryController(apiClient),
         ),
         ChangeNotifierProvider.value(value: myPlanController),
+        ChangeNotifierProvider.value(value: notificationsController),
         ChangeNotifierProvider(
           create: (_) => MessagingController(apiClient),
         ),

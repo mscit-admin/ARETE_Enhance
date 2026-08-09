@@ -19,6 +19,7 @@ import '../../state/session_controller.dart';
 import '../assessment/assessment_flow_screen.dart';
 import '../assessment/starter_plan_detail_screen.dart';
 import '../help/tour_keys.dart';
+import '../notifications/notification_bell.dart';
 import '../shell/root_scaffold_key.dart';
 import 'widgets/badges_row.dart';
 import 'widgets/goal_progress_card.dart';
@@ -108,6 +109,7 @@ class _ProfileBody extends StatelessWidget {
                   icon: const Icon(Icons.sports_gymnastics,
                       color: AppColors.teal),
                 ),
+              const NotificationBell(),
               LanguageMenuButton(color: p.text),
               IconButton(
                 key: TourKeys.homeAccount,

@@ -482,5 +482,9 @@
   "exCreate": "Create",
   "levelBeginner": "Beginner",
   "levelIntermediate": "Intermediate",
-  "levelAdvanced": "Advanced"
+  "levelAdvanced": "Advanced",
+  "notifTitle": "Notifications",
+  "notifEmpty": "No notifications yet",
+  "notifPlanAssigned": "New plan assigned",
+  "notifSessionDone": "Session completed"
 }

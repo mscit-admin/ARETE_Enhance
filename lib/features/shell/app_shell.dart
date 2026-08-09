@@ -20,6 +20,7 @@ import '../../state/auth_controller.dart';
 import '../../state/connect_controller.dart';
 import '../../state/help_controller.dart';
 import '../../state/messaging_controller.dart';
+import '../../state/notifications_controller.dart';
 import '../../state/my_plan_controller.dart';
 import '../../state/plans_controller.dart';
 import '../../state/profile_controller.dart';
@@ -301,6 +302,7 @@ class _AppShellState extends State<AppShell> {
   /// Pull fresh data for the tab the user just opened, so newly-linked clients,
   /// assigned plans and messages appear without a re-login.
   void _refreshTab(int i, bool isTrainer) {
+    if (i == 0) context.read<NotificationsController>().load();
     if (isTrainer) {
       final connect = context.read<ConnectController>();
       if (i == 0) {
