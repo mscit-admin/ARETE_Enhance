@@ -397,5 +397,17 @@
   "tourActivityTitle": "Activité du jour",
   "tourActivityBody": "Votre mouvement, vos pas et votre eau du jour, chacun avec sa barre de progression.",
   "tourWorkoutTitle": "Séance du jour",
-  "tourWorkoutBody": "Votre séance du jour — touchez le bouton lecture pour la démarrer."
+  "tourWorkoutBody": "Votre séance du jour — touchez le bouton lecture pour la démarrer.",
+  "planDay": "Jour {n}",
+  "@planDay": { "placeholders": { "n": { "type": "int" } } },
+  "planDayEmpty": "Aucun exercice pour ce jour.",
+  "exerciseWeightLabel": "Poids (kg)",
+  "exerciseRestLabel": "Repos (s)",
+  "exerciseNotesLabel": "Notes (facultatif)",
+  "libTitle": "Bibliothèque d'exercices",
+  "libSearch": "Rechercher un exercice…",
+  "libAll": "Tous",
+  "libGym": "Salle",
+  "libCalisthenics": "Poids du corps",
+  "libEmpty": "Aucun exercice trouvé"
 }

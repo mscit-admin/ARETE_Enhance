@@ -13,6 +13,7 @@ import 'state/assessment_controller.dart';
 import 'state/auth_controller.dart';
 import 'state/coach_controller.dart';
 import 'state/connect_controller.dart';
+import 'state/exercise_library_controller.dart';
 import 'state/help_controller.dart';
 import 'state/hydration_controller.dart';
 import 'state/locale_controller.dart';
@@ -93,6 +94,9 @@ void main() {
         ChangeNotifierProvider.value(value: connectController),
         ChangeNotifierProvider(
           create: (_) => PlansController(apiClient),
+        ),
+        ChangeNotifierProvider(
+          create: (_) => ExerciseLibraryController(apiClient),
         ),
         ChangeNotifierProvider.value(value: myPlanController),
         ChangeNotifierProvider(

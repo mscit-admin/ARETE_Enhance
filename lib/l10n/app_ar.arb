@@ -397,5 +397,17 @@
   "tourActivityTitle": "نشاط اليوم",
   "tourActivityBody": "حركتك وخطواتك وماؤك لهذا اليوم، لكلٍّ منها شريط تقدّم.",
   "tourWorkoutTitle": "تمرين اليوم",
-  "tourWorkoutBody": "جلستك لهذا اليوم — اضغط زر التشغيل لبدئها."
+  "tourWorkoutBody": "جلستك لهذا اليوم — اضغط زر التشغيل لبدئها.",
+  "planDay": "اليوم {n}",
+  "@planDay": { "placeholders": { "n": { "type": "int" } } },
+  "planDayEmpty": "لا توجد تمارين لهذا اليوم بعد.",
+  "exerciseWeightLabel": "الوزن (كجم)",
+  "exerciseRestLabel": "الراحة (ث)",
+  "exerciseNotesLabel": "ملاحظات (اختياري)",
+  "libTitle": "مكتبة التمارين",
+  "libSearch": "ابحث عن تمرين…",
+  "libAll": "الكل",
+  "libGym": "جيم",
+  "libCalisthenics": "سويدي",
+  "libEmpty": "لا توجد تمارين"
 }

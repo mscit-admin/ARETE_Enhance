@@ -448,5 +448,17 @@
   "tourActivityTitle": "Today's activity",
   "tourActivityBody": "Your move, steps and water for today, each with its own progress bar.",
   "tourWorkoutTitle": "Today's workout",
-  "tourWorkoutBody": "Your session for today — tap the play button to start it."
+  "tourWorkoutBody": "Your session for today — tap the play button to start it.",
+  "planDay": "Day {n}",
+  "@planDay": { "placeholders": { "n": { "type": "int" } } },
+  "planDayEmpty": "No exercises for this day yet.",
+  "exerciseWeightLabel": "Weight (kg)",
+  "exerciseRestLabel": "Rest (s)",
+  "exerciseNotesLabel": "Notes (optional)",
+  "libTitle": "Exercise library",
+  "libSearch": "Search exercises…",
+  "libAll": "All",
+  "libGym": "Gym",
+  "libCalisthenics": "Calisthenics",
+  "libEmpty": "No exercises found"
 }
