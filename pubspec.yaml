@@ -22,10 +22,11 @@ dependencies:
   crypto: ^3.0.3
   http: ^1.2.2
   qr_flutter: ^4.1.0
-  # A modern build is required: 5.x throws a native NPE on current toolchains.
-  # Capped below 7.x: the 7.x major changed Android build requirements and
-  # started breaking the CI APK build once it was published.
-  mobile_scanner: ">=6.0.0 <7.0.0"
+  # A modern build is required: 5.x throws a native NPE on current toolchains,
+  # and 6.x can fail to start the camera on some devices ("unexpected error").
+  # Allow 7.x, which is the version that worked; the earlier <7 cap was a wrong
+  # guess at a CI failure that was actually a GitHub account/Actions issue.
+  mobile_scanner: ">=7.0.0 <8.0.0"
   permission_handler: ^11.3.1
 
 dev_dependencies:
