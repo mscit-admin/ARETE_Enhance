@@ -32,6 +32,28 @@ class MyPlanController extends ChangeNotifier {
     }
   }
 
+  /// Log a completed session's real performance. [sets] items are
+  /// {exerciseId?, exerciseName?, setNumber, weight, reps}. Returns null on
+  /// success, else an error message.
+  Future<String?> logSession({
+    String? planId,
+    int? dayIndex,
+    String? title,
+    required List<Map<String, dynamic>> sets,
+  }) async {
+    try {
+      await _client.post('/api/app/sessions', {
+        if (planId != null) 'planId': planId,
+        if (dayIndex != null) 'dayIndex': dayIndex,
+        if (title != null && title.isNotEmpty) 'title': title,
+        'sets': sets,
+      }, auth: true);
+      return null;
+    } on ApiException catch (e) {
+      return e.message;
+    }
+  }
+
   void clear() {
     _plans = [];
     _loaded = false;

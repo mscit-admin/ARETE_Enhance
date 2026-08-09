@@ -409,5 +409,15 @@
   "libAll": "الكل",
   "libGym": "جيم",
   "libCalisthenics": "سويدي",
-  "libEmpty": "لا توجد تمارين"
+  "libEmpty": "لا توجد تمارين",
+  "planStartSession": "ابدأ الجلسة",
+  "planKg": "كجم",
+  "sessionTitle": "{plan} · اليوم {n}",
+  "@sessionTitle": { "placeholders": { "plan": { "type": "String" }, "n": { "type": "int" } } },
+  "sessionSetLabel": "مجموعة {n}",
+  "@sessionSetLabel": { "placeholders": { "n": { "type": "int" } } },
+  "sessionWeight": "الوزن",
+  "sessionReps": "التكرارات",
+  "sessionFinish": "إنهاء وحفظ",
+  "sessionSavedOk": "تم حفظ الجلسة"
 }

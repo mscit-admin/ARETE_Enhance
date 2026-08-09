@@ -460,5 +460,15 @@
   "libAll": "All",
   "libGym": "Gym",
   "libCalisthenics": "Calisthenics",
-  "libEmpty": "No exercises found"
+  "libEmpty": "No exercises found",
+  "planStartSession": "Start session",
+  "planKg": "kg",
+  "sessionTitle": "{plan} · Day {n}",
+  "@sessionTitle": { "placeholders": { "plan": { "type": "String" }, "n": { "type": "int" } } },
+  "sessionSetLabel": "Set {n}",
+  "@sessionSetLabel": { "placeholders": { "n": { "type": "int" } } },
+  "sessionWeight": "Weight",
+  "sessionReps": "Reps",
+  "sessionFinish": "Finish & save",
+  "sessionSavedOk": "Session saved"
 }

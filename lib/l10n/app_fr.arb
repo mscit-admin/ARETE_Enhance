@@ -409,5 +409,15 @@
   "libAll": "Tous",
   "libGym": "Salle",
   "libCalisthenics": "Poids du corps",
-  "libEmpty": "Aucun exercice trouvé"
+  "libEmpty": "Aucun exercice trouvé",
+  "planStartSession": "Démarrer la séance",
+  "planKg": "kg",
+  "sessionTitle": "{plan} · Jour {n}",
+  "@sessionTitle": { "placeholders": { "plan": { "type": "String" }, "n": { "type": "int" } } },
+  "sessionSetLabel": "Série {n}",
+  "@sessionSetLabel": { "placeholders": { "n": { "type": "int" } } },
+  "sessionWeight": "Poids",
+  "sessionReps": "Répét.",
+  "sessionFinish": "Terminer et enregistrer",
+  "sessionSavedOk": "Séance enregistrée"
 }
