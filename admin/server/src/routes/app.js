@@ -377,6 +377,25 @@ async function isTrainer(userId) {
   return rowCount > 0;
 }
 
+// Cache whether a column exists, so the app keeps working on installs that
+// pulled new code but haven't run `npm run migrate` yet.
+const _colCache = new Map();
+async function hasColumn(table, col) {
+  const key = `${table}.${col}`;
+  if (_colCache.has(key)) return _colCache.get(key);
+  try {
+    const { rowCount } = await db.query(
+      `SELECT 1 FROM information_schema.columns
+        WHERE table_name = $1 AND column_name = $2`,
+      [table, col],
+    );
+    _colCache.set(key, rowCount > 0);
+    return rowCount > 0;
+  } catch (_) {
+    return false;
+  }
+}
+
 // Shape a plan row + its exercises for the app.
 async function planWithExercises(planId) {
   const p = await db.query(
@@ -385,15 +404,29 @@ async function planWithExercises(planId) {
     [planId],
   );
   if (!p.rows[0]) return null;
-  const ex = await db.query(
-    `SELECT e.id AS exercise_id, e.name, e.name_ar, e.muscle_group, e.category,
-            pe.day_index, pe.position, pe.target_sets, pe.target_reps,
-            pe.target_weight, pe.rest_seconds, pe.notes
-       FROM plan_exercises pe JOIN exercises e ON e.id = pe.exercise_id
-      WHERE pe.plan_id = $1
-      ORDER BY pe.day_index, pe.position`,
-    [planId],
-  );
+  // Rich select; on an un-migrated DB (missing columns) fall back to the base
+  // columns so plans still load.
+  let ex;
+  try {
+    ex = await db.query(
+      `SELECT e.id AS exercise_id, e.name, e.name_ar, e.muscle_group, e.category,
+              pe.day_index, pe.position, pe.target_sets, pe.target_reps,
+              pe.target_weight, pe.rest_seconds, pe.notes
+         FROM plan_exercises pe JOIN exercises e ON e.id = pe.exercise_id
+        WHERE pe.plan_id = $1
+        ORDER BY pe.day_index, pe.position`,
+      [planId],
+    );
+  } catch (_) {
+    ex = await db.query(
+      `SELECT e.id AS exercise_id, e.name, pe.day_index, pe.position,
+              pe.target_sets, pe.target_reps
+         FROM plan_exercises pe JOIN exercises e ON e.id = pe.exercise_id
+        WHERE pe.plan_id = $1
+        ORDER BY pe.day_index, pe.position`,
+      [planId],
+    );
+  }
   const r = p.rows[0];
   return {
     id: r.id,
@@ -433,6 +466,10 @@ router.post('/trainer/plans', requireAuth, async (req, res) => {
   if (!name) return res.status(400).json({ error: 'A plan name is required' });
   const exercises = Array.isArray(b.exercises) ? b.exercises : [];
 
+  // Tolerate an un-migrated database: only write the newer columns if present.
+  const peHasDetail = await hasColumn('plan_exercises', 'notes');
+  const exHasMeta = await hasColumn('exercises', 'visibility');
+
   const client = await db.pool.connect();
   try {
     await client.query('BEGIN');
@@ -462,32 +499,50 @@ router.post('/trainer/plans', requireAuth, async (req, res) => {
       if (!exerciseId) {
         const exName = String(e?.name || '').trim();
         if (!exName) continue;
-        const exRow = await client.query(
-          `INSERT INTO exercises (name, created_by, visibility) VALUES ($1, $2, 'private') RETURNING id`,
-          [exName, uid],
-        );
+        const exRow = exHasMeta
+            ? await client.query(
+                `INSERT INTO exercises (name, created_by, visibility)
+                 VALUES ($1, $2, 'private') RETURNING id`,
+                [exName, uid],
+              )
+            : await client.query(
+                `INSERT INTO exercises (name) VALUES ($1) RETURNING id`,
+                [exName],
+              );
         exerciseId = exRow.rows[0].id;
       }
       const day = Number(e?.day) || 0;
       const pos = posByDay[day] || 0;
       posByDay[day] = pos + 1;
-      await client.query(
-        `INSERT INTO plan_exercises
-           (plan_id, exercise_id, day_index, position, target_sets, target_reps,
-            target_weight, rest_seconds, notes)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-         ON CONFLICT (plan_id, exercise_id, day_index) DO UPDATE
-           SET position = EXCLUDED.position, target_sets = EXCLUDED.target_sets,
-               target_reps = EXCLUDED.target_reps, target_weight = EXCLUDED.target_weight,
-               rest_seconds = EXCLUDED.rest_seconds, notes = EXCLUDED.notes`,
-        [
-          planId, exerciseId, day, pos,
-          Number(e?.sets) || 3, Number(e?.reps) || 10,
-          e?.weight != null && e.weight !== '' ? Number(e.weight) : null,
-          e?.rest != null && e.rest !== '' ? Number(e.rest) : null,
-          String(e?.notes || '').trim() || null,
-        ],
-      );
+      if (peHasDetail) {
+        await client.query(
+          `INSERT INTO plan_exercises
+             (plan_id, exercise_id, day_index, position, target_sets, target_reps,
+              target_weight, rest_seconds, notes)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+           ON CONFLICT (plan_id, exercise_id, day_index) DO UPDATE
+             SET position = EXCLUDED.position, target_sets = EXCLUDED.target_sets,
+                 target_reps = EXCLUDED.target_reps, target_weight = EXCLUDED.target_weight,
+                 rest_seconds = EXCLUDED.rest_seconds, notes = EXCLUDED.notes`,
+          [
+            planId, exerciseId, day, pos,
+            Number(e?.sets) || 3, Number(e?.reps) || 10,
+            e?.weight != null && e.weight !== '' ? Number(e.weight) : null,
+            e?.rest != null && e.rest !== '' ? Number(e.rest) : null,
+            String(e?.notes || '').trim() || null,
+          ],
+        );
+      } else {
+        await client.query(
+          `INSERT INTO plan_exercises
+             (plan_id, exercise_id, day_index, position, target_sets, target_reps)
+           VALUES ($1, $2, $3, $4, $5, $6)
+           ON CONFLICT (plan_id, exercise_id, day_index) DO UPDATE
+             SET position = EXCLUDED.position, target_sets = EXCLUDED.target_sets,
+                 target_reps = EXCLUDED.target_reps`,
+          [planId, exerciseId, day, pos, Number(e?.sets) || 3, Number(e?.reps) || 10],
+        );
+      }
     }
     await client.query('COMMIT');
     return res.status(201).json({ plan: await planWithExercises(planId) });
@@ -740,17 +795,26 @@ router.post('/sessions', requireAuth, async (req, res) => {
     await client.query('BEGIN');
     let volume = 0;
     for (const s of sets) volume += (Number(s?.weight) || 0) * (Number(s?.reps) || 0);
-    const sess = await client.query(
-      `INSERT INTO workout_sessions (member_id, plan_id, day_index, title, finished_at, total_volume)
-       VALUES ($1, $2, $3, $4, now(), $5) RETURNING id`,
-      [
-        uid,
-        b.planId || null,
-        b.dayIndex != null ? Number(b.dayIndex) : null,
-        String(b.title || '').trim() || null,
-        volume,
-      ],
-    );
+    const hasDay = await hasColumn('workout_sessions', 'day_index');
+    const sess = hasDay
+        ? await client.query(
+            `INSERT INTO workout_sessions
+               (member_id, plan_id, day_index, title, finished_at, total_volume)
+             VALUES ($1, $2, $3, $4, now(), $5) RETURNING id`,
+            [
+              uid,
+              b.planId || null,
+              b.dayIndex != null ? Number(b.dayIndex) : null,
+              String(b.title || '').trim() || null,
+              volume,
+            ],
+          )
+        : await client.query(
+            `INSERT INTO workout_sessions
+               (member_id, plan_id, title, finished_at, total_volume)
+             VALUES ($1, $2, $3, now(), $4) RETURNING id`,
+            [uid, b.planId || null, String(b.title || '').trim() || null, volume],
+          );
     const sessionId = sess.rows[0].id;
     for (const s of sets) {
       let exId = s && s.exerciseId ? String(s.exerciseId) : null;
