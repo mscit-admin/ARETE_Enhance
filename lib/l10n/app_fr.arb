@@ -199,7 +199,7 @@
   "parq5": "Prenez-vous des médicaments prescrits pour la tension ou le cœur ?",
   "parq6": "Connaissez-vous une autre raison de ne pas faire d'activité physique ?",
 
-  "resultTitle": "Votre plan",
+  "resultTitle": "Plans suggérés",
   "resultNoRecs": "Aucune recommandation.",
   "resultPlanIsNow": "{plan} est maintenant votre plan",
   "resultRecommendedFor": "Recommandé pour vous",
@@ -410,6 +410,8 @@
   "libGym": "Salle",
   "libCalisthenics": "Poids du corps",
   "libEmpty": "Aucun exercice trouvé",
+  "libDelete": "Supprimer",
+  "libDeleteConfirm": "Supprimer cet exercice ?",
   "planStartSession": "Démarrer la séance",
   "planKg": "kg",
   "sessionTitle": "{plan} · Jour {n}",

@@ -9,6 +9,7 @@ import '../../shared/widgets/gradient_avatar.dart';
 import '../../state/auth_controller.dart';
 import '../../state/profile_controller.dart';
 import '../help/tour_keys.dart';
+import '../library/exercise_library_screen.dart';
 import 'edit_profile_screen.dart';
 import 'settings_screen.dart';
 
@@ -114,6 +115,18 @@ class AccountDrawer extends StatelessWidget {
                 Navigator.of(context).pop();
                 Navigator.of(context).push(
                   MaterialPageRoute(builder: (_) => const SettingsScreen()),
+                );
+              },
+            ),
+            const Divider(height: 1),
+            ListTile(
+              leading: const Icon(Icons.fitness_center),
+              title: Text(l.libTitle),
+              onTap: () {
+                Navigator.of(context).pop();
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                      builder: (_) => const ExerciseLibraryScreen()),
                 );
               },
             ),

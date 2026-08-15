@@ -225,7 +225,7 @@
   "parq5": "Are you currently taking prescribed medication for blood pressure or heart?",
   "parq6": "Do you know of any other reason you should not do physical activity?",
 
-  "resultTitle": "Your plan",
+  "resultTitle": "Suggested plans",
   "resultNoRecs": "No recommendations.",
   "resultPlanIsNow": "{plan} is now your plan",
   "@resultPlanIsNow": { "placeholders": { "plan": { "type": "String" } } },
@@ -461,6 +461,8 @@
   "libGym": "Gym",
   "libCalisthenics": "Calisthenics",
   "libEmpty": "No exercises found",
+  "libDelete": "Delete",
+  "libDeleteConfirm": "Delete this exercise?",
   "planStartSession": "Start session",
   "planKg": "kg",
   "sessionTitle": "{plan} · Day {n}",

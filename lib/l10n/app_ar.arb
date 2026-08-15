@@ -199,7 +199,7 @@
   "parq5": "هل تتناول حاليًا دواءً موصوفًا لضغط الدم أو القلب؟",
   "parq6": "هل تعرف أي سبب آخر يمنعك من ممارسة النشاط البدني؟",
 
-  "resultTitle": "خطتك",
+  "resultTitle": "خطط مقترحة",
   "resultNoRecs": "لا توجد توصيات.",
   "resultPlanIsNow": "{plan} أصبحت خطتك الآن",
   "resultRecommendedFor": "موصى بها لك",
@@ -410,6 +410,8 @@
   "libGym": "جيم",
   "libCalisthenics": "سويدي",
   "libEmpty": "لا توجد تمارين",
+  "libDelete": "حذف",
+  "libDeleteConfirm": "حذف هذا التمرين؟",
   "planStartSession": "ابدأ الجلسة",
   "planKg": "كجم",
   "sessionTitle": "{plan} · اليوم {n}",
