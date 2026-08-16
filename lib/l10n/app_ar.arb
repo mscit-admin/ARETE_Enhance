@@ -496,5 +496,27 @@
   "nutritionMealsDone": "{done} من {total} وجبات",
   "nutritionNextMeal": "التالية: {meal} في {time}",
   "nutritionNoMealsLeft": "لا وجبات متبقية اليوم.",
-  "nutritionMealsHint": "هذا جدولك الثابت. تعديل الوقت هنا يعدّل موعد تذكيره أيضاً."
+  "nutritionMealsHint": "هذا جدولك الثابت. تعديل الوقت هنا يعدّل موعد تذكيره أيضاً.",
+
+  "nutritionCoachPlan": "خطة تغذية من مدربك",
+  "nutritionCoachPlanFrom": "خطة تغذية من المدرب {name}",
+  "nutritionCoachPlanNew": "جديدة",
+  "nutritionCoachPlanPending": "طبّقها ليحلّ جدول وجبات مدربك وهدف الماء محلّ الحالي.",
+  "nutritionCoachPlanApplied": "مطبَّقة على جدولك. وأي تعديل أجريته بعدها يبقى لك.",
+  "nutritionCoachPlanApply": "تطبيق الخطة",
+  "nutritionCoachPlanRestore": "استعادة خطة المدرب",
+  "nutritionCoachPlanRestored": "أُعيدت خطة مدربك",
+  "notifNutritionPlan": "خطة تغذية جديدة",
+
+  "coachNutritionMenuItem": "خطة التغذية",
+  "coachNutritionTitle": "التغذية · {name}",
+  "coachNutritionMeals": "الوجبات",
+  "coachNutritionAddMeal": "إضافة وجبة",
+  "coachNutritionNote": "ملاحظة للمتدرب",
+  "coachNutritionNoteHint": "مثال: بروتين مع كل وجبة، ولا كربوهيدرات بعد الثامنة مساءً",
+  "coachNutritionSend": "إرسال إلى المتدرب",
+  "coachNutritionSending": "جارٍ الإرسال…",
+  "coachNutritionSent": "تم إرسال الخطة",
+  "coachNutritionLastSent": "آخر إرسال {date}",
+  "coachNutritionHint": "يطبّقها تطبيق المتدرب على جدوله، فتتعدّل معها مواعيد تذكيرات وجباته ومائه."
 }

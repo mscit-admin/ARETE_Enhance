@@ -20,6 +20,7 @@ import '../../state/session_controller.dart';
 import '../coach/trainer_qr_screen.dart';
 import '../notifications/notification_bell.dart';
 import '../shell/root_scaffold_key.dart';
+import '../trainer/nutrition_plan_screen.dart';
 
 /// Trainer-role home: the signed-in trainer's own identity, their QR code and
 /// their real linked clients. A quick icon switches back to trainee mode.
@@ -171,6 +172,7 @@ class _TrainerHomeScreenState extends State<TrainerHomeScreen> {
             else
               for (final c in clients) ...[
                 _ClientTile(
+                  memberId: (c['id'] as String?) ?? '',
                   name: (c['full_name'] as String?) ?? 'Client',
                   subtitle:
                       '${_pretty(c['goal'] as String?)} · ${_pretty(c['experience'] as String?)}',
@@ -236,14 +238,20 @@ class _ShareCodeCard extends StatelessWidget {
 }
 
 class _ClientTile extends StatelessWidget {
-  const _ClientTile({required this.name, required this.subtitle});
+  const _ClientTile({
+    required this.memberId,
+    required this.name,
+    required this.subtitle,
+  });
 
+  final String memberId;
   final String name;
   final String subtitle;
 
   @override
   Widget build(BuildContext context) {
     final p = context.palette;
+    final l = AppLocalizations.of(context);
     return AppCard(
       padding: const EdgeInsets.all(AppSpacing.md),
       child: Row(
@@ -261,7 +269,22 @@ class _ClientTile extends StatelessWidget {
               ],
             ),
           ),
-          Pill(AppLocalizations.of(context).trainerActive, tone: PillTone.teal),
+          Pill(l.trainerActive, tone: PillTone.teal),
+          // Build this client's meal plan and water goal.
+          IconButton(
+            tooltip: l.coachNutritionMenuItem,
+            icon: const Icon(Icons.restaurant_menu, color: AppColors.gold),
+            onPressed: memberId.isEmpty
+                ? null
+                : () => Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => CoachNutritionPlanScreen(
+                          memberId: memberId,
+                          memberName: name,
+                        ),
+                      ),
+                    ),
+          ),
         ],
       ),
     );

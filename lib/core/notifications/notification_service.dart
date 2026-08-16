@@ -76,8 +76,25 @@ class NotificationService {
         ReminderChannel.tips => 'A short training tip once a day',
       };
 
+  /// Reminders must never take the app down with them: a device where the
+  /// notification plugin misbehaves should still sign in, save a schedule and
+  /// show the screens. Every plugin call goes through here.
+  Future<T?> _guard<T>(String what, Future<T> Function() action) async {
+    try {
+      return await action();
+    } catch (e) {
+      debugPrint('ARETE notifications · $what failed: $e');
+      return null;
+    }
+  }
+
   Future<void> init() async {
     if (kIsWeb || _initialized) return;
+    // Left false if this throws, so the next call retries.
+    await _guard('init', _initialize);
+  }
+
+  Future<void> _initialize() async {
     const android = AndroidInitializationSettings('@mipmap/ic_launcher');
     const settings = InitializationSettings(android: android);
     await _plugin.initialize(
@@ -122,10 +139,12 @@ class NotificationService {
   Future<bool> requestPermission() async {
     if (kIsWeb) return false;
     await init();
-    final android = _plugin.resolvePlatformSpecificImplementation<
-        AndroidFlutterLocalNotificationsPlugin>();
-    final granted = await android?.requestNotificationsPermission();
-    return granted ?? true;
+    final granted = await _guard('requestPermission', () async {
+      final android = _plugin.resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin>();
+      return await android?.requestNotificationsPermission();
+    });
+    return granted ?? false;
   }
 
   NotificationDetails _detailsFor(ReminderChannel channel) => NotificationDetails(
@@ -147,12 +166,15 @@ class NotificationService {
   }) async {
     if (kIsWeb) return;
     await init();
-    await _plugin.show(
-      _instantId,
-      title,
-      body,
-      _detailsFor(channel),
-      payload: payload,
+    await _guard(
+      'show',
+      () => _plugin.show(
+        _instantId,
+        title,
+        body,
+        _detailsFor(channel),
+        payload: payload,
+      ),
     );
   }
 
@@ -171,17 +193,20 @@ class NotificationService {
     if (kIsWeb) return;
     if (slot < 0 || slot >= capacityFor(channel)) return;
     await init();
-    await _plugin.zonedSchedule(
-      baseIdFor(channel) + slot,
-      title,
-      body,
-      _nextInstanceOf(hour, minute),
-      _detailsFor(channel),
-      androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
-      uiLocalNotificationDateInterpretation:
-          UILocalNotificationDateInterpretation.absoluteTime,
-      matchDateTimeComponents: DateTimeComponents.time,
-      payload: payload,
+    await _guard(
+      'scheduleDaily',
+      () => _plugin.zonedSchedule(
+        baseIdFor(channel) + slot,
+        title,
+        body,
+        _nextInstanceOf(hour, minute),
+        _detailsFor(channel),
+        androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+        uiLocalNotificationDateInterpretation:
+            UILocalNotificationDateInterpretation.absoluteTime,
+        matchDateTimeComponents: DateTimeComponents.time,
+        payload: payload,
+      ),
     );
   }
 
@@ -201,16 +226,19 @@ class NotificationService {
     if (!when.isAfter(DateTime.now())) return;
     await init();
     _initTimeZones();
-    await _plugin.zonedSchedule(
-      baseIdFor(channel) + slot,
-      title,
-      body,
-      tz.TZDateTime.from(when, tz.local),
-      _detailsFor(channel),
-      androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
-      uiLocalNotificationDateInterpretation:
-          UILocalNotificationDateInterpretation.absoluteTime,
-      payload: payload,
+    await _guard(
+      'scheduleOnce',
+      () => _plugin.zonedSchedule(
+        baseIdFor(channel) + slot,
+        title,
+        body,
+        tz.TZDateTime.from(when, tz.local),
+        _detailsFor(channel),
+        androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+        uiLocalNotificationDateInterpretation:
+            UILocalNotificationDateInterpretation.absoluteTime,
+        payload: payload,
+      ),
     );
   }
 
@@ -218,9 +246,11 @@ class NotificationService {
   Future<void> cancelChannel(ReminderChannel channel) async {
     if (kIsWeb) return;
     final base = baseIdFor(channel);
-    for (var i = 0; i < capacityFor(channel); i++) {
-      await _plugin.cancel(base + i);
-    }
+    await _guard('cancelChannel', () async {
+      for (var i = 0; i < capacityFor(channel); i++) {
+        await _plugin.cancel(base + i);
+      }
+    });
   }
 
   /// The next occurrence of [hour]:[minute] in the device's local time,

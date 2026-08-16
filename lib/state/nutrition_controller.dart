@@ -16,11 +16,23 @@ class NutritionController extends ChangeNotifier {
 
   NutritionSettings _settings = const NutritionSettings();
   NutritionDay _today = NutritionDay(day: NutritionDay.keyFor(DateTime.now()));
+  CoachNutritionPlan? _coachPlan;
+  String _appliedCoachPlanId = '';
   bool _loaded = false;
 
   NutritionSettings get settings => _settings;
   NutritionDay get today => _today;
   bool get loaded => _loaded;
+
+  /// The plan the coach last sent, if any.
+  CoachNutritionPlan? get coachPlan => _coachPlan;
+
+  /// The plan id already pushed onto the member's schedule.
+  String get appliedCoachPlanId => _appliedCoachPlanId;
+
+  /// True while a coach plan is waiting to be applied.
+  bool get hasUnappliedCoachPlan =>
+      _coachPlan != null && _coachPlan!.id != _appliedCoachPlanId;
 
   int get waterTargetGlasses => _settings.waterTargetGlasses;
   int get glassMl => _settings.glassMl;
@@ -49,6 +61,8 @@ class NutritionController extends ChangeNotifier {
     final snapshot = await _repo.load(day);
     _settings = snapshot.settings;
     _today = snapshot.today.day == day ? snapshot.today : NutritionDay(day: day);
+    _coachPlan = snapshot.coachPlan;
+    _appliedCoachPlanId = await _repo.loadAppliedCoachPlanId();
     _loaded = true;
     notifyListeners();
   }
@@ -118,11 +132,21 @@ class NutritionController extends ChangeNotifier {
   int doneCount(List<MealSlot> slots) =>
       slots.where((s) => s.enabled && isMealDone(s.id)).length;
 
+  /// Remember that [planId] has been pushed onto the member's schedule, so it
+  /// is not applied again on every load.
+  Future<void> markCoachPlanApplied(String planId) async {
+    _appliedCoachPlanId = planId;
+    notifyListeners();
+    await _repo.saveAppliedCoachPlanId(planId);
+  }
+
   /// Drop everything on sign-out so the next account starts clean — including
   /// the local cache, which is not account-scoped.
   void clear() {
     _settings = const NutritionSettings();
     _today = NutritionDay(day: NutritionDay.keyFor(DateTime.now()));
+    _coachPlan = null;
+    _appliedCoachPlanId = '';
     _loaded = false;
     notifyListeners();
     _repo.clearCache();

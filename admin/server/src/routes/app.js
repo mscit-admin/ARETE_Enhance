@@ -1052,27 +1052,121 @@ const clampInt = (value, min, max, fallback) => {
   return Math.min(max, Math.max(min, Math.round(n)));
 };
 
-// GET /api/app/nutrition?day=YYYY-MM-DD — settings plus that day's intake.
+// The coach-issued plan currently in force for a member (newest wins).
+async function latestCoachPlan(memberUserId) {
+  const { rows } = await db.query(
+    `SELECT p.id, p.water_target_glasses, p.meal_schedule, p.note, p.created_at,
+            u.full_name AS trainer_name
+       FROM nutrition_plans p
+       LEFT JOIN users u ON u.id = p.trainer_user_id
+      WHERE p.member_user_id = $1
+      ORDER BY p.created_at DESC
+      LIMIT 1`,
+    [memberUserId],
+  );
+  const r = rows[0];
+  if (!r) return null;
+  return {
+    id: r.id,
+    waterTargetGlasses: r.water_target_glasses,
+    mealSchedule: Array.isArray(r.meal_schedule) ? r.meal_schedule : [],
+    note: r.note || '',
+    coachName: r.trainer_name || '',
+    createdAt: r.created_at,
+  };
+}
+
+// GET /api/app/nutrition?day=YYYY-MM-DD — settings, that day's intake and the
+// coach's plan (if any).
 router.get('/nutrition', requireAuth, async (req, res) => {
   const day = nutritionDay(req);
   try {
-    const [settings, today] = await Promise.all([
+    const [settings, today, coachPlan] = await Promise.all([
       db.query('SELECT * FROM nutrition_settings WHERE user_id = $1', [req.user.sub]),
       db.query('SELECT * FROM nutrition_days WHERE user_id = $1 AND day = $2', [
         req.user.sub,
         day,
       ]),
+      latestCoachPlan(req.user.sub).catch(() => null),
     ]);
     return res.json({
       settings: settingsToApp(settings.rows[0]),
       today: dayToApp(today.rows[0], day),
+      coachPlan,
     });
   } catch (e) {
     return res.json({
       settings: { ...NUTRITION_DEFAULTS },
       today: dayToApp(null, day),
+      coachPlan: null,
       unavailable: true,
     });
+  }
+});
+
+// Both coach endpoints below require the caller to be this member's trainer.
+async function requireOwnClient(req, res) {
+  const memberId = String(req.params.memberId || '');
+  if (!memberId) {
+    res.status(400).json({ error: 'memberId is required' });
+    return null;
+  }
+  const link = await db.query(
+    'SELECT 1 FROM members WHERE user_id = $1 AND trainer_id = $2',
+    [memberId, req.user.sub],
+  );
+  if (!link.rowCount) {
+    res.status(403).json({ error: 'That member is not your client' });
+    return null;
+  }
+  return memberId;
+}
+
+// GET /api/app/trainer/trainees/:memberId/nutrition — the plan the coach last
+// sent, plus what the trainee is currently following (to start from).
+router.get('/trainer/trainees/:memberId/nutrition', requireAuth, async (req, res) => {
+  try {
+    const memberId = await requireOwnClient(req, res);
+    if (!memberId) return undefined;
+    const [settings, plan] = await Promise.all([
+      db.query('SELECT * FROM nutrition_settings WHERE user_id = $1', [memberId]),
+      latestCoachPlan(memberId),
+    ]);
+    return res.json({ plan, current: settingsToApp(settings.rows[0]) });
+  } catch (e) {
+    return res.status(500).json({ error: 'Failed to load the nutrition plan' });
+  }
+});
+
+// POST /api/app/trainer/trainees/:memberId/nutrition — send a plan to a client.
+router.post('/trainer/trainees/:memberId/nutrition', requireAuth, async (req, res) => {
+  const schedule = Array.isArray(req.body?.mealSchedule) ? req.body.mealSchedule : null;
+  if (!schedule || !schedule.length) {
+    return res.status(400).json({ error: 'mealSchedule is required' });
+  }
+  const waterTarget =
+    req.body?.waterTargetGlasses == null
+      ? null
+      : clampInt(req.body.waterTargetGlasses, 1, 30, NUTRITION_DEFAULTS.waterTargetGlasses);
+  const note = String(req.body?.note || '').slice(0, 500);
+  try {
+    const memberId = await requireOwnClient(req, res);
+    if (!memberId) return undefined;
+    const ins = await db.query(
+      `INSERT INTO nutrition_plans
+              (member_user_id, trainer_user_id, water_target_glasses, meal_schedule, note)
+       VALUES ($1, $2, $3, $4::jsonb, $5)
+    RETURNING id, created_at`,
+      [memberId, req.user.sub, waterTarget, JSON.stringify(schedule), note || null],
+    );
+    // The app applies the plan on its next load; tell the trainee it arrived.
+    await notify(memberId, 'nutrition_plan', note || '', null, {
+      planId: ins.rows[0].id,
+      coachId: req.user.sub,
+    });
+    return res.status(201).json({ plan: await latestCoachPlan(memberId) });
+  } catch (e) {
+    return res.status(500).json({ error: 'Failed to send the nutrition plan' });
   }
 });
 

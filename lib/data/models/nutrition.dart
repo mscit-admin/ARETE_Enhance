@@ -109,10 +109,68 @@ class NutritionDay {
       );
 }
 
-/// What the nutrition endpoint returns: the settings plus one day of intake.
+/// A nutrition plan a coach sent to one of their trainees.
+///
+/// The app applies it to the member's own schedule and remembers the id it has
+/// applied, so a plan lands once and the member stays free to adjust it after.
+class CoachNutritionPlan {
+  const CoachNutritionPlan({
+    required this.id,
+    required this.mealSchedule,
+    this.waterTargetGlasses,
+    this.note = '',
+    this.coachName = '',
+    this.createdAt,
+  });
+
+  final String id;
+  final List<MealSlot> mealSchedule;
+
+  /// Null when the coach left the water goal to the member.
+  final int? waterTargetGlasses;
+  final String note;
+  final String coachName;
+  final DateTime? createdAt;
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'mealSchedule': [for (final s in mealSchedule) s.toJson()],
+        'waterTargetGlasses': waterTargetGlasses,
+        'note': note,
+        'coachName': coachName,
+        'createdAt': createdAt?.toIso8601String(),
+      };
+
+  /// Slots always come back marked [MealSource.coach], whatever the payload
+  /// says, so the app can tell a coach's meal from one the member added.
+  factory CoachNutritionPlan.fromJson(Map<String, dynamic> j) =>
+      CoachNutritionPlan(
+        id: (j['id'] ?? '').toString(),
+        mealSchedule: [
+          for (final e in (j['mealSchedule'] as List?) ?? const [])
+            if (e is Map)
+              MealSlot.fromJson(e.cast<String, dynamic>())
+                  .copyWith(source: MealSource.coach),
+        ],
+        waterTargetGlasses: (j['waterTargetGlasses'] as num?)?.toInt(),
+        note: (j['note'] ?? '').toString(),
+        coachName: (j['coachName'] ?? '').toString(),
+        createdAt: j['createdAt'] == null
+            ? null
+            : DateTime.tryParse(j['createdAt'].toString()),
+      );
+}
+
+/// What the nutrition endpoint returns: the settings, one day of intake, and
+/// the coach's plan when there is one.
 class NutritionSnapshot {
-  const NutritionSnapshot({required this.settings, required this.today});
+  const NutritionSnapshot({
+    required this.settings,
+    required this.today,
+    this.coachPlan,
+  });
 
   final NutritionSettings settings;
   final NutritionDay today;
+  final CoachNutritionPlan? coachPlan;
 }

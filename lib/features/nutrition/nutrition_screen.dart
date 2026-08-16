@@ -9,7 +9,10 @@ import '../../data/models/meal_slot.dart';
 import '../../data/models/nutrition.dart';
 import '../../l10n/app_localizations.dart';
 import '../../shared/widgets/app_card.dart';
+import '../../shared/widgets/pill.dart';
 import '../../shared/widgets/section_label.dart';
+import '../../state/coach_plan_sync.dart';
+import '../../state/hydration_controller.dart';
 import '../../state/meal_schedule_controller.dart';
 import '../../state/nutrition_controller.dart';
 import '../alerts/alerts_screen.dart';
@@ -43,6 +46,7 @@ class NutritionScreen extends StatelessWidget {
         child: ListView(
           padding: const EdgeInsets.all(AppSpacing.screen),
           children: [
+            const _CoachPlanCard(),
             SectionLabel(l.nutritionWaterSection),
             const SizedBox(height: AppSpacing.sm),
             const _WaterCard(),
@@ -51,6 +55,82 @@ class NutritionScreen extends StatelessWidget {
             const SizedBox(height: AppSpacing.sm),
             const _MealsCard(),
             const SizedBox(height: AppSpacing.xxl),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// The plan the coach sent, if any: who wrote it, their note, and a way to put
+/// it back in place after the member has adjusted things.
+class _CoachPlanCard extends StatelessWidget {
+  const _CoachPlanCard();
+
+  @override
+  Widget build(BuildContext context) {
+    final n = context.watch<NutritionController>();
+    final plan = n.coachPlan;
+    final l = AppLocalizations.of(context);
+    final p = context.palette;
+    if (plan == null) return const SizedBox.shrink();
+
+    final isNew = n.hasUnappliedCoachPlan;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: AppSpacing.lg),
+      child: AppCard(
+        borderColor: AppColors.teal.withValues(alpha: 0.5),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.assignment_turned_in_outlined,
+                    color: AppColors.teal),
+                const SizedBox(width: AppSpacing.sm),
+                Expanded(
+                  child: Text(
+                    plan.coachName.isEmpty
+                        ? l.nutritionCoachPlan
+                        : l.nutritionCoachPlanFrom(plan.coachName),
+                    style: context.textStyles.titleMedium,
+                  ),
+                ),
+                if (isNew)
+                  Pill(l.nutritionCoachPlanNew, tone: PillTone.teal),
+              ],
+            ),
+            if (plan.note.trim().isNotEmpty) ...[
+              const SizedBox(height: AppSpacing.xs),
+              Text(plan.note.trim(), style: context.textStyles.bodySmall),
+            ],
+            const SizedBox(height: AppSpacing.sm),
+            Text(
+              isNew ? l.nutritionCoachPlanPending : l.nutritionCoachPlanApplied,
+              style: context.textStyles.bodySmall?.copyWith(color: p.muted),
+            ),
+            const SizedBox(height: AppSpacing.sm),
+            OutlinedButton.icon(
+              onPressed: () async {
+                final messenger = ScaffoldMessenger.of(context);
+                final applied = await applyCoachNutritionPlan(
+                  nutrition: context.read<NutritionController>(),
+                  meals: context.read<MealScheduleController>(),
+                  hydration: context.read<HydrationController>(),
+                );
+                if (!applied) return;
+                messenger.showSnackBar(
+                  SnackBar(
+                    content: Text(l.nutritionCoachPlanRestored),
+                    duration: const Duration(seconds: 2),
+                  ),
+                );
+              },
+              icon: const Icon(Icons.restart_alt, size: 18),
+              label: Text(isNew
+                  ? l.nutritionCoachPlanApply
+                  : l.nutritionCoachPlanRestore),
+            ),
           ],
         ),
       ),

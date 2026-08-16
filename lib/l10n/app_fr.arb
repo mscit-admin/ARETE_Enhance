@@ -496,5 +496,27 @@
   "nutritionMealsDone": "{done} repas sur {total}",
   "nutritionNextMeal": "Prochain : {meal} à {time}",
   "nutritionNoMealsLeft": "Plus de repas aujourd'hui.",
-  "nutritionMealsHint": "Votre planning fixe. Modifier une heure ici réajuste aussi son rappel."
+  "nutritionMealsHint": "Votre planning fixe. Modifier une heure ici réajuste aussi son rappel.",
+
+  "nutritionCoachPlan": "Plan nutrition de votre coach",
+  "nutritionCoachPlanFrom": "Plan nutrition du coach {name}",
+  "nutritionCoachPlanNew": "Nouveau",
+  "nutritionCoachPlanPending": "Appliquez-le pour installer les repas et l'objectif d'eau de votre coach.",
+  "nutritionCoachPlanApplied": "Appliqué à votre planning. Ce que vous avez changé depuis reste à vous.",
+  "nutritionCoachPlanApply": "Appliquer le plan",
+  "nutritionCoachPlanRestore": "Rétablir le plan du coach",
+  "nutritionCoachPlanRestored": "Le plan de votre coach est rétabli",
+  "notifNutritionPlan": "Nouveau plan nutrition",
+
+  "coachNutritionMenuItem": "Plan nutrition",
+  "coachNutritionTitle": "Nutrition · {name}",
+  "coachNutritionMeals": "Repas",
+  "coachNutritionAddMeal": "Ajouter un repas",
+  "coachNutritionNote": "Note pour votre stagiaire",
+  "coachNutritionNoteHint": "ex. des protéines à chaque repas, pas de glucides après 20 h",
+  "coachNutritionSend": "Envoyer au stagiaire",
+  "coachNutritionSending": "Envoi…",
+  "coachNutritionSent": "Plan envoyé",
+  "coachNutritionLastSent": "Dernier envoi {date}",
+  "coachNutritionHint": "L'app du stagiaire l'applique à son planning, ce qui réajuste ses rappels de repas et d'eau."
 }

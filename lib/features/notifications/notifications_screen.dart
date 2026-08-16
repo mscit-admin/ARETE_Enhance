@@ -69,6 +69,7 @@ class _NotificationTile extends StatelessWidget {
     final (icon, heading) = switch (n.type) {
       'plan_assigned' => (Icons.assignment, l.notifPlanAssigned),
       'session_done' => (Icons.check_circle, l.notifSessionDone),
+      'nutrition_plan' => (Icons.restaurant_menu, l.notifNutritionPlan),
       _ => (Icons.notifications, n.title),
     };
     return Container(

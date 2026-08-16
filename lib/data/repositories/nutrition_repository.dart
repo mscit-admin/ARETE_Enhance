@@ -19,6 +19,8 @@ class NutritionRepository {
 
   static const _kSettings = 'nutrition_settings';
   static const _kDayPrefix = 'nutrition_day_';
+  static const _kCoachPlan = 'nutrition_coach_plan';
+  static const _kAppliedPlan = 'nutrition_coach_plan_applied';
 
   // ---- reads ----
 
@@ -32,12 +34,18 @@ class NutritionRepository {
           (json['settings'] as Map?)?.cast<String, dynamic>() ?? const {});
       final today = NutritionDay.fromJson(
           (json['today'] as Map?)?.cast<String, dynamic>() ?? {'day': day});
+      final rawPlan = (json['coachPlan'] as Map?)?.cast<String, dynamic>();
+      final coachPlan = rawPlan == null || (rawPlan['id'] ?? '').toString().isEmpty
+          ? null
+          : CoachNutritionPlan.fromJson(rawPlan);
       // An un-migrated server answers with defaults; keep the local copy so a
       // target the member already chose is not silently reset.
       if (json['unavailable'] == true) return cached;
       await _cacheSettings(settings);
       await _cacheDay(today);
-      return NutritionSnapshot(settings: settings, today: today);
+      await _cacheCoachPlan(coachPlan);
+      return NutritionSnapshot(
+          settings: settings, today: today, coachPlan: coachPlan);
     } catch (_) {
       return cached;
     }
@@ -47,7 +55,49 @@ class NutritionRepository {
     return NutritionSnapshot(
       settings: await loadCachedSettings(),
       today: await _cachedDay(day),
+      coachPlan: await _cachedCoachPlan(),
     );
+  }
+
+  Future<CoachNutritionPlan?> _cachedCoachPlan() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final raw = prefs.getString(_kCoachPlan);
+      if (raw == null || raw.isEmpty) return null;
+      return CoachNutritionPlan.fromJson(
+          jsonDecode(raw) as Map<String, dynamic>);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<void> _cacheCoachPlan(CoachNutritionPlan? plan) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      if (plan == null) {
+        await prefs.remove(_kCoachPlan);
+      } else {
+        await prefs.setString(_kCoachPlan, jsonEncode(plan.toJson()));
+      }
+    } catch (_) {}
+  }
+
+  /// The id of the coach plan the app has already applied, so a plan is only
+  /// pushed onto the member's schedule once.
+  Future<String> loadAppliedCoachPlanId() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      return prefs.getString(_kAppliedPlan) ?? '';
+    } catch (_) {
+      return '';
+    }
+  }
+
+  Future<void> saveAppliedCoachPlanId(String planId) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_kAppliedPlan, planId);
+    } catch (_) {}
   }
 
   /// The cached settings alone — used by the reminder controllers at startup,
@@ -165,6 +215,8 @@ class NutritionRepository {
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.remove(_kSettings);
+      await prefs.remove(_kCoachPlan);
+      await prefs.remove(_kAppliedPlan);
       for (final key
           in prefs.getKeys().where((k) => k.startsWith(_kDayPrefix)).toList()) {
         await prefs.remove(key);

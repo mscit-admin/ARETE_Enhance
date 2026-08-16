@@ -579,5 +579,30 @@
     "placeholders": { "meal": { "type": "String" }, "time": { "type": "String" } }
   },
   "nutritionNoMealsLeft": "No meals left today.",
-  "nutritionMealsHint": "Your fixed schedule. Editing a time here re-times its reminder too."
+  "nutritionMealsHint": "Your fixed schedule. Editing a time here re-times its reminder too.",
+
+  "nutritionCoachPlan": "Nutrition plan from your coach",
+  "nutritionCoachPlanFrom": "Nutrition plan from coach {name}",
+  "@nutritionCoachPlanFrom": { "placeholders": { "name": { "type": "String" } } },
+  "nutritionCoachPlanNew": "New",
+  "nutritionCoachPlanPending": "Apply it to put your coach's meals and water goal in place.",
+  "nutritionCoachPlanApplied": "Applied to your schedule. Anything you changed since stays yours.",
+  "nutritionCoachPlanApply": "Apply the plan",
+  "nutritionCoachPlanRestore": "Restore the coach's plan",
+  "nutritionCoachPlanRestored": "Your coach's plan is back in place",
+  "notifNutritionPlan": "New nutrition plan",
+
+  "coachNutritionMenuItem": "Nutrition plan",
+  "coachNutritionTitle": "Nutrition · {name}",
+  "@coachNutritionTitle": { "placeholders": { "name": { "type": "String" } } },
+  "coachNutritionMeals": "Meals",
+  "coachNutritionAddMeal": "Add a meal",
+  "coachNutritionNote": "Note to your trainee",
+  "coachNutritionNoteHint": "e.g. protein with every meal, no carbs after 8pm",
+  "coachNutritionSend": "Send to trainee",
+  "coachNutritionSending": "Sending…",
+  "coachNutritionSent": "Plan sent",
+  "coachNutritionLastSent": "Last sent {date}",
+  "@coachNutritionLastSent": { "placeholders": { "date": { "type": "String" } } },
+  "coachNutritionHint": "The trainee's app applies this to their schedule, which re-times their meal and water reminders."
 }

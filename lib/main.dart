@@ -17,6 +17,8 @@ import 'data/repositories/mock_workout_repository.dart';
 import 'state/assessment_controller.dart';
 import 'state/auth_controller.dart';
 import 'state/coach_controller.dart';
+import 'state/coach_nutrition_controller.dart';
+import 'state/coach_plan_sync.dart';
 import 'state/connect_controller.dart';
 import 'state/exercise_library_controller.dart';
 import 'state/help_controller.dart';
@@ -112,7 +114,14 @@ void main() {
       // reminders around them.
       await nutritionController.load();
       await mealScheduleController.reloadFromStore();
-      await hydrationController.applySchedule();
+      // A nutrition plan the coach sent lands on the member's own schedule
+      // once; after that they are free to adjust it.
+      final applied = await applyCoachNutritionPlanIfNew(
+        nutrition: nutritionController,
+        meals: mealScheduleController,
+        hydration: hydrationController,
+      );
+      if (!applied) await hydrationController.applySchedule();
     },
     onSignedOut: () async {
       sessionController.setRole(UserRole.member);
@@ -165,6 +174,9 @@ void main() {
         ChangeNotifierProvider.value(value: notificationsController),
         ChangeNotifierProvider(
           create: (_) => MessagingController(apiClient),
+        ),
+        ChangeNotifierProvider(
+          create: (_) => CoachNutritionController(apiClient),
         ),
       ],
       child: const AreteApp(),

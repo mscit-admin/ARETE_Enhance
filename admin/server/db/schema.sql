@@ -358,3 +358,18 @@ CREATE TABLE IF NOT EXISTS nutrition_days (
   PRIMARY KEY (user_id, day)
 );
 CREATE INDEX IF NOT EXISTS idx_nutrition_days_user ON nutrition_days(user_id, day DESC);
+
+-- Coach-issued nutrition plans. The newest row for a member is the active one;
+-- the app applies it to that member's own schedule and remembers which plan id
+-- it has already applied.
+CREATE TABLE IF NOT EXISTS nutrition_plans (
+  id                   uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  member_user_id       uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  trainer_user_id      uuid REFERENCES users(id) ON DELETE SET NULL,
+  water_target_glasses int,
+  meal_schedule        jsonb NOT NULL,
+  note                 text,
+  created_at           timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_nutrition_plans_member
+  ON nutrition_plans(member_user_id, created_at DESC);
