@@ -1,5 +1,3 @@
-import 'dart:convert';
-
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -7,6 +5,7 @@ import '../core/notifications/notification_copy.dart';
 import '../core/notifications/notification_service.dart';
 import '../core/notifications/reminder_math.dart';
 import '../data/models/meal_slot.dart';
+import '../data/repositories/nutrition_repository.dart';
 
 /// Owns the member's fixed daily meal schedule and the reminders built from it.
 ///
@@ -16,12 +15,15 @@ import '../data/models/meal_slot.dart';
 /// replace them via [replaceAll] with [MealSource.coach] — no change needed
 /// here or in the scheduler.
 class MealScheduleController extends ChangeNotifier {
-  MealScheduleController();
+  MealScheduleController(this._repo);
 
+  final NutritionRepository _repo;
   final NotificationService _notifications = NotificationService.instance;
 
+  /// Whether meal reminders fire at all is a per-device preference, so it stays
+  /// in local storage; the schedule itself lives with the rest of the nutrition
+  /// data and syncs to the server.
   static const _kEnabled = 'meals_reminders_enabled';
-  static const _kSlots = 'meals_schedule';
 
   bool _enabled = true;
   List<MealSlot> _slots = MealSlot.defaults();
@@ -56,33 +58,32 @@ class MealScheduleController extends ChangeNotifier {
     try {
       final prefs = await SharedPreferences.getInstance();
       _enabled = prefs.getBool(_kEnabled) ?? _enabled;
-      final raw = prefs.getString(_kSlots);
-      if (raw != null && raw.isNotEmpty) {
-        final decoded = jsonDecode(raw);
-        if (decoded is List) {
-          final parsed = decoded
-              .whereType<Map>()
-              .map((e) => MealSlot.fromJson(e.cast<String, dynamic>()))
-              .where((s) => s.id.isNotEmpty)
-              .toList();
-          if (parsed.isNotEmpty) _slots = parsed;
-        }
-      }
     } catch (_) {
-      // Corrupt or absent — fall back to the default schedule.
+      // First run — the default is fine.
     }
+    await _loadSlots();
+  }
+
+  Future<void> _loadSlots() async {
+    final stored = (await _repo.loadCachedSettings()).mealSchedule;
+    if (stored != null && stored.isNotEmpty) _slots = [...stored];
     _sort();
+  }
+
+  /// Re-read the schedule after the nutrition data has been refreshed from the
+  /// server (e.g. right after sign-in), then rebuild the reminders.
+  Future<void> reloadFromStore() async {
+    await _loadSlots();
+    notifyListeners();
+    await applySchedule();
   }
 
   Future<void> _persist() async {
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setBool(_kEnabled, _enabled);
-      await prefs.setString(
-        _kSlots,
-        jsonEncode([for (final s in _slots) s.toJson()]),
-      );
     } catch (_) {}
+    await _repo.saveMealSchedule(_slots);
   }
 
   void _sort() => _slots.sort((a, b) => a.minuteOfDay.compareTo(b.minuteOfDay));

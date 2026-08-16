@@ -478,5 +478,23 @@
   "mealLunch": "Déjeuner",
   "mealDinner": "Dîner",
   "mealPreWorkout": "Repas avant l'entraînement",
-  "mealPostWorkout": "Repas après l'entraînement"
+  "mealPostWorkout": "Repas après l'entraînement",
+
+  "nutritionTitle": "Repas et boissons",
+  "nutritionWaterSection": "Eau aujourd'hui",
+  "nutritionMealsSection": "Repas du jour",
+  "nutritionGlassesOfTarget": "{count} verres sur {target}",
+  "nutritionLitres": "{drunk} L sur {target} L",
+  "nutritionGoalReached": "Objectif du jour atteint — bravo.",
+  "nutritionGlassesLeft": "Encore {count} verres.",
+  "nutritionAddGlass": "Noter un verre",
+  "nutritionDailyTarget": "Objectif quotidien",
+  "nutritionTargetHint": "Les rappels d'eau sont répartis sur cet objectif : le modifier réajuste leurs horaires.",
+  "nutritionGlassesCount": "{count} verres",
+  "nutritionGlassSize": "Taille du verre",
+  "nutritionMl": "{ml} ml",
+  "nutritionMealsDone": "{done} repas sur {total}",
+  "nutritionNextMeal": "Prochain : {meal} à {time}",
+  "nutritionNoMealsLeft": "Plus de repas aujourd'hui.",
+  "nutritionMealsHint": "Votre planning fixe. Modifier une heure ici réajuste aussi son rappel."
 }

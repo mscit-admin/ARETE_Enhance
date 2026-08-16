@@ -335,3 +335,26 @@ CREATE TABLE IF NOT EXISTS notifications (
   created_at timestamptz NOT NULL DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS idx_notifications_user ON notifications(user_id, created_at DESC);
+
+-- ---------- Nutrition: water target, meal schedule and daily intake ----------
+-- One settings row per member. `meal_schedule` holds the MealSlot list the app
+-- sends verbatim; a coach-issued nutrition plan will later write the same
+-- shape, so reminders keep working unchanged.
+CREATE TABLE IF NOT EXISTS nutrition_settings (
+  user_id              uuid PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+  water_target_glasses int  NOT NULL DEFAULT 8,
+  glass_ml             int  NOT NULL DEFAULT 250,
+  meal_schedule        jsonb,
+  updated_at           timestamptz NOT NULL DEFAULT now()
+);
+
+-- One row per member per day: glasses drunk and which meals were ticked off.
+CREATE TABLE IF NOT EXISTS nutrition_days (
+  user_id       uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  day           date NOT NULL,
+  water_glasses int  NOT NULL DEFAULT 0,
+  meals_done    jsonb,
+  updated_at    timestamptz NOT NULL DEFAULT now(),
+  PRIMARY KEY (user_id, day)
+);
+CREATE INDEX IF NOT EXISTS idx_nutrition_days_user ON nutrition_days(user_id, day DESC);

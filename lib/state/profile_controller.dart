@@ -37,18 +37,6 @@ class ProfileController extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Log one glass of water (250 ml) for today and persist optimistically.
-  Future<void> logWater() async {
-    final m = _member;
-    if (m == null) return;
-    final ds = m.dailyStats;
-    await save(
-      m.copyWith(
-        dailyStats: ds.copyWith(waterGlasses: ds.waterGlasses + 1),
-      ),
-    );
-  }
-
   /// Bind the signed-in account to the profile (name & email come from auth).
   Future<void> applyAccount({required String name, required String email}) async {
     final m = _member;

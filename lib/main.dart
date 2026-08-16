@@ -10,6 +10,7 @@ import 'core/notifications/notification_service.dart';
 import 'data/api/api_client.dart';
 import 'data/repositories/api_auth_repository.dart';
 import 'data/repositories/api_profile_repository.dart';
+import 'data/repositories/nutrition_repository.dart';
 import 'data/repositories/mock_coach_repository.dart';
 import 'data/repositories/mock_progress_repository.dart';
 import 'data/repositories/mock_workout_repository.dart';
@@ -25,6 +26,7 @@ import 'state/meal_schedule_controller.dart';
 import 'state/messaging_controller.dart';
 import 'state/my_plan_controller.dart';
 import 'state/notifications_controller.dart';
+import 'state/nutrition_controller.dart';
 import 'state/plans_controller.dart';
 import 'state/profile_controller.dart';
 import 'state/progress_controller.dart';
@@ -52,10 +54,15 @@ void main() {
   final notificationsController = NotificationsController(apiClient);
   final assessmentController = AssessmentController();
 
+  // Eating & drinking. The nutrition controller is the source of truth for the
+  // water goal and today's intake; the reminder controllers read from it.
+  final nutritionRepository = NutritionRepository(apiClient);
+  final nutritionController = NutritionController(nutritionRepository);
+
   // Reminder controllers. They own their own schedules and settings, so they
   // start themselves rather than waiting for a sign-in.
-  final hydrationController = HydrationController(profileController);
-  final mealScheduleController = MealScheduleController();
+  final hydrationController = HydrationController(nutritionController);
+  final mealScheduleController = MealScheduleController(nutritionRepository);
   final tipsController = TipsController();
 
   // OS notifications fire while the app is closed, out of reach of
@@ -85,8 +92,9 @@ void main() {
   };
 
   // Restores each controller's settings, asks for the notification permission
-  // once, and (re)builds the OS schedules.
-  hydrationController.init();
+  // once, and (re)builds the OS schedules. Nutrition goes first so the water
+  // reminders are built from the stored goal rather than the default.
+  nutritionController.load().then((_) => hydrationController.init());
   mealScheduleController.init();
   tipsController.init();
 
@@ -100,6 +108,11 @@ void main() {
       await profileController.load();
       await profileController.applyAccount(name: user.name, email: user.email);
       notificationsController.load();
+      // Pull this account's goal, intake and meal schedule, then re-time the
+      // reminders around them.
+      await nutritionController.load();
+      await mealScheduleController.reloadFromStore();
+      await hydrationController.applySchedule();
     },
     onSignedOut: () async {
       sessionController.setRole(UserRole.member);
@@ -107,6 +120,7 @@ void main() {
       connectController.clear();
       myPlanController.clear();
       notificationsController.clear();
+      nutritionController.clear();
       assessmentController.clearSelectedPlan();
     },
   )..bootstrap();
@@ -126,6 +140,7 @@ void main() {
         ChangeNotifierProvider(
           create: (_) => TrainerController(profileRepository),
         ),
+        ChangeNotifierProvider.value(value: nutritionController),
         ChangeNotifierProvider.value(value: hydrationController),
         ChangeNotifierProvider.value(value: mealScheduleController),
         ChangeNotifierProvider.value(value: tipsController),

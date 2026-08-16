@@ -546,5 +546,38 @@
   "mealLunch": "Lunch",
   "mealDinner": "Dinner",
   "mealPreWorkout": "Pre-workout meal",
-  "mealPostWorkout": "Post-workout meal"
+  "mealPostWorkout": "Post-workout meal",
+
+  "nutritionTitle": "Meals & Drinks",
+  "nutritionWaterSection": "Water today",
+  "nutritionMealsSection": "Today's meals",
+  "nutritionGlassesOfTarget": "{count} of {target} glasses",
+  "@nutritionGlassesOfTarget": {
+    "placeholders": { "count": { "type": "int" }, "target": { "type": "int" } }
+  },
+  "nutritionLitres": "{drunk} of {target} L",
+  "@nutritionLitres": {
+    "placeholders": { "drunk": { "type": "String" }, "target": { "type": "String" } }
+  },
+  "nutritionGoalReached": "Daily goal reached — nice work.",
+  "nutritionGlassesLeft": "{count} glasses to go.",
+  "@nutritionGlassesLeft": { "placeholders": { "count": { "type": "int" } } },
+  "nutritionAddGlass": "Log a glass",
+  "nutritionDailyTarget": "Daily goal",
+  "nutritionTargetHint": "Water reminders are spread across this goal, so changing it re-times them.",
+  "nutritionGlassesCount": "{count} glasses",
+  "@nutritionGlassesCount": { "placeholders": { "count": { "type": "int" } } },
+  "nutritionGlassSize": "Glass size",
+  "nutritionMl": "{ml} ml",
+  "@nutritionMl": { "placeholders": { "ml": { "type": "int" } } },
+  "nutritionMealsDone": "{done} of {total} meals eaten",
+  "@nutritionMealsDone": {
+    "placeholders": { "done": { "type": "int" }, "total": { "type": "int" } }
+  },
+  "nutritionNextMeal": "Next: {meal} at {time}",
+  "@nutritionNextMeal": {
+    "placeholders": { "meal": { "type": "String" }, "time": { "type": "String" } }
+  },
+  "nutritionNoMealsLeft": "No meals left today.",
+  "nutritionMealsHint": "Your fixed schedule. Editing a time here re-times its reminder too."
 }

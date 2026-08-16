@@ -14,12 +14,14 @@ import '../../shared/widgets/section_label.dart';
 import '../../state/assessment_controller.dart';
 import '../../state/auth_controller.dart';
 import '../../state/hydration_controller.dart';
+import '../../state/nutrition_controller.dart';
 import '../../state/profile_controller.dart';
 import '../../state/session_controller.dart';
 import '../alerts/widgets/daily_tip_card.dart';
 import '../assessment/assessment_flow_screen.dart';
 import '../assessment/starter_plan_detail_screen.dart';
 import '../help/tour_keys.dart';
+import '../nutrition/nutrition_screen.dart';
 import '../notifications/notification_bell.dart';
 import '../shell/root_scaffold_key.dart';
 import 'widgets/badges_row.dart';
@@ -316,8 +318,12 @@ class _TodayActivityBars extends StatelessWidget {
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
     final ds = member.dailyStats;
+    // Water is owned by the nutrition data (target + today's glasses); steps
+    // and calories still come from the profile's daily stats.
+    final nutrition = context.watch<NutritionController>();
     final overall =
-        (((ds.caloriesProgress + ds.stepsProgress + ds.waterProgress) / 3) *
+        (((ds.caloriesProgress + ds.stepsProgress + nutrition.waterProgress) /
+                    3) *
                 100)
             .clamp(0.0, 100.0)
             .round();
@@ -355,9 +361,12 @@ class _TodayActivityBars extends StatelessWidget {
         _ActivityBar(
           icon: Icons.water_drop,
           name: l.kpiWater,
-          value: '${ds.waterGlasses}/${ds.waterTargetGlasses}',
-          progress: ds.waterProgress,
+          value: '${nutrition.waterGlasses}/${nutrition.waterTargetGlasses}',
+          progress: nutrition.waterProgress,
           color: AppColors.water,
+          onTap: () => Navigator.of(context).push(
+            MaterialPageRoute(builder: (_) => const NutritionScreen()),
+          ),
         ),
         const SizedBox(height: AppSpacing.md),
         const _LogWaterButton(),
@@ -373,6 +382,7 @@ class _ActivityBar extends StatelessWidget {
     required this.value,
     required this.progress,
     required this.color,
+    this.onTap,
   });
 
   final IconData icon;
@@ -381,10 +391,13 @@ class _ActivityBar extends StatelessWidget {
   final double progress;
   final Color color;
 
+  /// Optional destination — the water bar opens Meals & Drinks.
+  final VoidCallback? onTap;
+
   @override
   Widget build(BuildContext context) {
     final p = context.palette;
-    return Column(
+    final bar = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
@@ -395,6 +408,10 @@ class _ActivityBar extends StatelessWidget {
             const Spacer(),
             Text(value,
                 style: context.textStyles.bodySmall?.copyWith(color: p.muted)),
+            if (onTap != null) ...[
+              const SizedBox(width: 4),
+              Icon(Icons.chevron_right, size: 16, color: p.muted),
+            ],
           ],
         ),
         const SizedBox(height: 6),
@@ -411,6 +428,13 @@ class _ActivityBar extends StatelessWidget {
           ),
         ),
       ],
+    );
+
+    if (onTap == null) return bar;
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
+      child: bar,
     );
   }
 }
@@ -573,7 +597,7 @@ class _LogWaterButton extends StatelessWidget {
     final l = AppLocalizations.of(context);
     return OutlinedButton.icon(
       onPressed: () {
-        context.read<ProfileController>().logWater();
+        context.read<NutritionController>().logGlass();
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(l.hydrateLogged),

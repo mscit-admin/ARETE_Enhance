@@ -11,6 +11,7 @@ import '../../state/profile_controller.dart';
 import '../alerts/alerts_screen.dart';
 import '../help/tour_keys.dart';
 import '../library/exercise_library_screen.dart';
+import '../nutrition/nutrition_screen.dart';
 import 'edit_profile_screen.dart';
 import 'settings_screen.dart';
 
@@ -116,6 +117,17 @@ class AccountDrawer extends StatelessWidget {
                 Navigator.of(context).pop();
                 Navigator.of(context).push(
                   MaterialPageRoute(builder: (_) => const SettingsScreen()),
+                );
+              },
+            ),
+            const Divider(height: 1),
+            ListTile(
+              leading: const Icon(Icons.restaurant_outlined),
+              title: Text(l.nutritionTitle),
+              onTap: () {
+                Navigator.of(context).pop();
+                Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const NutritionScreen()),
                 );
               },
             ),

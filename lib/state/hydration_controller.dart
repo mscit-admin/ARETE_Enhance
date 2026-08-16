@@ -6,20 +6,19 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../core/notifications/notification_copy.dart';
 import '../core/notifications/notification_service.dart';
 import '../core/notifications/reminder_math.dart';
-import 'profile_controller.dart';
+import 'nutrition_controller.dart';
 
 /// Owns the water reminders: when they fire, the in-app "time to drink" prompt,
 /// and the OS notification schedule. Confirming a reminder logs a glass.
 ///
 /// By default the reminder times are *derived from the daily target* — the
-/// `waterTargetGlasses` the member is aiming for (today from their profile,
-/// later editable on the Meals & Drinks screen) is spread evenly across the
-/// active window, so eight glasses between 8:00 and 20:00 become a reminder
-/// every 90 minutes. Turning that off falls back to a plain fixed interval.
+/// goal set on the Meals & Drinks screen is spread evenly across the active
+/// window, so eight glasses between 8:00 and 20:00 become a reminder every 90
+/// minutes. Turning that off falls back to a plain fixed interval.
 class HydrationController extends ChangeNotifier {
-  HydrationController(this._profile);
+  HydrationController(this._nutrition);
 
-  final ProfileController _profile;
+  final NutritionController _nutrition;
   final NotificationService _notifications = NotificationService.instance;
 
   static const _kEnabled = 'hydration_enabled';
@@ -51,13 +50,13 @@ class HydrationController extends ChangeNotifier {
   bool get promptDue => _promptDue;
   bool get permissionGranted => _permissionGranted;
 
-  /// The daily goal the reminders are built from (glasses of 250 ml).
+  /// The daily goal the reminders are built from.
   int get targetGlasses {
-    final target = _profile.member?.dailyStats.waterTargetGlasses ?? 8;
-    return target <= 0 ? 8 : target;
+    final target = _nutrition.waterTargetGlasses;
+    return target <= 0 ? 1 : target;
   }
 
-  int get glassesLogged => _profile.member?.dailyStats.waterGlasses ?? 0;
+  int get glassesLogged => _nutrition.waterGlasses;
 
   /// Reminder times of day, in minutes since midnight.
   List<int> get slotMinutes {
@@ -99,7 +98,7 @@ class HydrationController extends ChangeNotifier {
     // runs the platform answers from the stored grant without a dialog.
     _permissionGranted = await _notifications.requestPermission();
     _lastKnownTarget = targetGlasses;
-    _profile.addListener(_onProfileChanged);
+    _nutrition.addListener(_onNutritionChanged);
     await applySchedule();
     _startTicker();
     notifyListeners();
@@ -131,9 +130,9 @@ class HydrationController extends ChangeNotifier {
     } catch (_) {}
   }
 
-  /// The daily target lives on the profile, so a change there (or, later, on
-  /// the Meals & Drinks screen) has to rebuild the schedule.
-  void _onProfileChanged() {
+  /// The daily target lives with the nutrition data, so editing it on the
+  /// Meals & Drinks screen has to rebuild the schedule.
+  void _onNutritionChanged() {
     final target = targetGlasses;
     if (target == _lastKnownTarget) return;
     _lastKnownTarget = target;
@@ -221,7 +220,7 @@ class HydrationController extends ChangeNotifier {
   Future<void> confirmDrank() async {
     _promptDue = false;
     notifyListeners();
-    await _profile.logWater();
+    await _nutrition.logGlass();
   }
 
   void snooze() {
@@ -256,7 +255,7 @@ class HydrationController extends ChangeNotifier {
   @override
   void dispose() {
     _ticker?.cancel();
-    _profile.removeListener(_onProfileChanged);
+    _nutrition.removeListener(_onNutritionChanged);
     super.dispose();
   }
 }

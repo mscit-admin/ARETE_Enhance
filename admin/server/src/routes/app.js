@@ -1009,4 +1009,138 @@ router.post('/messages', requireAuth, async (req, res) => {
   }
 });
 
+// ======================================================================
+//  Nutrition — the water target, the meal schedule and today's intake.
+//  The app keeps a local cache and works without these endpoints, so every
+//  handler degrades quietly on an un-migrated server rather than erroring.
+// ======================================================================
+
+const NUTRITION_DEFAULTS = {
+  waterTargetGlasses: 8,
+  glassMl: 250,
+  mealSchedule: null, // null = the app's default schedule
+};
+
+// Today in the caller's local time. The app sends its own day so a member in
+// UTC+3 does not roll over at 03:00 local.
+function nutritionDay(req) {
+  const raw = String(req.query.day || req.body?.day || '').trim();
+  if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw;
+  return new Date().toISOString().slice(0, 10);
+}
+
+function settingsToApp(row) {
+  if (!row) return { ...NUTRITION_DEFAULTS };
+  return {
+    waterTargetGlasses: row.water_target_glasses ?? NUTRITION_DEFAULTS.waterTargetGlasses,
+    glassMl: row.glass_ml ?? NUTRITION_DEFAULTS.glassMl,
+    mealSchedule: row.meal_schedule ?? null,
+  };
+}
+
+function dayToApp(row, day) {
+  return {
+    day,
+    waterGlasses: row?.water_glasses ?? 0,
+    mealsDone: Array.isArray(row?.meals_done) ? row.meals_done : [],
+  };
+}
+
+const clampInt = (value, min, max, fallback) => {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return fallback;
+  return Math.min(max, Math.max(min, Math.round(n)));
+};
+
+// GET /api/app/nutrition?day=YYYY-MM-DD — settings plus that day's intake.
+router.get('/nutrition', requireAuth, async (req, res) => {
+  const day = nutritionDay(req);
+  try {
+    const [settings, today] = await Promise.all([
+      db.query('SELECT * FROM nutrition_settings WHERE user_id = $1', [req.user.sub]),
+      db.query('SELECT * FROM nutrition_days WHERE user_id = $1 AND day = $2', [
+        req.user.sub,
+        day,
+      ]),
+    ]);
+    return res.json({
+      settings: settingsToApp(settings.rows[0]),
+      today: dayToApp(today.rows[0], day),
+    });
+  } catch (e) {
+    return res.json({
+      settings: { ...NUTRITION_DEFAULTS },
+      today: dayToApp(null, day),
+      unavailable: true,
+    });
+  }
+});
+
+// PUT /api/app/nutrition/settings — daily target, glass size, meal schedule.
+router.put('/nutrition/settings', requireAuth, async (req, res) => {
+  const waterTarget = clampInt(req.body?.waterTargetGlasses, 1, 30, NUTRITION_DEFAULTS.waterTargetGlasses);
+  const glassMl = clampInt(req.body?.glassMl, 50, 2000, NUTRITION_DEFAULTS.glassMl);
+  const schedule = Array.isArray(req.body?.mealSchedule) ? req.body.mealSchedule : null;
+  try {
+    const r = await db.query(
+      `INSERT INTO nutrition_settings (user_id, water_target_glasses, glass_ml, meal_schedule, updated_at)
+            VALUES ($1, $2, $3, $4::jsonb, now())
+       ON CONFLICT (user_id) DO UPDATE
+            SET water_target_glasses = EXCLUDED.water_target_glasses,
+                glass_ml             = EXCLUDED.glass_ml,
+                meal_schedule        = COALESCE(EXCLUDED.meal_schedule, nutrition_settings.meal_schedule),
+                updated_at           = now()
+         RETURNING *`,
+      [req.user.sub, waterTarget, glassMl, schedule ? JSON.stringify(schedule) : null],
+    );
+    return res.json({ settings: settingsToApp(r.rows[0]) });
+  } catch (e) {
+    // Un-migrated server: the app keeps its local copy.
+    return res.json({
+      settings: { waterTargetGlasses: waterTarget, glassMl, mealSchedule: schedule },
+      unavailable: true,
+    });
+  }
+});
+
+// POST /api/app/nutrition/water  { day, glasses } — set today's glass count.
+router.post('/nutrition/water', requireAuth, async (req, res) => {
+  const day = nutritionDay(req);
+  const glasses = clampInt(req.body?.glasses, 0, 60, 0);
+  try {
+    const r = await db.query(
+      `INSERT INTO nutrition_days (user_id, day, water_glasses, updated_at)
+            VALUES ($1, $2, $3, now())
+       ON CONFLICT (user_id, day) DO UPDATE
+            SET water_glasses = EXCLUDED.water_glasses, updated_at = now()
+         RETURNING *`,
+      [req.user.sub, day, glasses],
+    );
+    return res.json({ today: dayToApp(r.rows[0], day) });
+  } catch (e) {
+    return res.json({ today: { day, waterGlasses: glasses, mealsDone: [] }, unavailable: true });
+  }
+});
+
+// POST /api/app/nutrition/meals  { day, mealsDone: [id] } — today's ticked meals.
+router.post('/nutrition/meals', requireAuth, async (req, res) => {
+  const day = nutritionDay(req);
+  const done = Array.isArray(req.body?.mealsDone)
+    ? req.body.mealsDone.map((id) => String(id)).slice(0, 40)
+    : [];
+  try {
+    const r = await db.query(
+      `INSERT INTO nutrition_days (user_id, day, meals_done, updated_at)
+            VALUES ($1, $2, $3::jsonb, now())
+       ON CONFLICT (user_id, day) DO UPDATE
+            SET meals_done = EXCLUDED.meals_done, updated_at = now()
+         RETURNING *`,
+      [req.user.sub, day, JSON.stringify(done)],
+    );
+    return res.json({ today: dayToApp(r.rows[0], day) });
+  } catch (e) {
+    return res.json({ today: { day, waterGlasses: 0, mealsDone: done }, unavailable: true });
+  }
+});
+
 module.exports = router;

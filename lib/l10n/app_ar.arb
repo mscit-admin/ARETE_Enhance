@@ -478,5 +478,23 @@
   "mealLunch": "الغداء",
   "mealDinner": "العشاء",
   "mealPreWorkout": "وجبة ما قبل التمرين",
-  "mealPostWorkout": "وجبة ما بعد التمرين"
+  "mealPostWorkout": "وجبة ما بعد التمرين",
+
+  "nutritionTitle": "الأكل والشرب",
+  "nutritionWaterSection": "ماء اليوم",
+  "nutritionMealsSection": "وجبات اليوم",
+  "nutritionGlassesOfTarget": "{count} من {target} أكواب",
+  "nutritionLitres": "{drunk} من {target} لتر",
+  "nutritionGoalReached": "بلغت هدف اليوم — أحسنت.",
+  "nutritionGlassesLeft": "بقي {count} أكواب.",
+  "nutritionAddGlass": "تسجيل كوب",
+  "nutritionDailyTarget": "الهدف اليومي",
+  "nutritionTargetHint": "تذكيرات الماء تُوزَّع على هذا الهدف، فتغييره يعيد ترتيب أوقاتها.",
+  "nutritionGlassesCount": "{count} أكواب",
+  "nutritionGlassSize": "حجم الكوب",
+  "nutritionMl": "{ml} مل",
+  "nutritionMealsDone": "{done} من {total} وجبات",
+  "nutritionNextMeal": "التالية: {meal} في {time}",
+  "nutritionNoMealsLeft": "لا وجبات متبقية اليوم.",
+  "nutritionMealsHint": "هذا جدولك الثابت. تعديل الوقت هنا يعدّل موعد تذكيره أيضاً."
 }
