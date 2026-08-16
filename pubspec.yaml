@@ -18,6 +18,9 @@ dependencies:
   # two never conflict across Flutter stable releases.
   intl: any
   flutter_local_notifications: ^17.2.3
+  # Required by flutter_local_notifications' zonedSchedule (daily reminders at
+  # a fixed time of day). Kept on the same 0.9.x line the plugin itself pins.
+  timezone: ^0.9.4
   shared_preferences: ^2.2.3
   crypto: ^3.0.3
   http: ^1.2.2

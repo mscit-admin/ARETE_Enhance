@@ -488,5 +488,63 @@
   "notifTitle": "Notifications",
   "notifEmpty": "No notifications yet",
   "notifPlanAssigned": "New plan assigned",
-  "notifSessionDone": "Session completed"
+  "notifSessionDone": "Session completed",
+
+  "alertsTitle": "Alerts & reminders",
+  "alertsSubtitle": "Water, meals and daily tips",
+  "alertsWaterSection": "Water",
+  "alertsMealsSection": "Meals",
+  "alertsTipsSection": "Fitness tips",
+  "alertsFromTarget": "Follow my daily target",
+  "alertsFromTargetOn": "{count} glasses · every {duration}",
+  "@alertsFromTargetOn": {
+    "placeholders": { "count": { "type": "int" }, "duration": { "type": "String" } }
+  },
+  "alertsFromTargetHint": "Reminders are spread across your active window and follow the daily target, wherever it is set.",
+  "alertsSchedulePreview": "Reminder times",
+  "alertsMealsOn": "{count} meals · next {meal} at {time}",
+  "@alertsMealsOn": {
+    "placeholders": {
+      "count": { "type": "int" },
+      "meal": { "type": "String" },
+      "time": { "type": "String" }
+    }
+  },
+  "alertsMealsCount": "{count} meals on your schedule",
+  "@alertsMealsCount": { "placeholders": { "count": { "type": "int" } } },
+  "alertsMealsHint": "This is your fixed schedule. A coach nutrition plan will replace it later without changing your reminders.",
+  "alertsAddSnack": "Add a snack",
+  "alertsResetSchedule": "Restore the default schedule",
+  "alertsRemove": "Remove",
+  "alertsEditMeal": "Edit meal",
+  "alertsMealName": "Name (optional)",
+  "alertsMealNote": "Note (optional)",
+  "alertsMealKind": "Meal",
+  "alertsSave": "Save",
+  "alertsTipTime": "Tip time",
+  "alertsTipTopics": "Topics",
+  "alertsTipsOn": "One tip a day at {time}",
+  "@alertsTipsOn": { "placeholders": { "time": { "type": "String" } } },
+  "alertsOff": "Off",
+  "alertsDurMinutes": "{minutes} min",
+  "@alertsDurMinutes": { "placeholders": { "minutes": { "type": "int" } } },
+  "alertsDurHours": "{hours} h",
+  "@alertsDurHours": { "placeholders": { "hours": { "type": "int" } } },
+  "alertsDurHoursMinutes": "{hours} h {minutes} min",
+  "@alertsDurHoursMinutes": {
+    "placeholders": { "hours": { "type": "int" }, "minutes": { "type": "int" } }
+  },
+  "tipCategoryTraining": "Training",
+  "tipCategoryRecovery": "Recovery",
+  "tipCategoryNutrition": "Nutrition",
+  "tipCategoryHydration": "Hydration",
+  "tipCategoryMindset": "Mindset",
+  "tipOfDayTitle": "Tip of the day",
+  "tipDismiss": "Not now",
+  "mealBreakfast": "Breakfast",
+  "mealSnack": "Snack",
+  "mealLunch": "Lunch",
+  "mealDinner": "Dinner",
+  "mealPreWorkout": "Pre-workout meal",
+  "mealPostWorkout": "Post-workout meal"
 }

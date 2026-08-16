@@ -6,7 +6,7 @@ name: Build Android APK
 on:
   push:
     branches:
-      - claude/fitness-app-phase-1-design-3jz9c6
+      - "claude/**"
       - main
   pull_request:
   workflow_dispatch:
@@ -66,8 +66,19 @@ jobs:
             sed -i 's#<application#<uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>\n    <application#' "$MANIFEST"
           fi
 
+          # 4) Scheduled reminders (water, meals, tips). Since v16 the plugin no
+          # longer ships these in its own manifest: without the receivers below
+          # nothing that is *scheduled* ever fires, and without
+          # RECEIVE_BOOT_COMPLETED the schedule is lost on every reboot.
+          if ! grep -q "RECEIVE_BOOT_COMPLETED" "$MANIFEST"; then
+            sed -i 's#<application#<uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>\n    <application#' "$MANIFEST"
+          fi
+          if ! grep -q "ScheduledNotificationReceiver" "$MANIFEST"; then
+            sed -i 's#<activity#<receiver android:exported="false" android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationReceiver" />\n        <receiver android:exported="false" android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationBootReceiver">\n            <intent-filter>\n                <action android:name="android.intent.action.BOOT_COMPLETED"/>\n                <action android:name="android.intent.action.MY_PACKAGE_REPLACED"/>\n                <action android:name="android.intent.action.QUICKBOOT_POWERON"/>\n                <action android:name="com.htc.intent.action.QUICKBOOT_POWERON"/>\n            </intent-filter>\n        </receiver>\n        <activity#' "$MANIFEST"
+          fi
+
           echo "----- build.gradle.kts (tail) -----"; tail -n 12 "$GRADLE"
-          echo "----- AndroidManifest.xml (head) -----"; head -n 12 "$MANIFEST"
+          echo "----- AndroidManifest.xml -----"; cat "$MANIFEST"
 
       # The app talks to the backend over plain HTTP for now, so allow cleartext
       # traffic to the server IP (and emulator/localhost) via a network config.

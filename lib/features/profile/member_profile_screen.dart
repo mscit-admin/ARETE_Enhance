@@ -16,6 +16,7 @@ import '../../state/auth_controller.dart';
 import '../../state/hydration_controller.dart';
 import '../../state/profile_controller.dart';
 import '../../state/session_controller.dart';
+import '../alerts/widgets/daily_tip_card.dart';
 import '../assessment/assessment_flow_screen.dart';
 import '../assessment/starter_plan_detail_screen.dart';
 import '../help/tour_keys.dart';
@@ -75,6 +76,9 @@ class _ProfileBody extends StatelessWidget {
             const _HydrationPrompt(),
             const SizedBox(height: AppSpacing.lg),
           ],
+
+          // ---- Tip of the day (hides itself once dismissed) ----
+          const DailyTipCard(),
 
           // ---- Header ----
           Row(

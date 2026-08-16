@@ -1,3 +1,5 @@
+import '../../data/models/fitness_tip.dart';
+import '../../data/models/meal_slot.dart';
 import '../../l10n/app_localizations.dart';
 import '../constants/enums.dart';
 
@@ -67,5 +69,26 @@ extension GenderL10n on Gender {
         Gender.female => l.genderFemale,
         Gender.other => l.genderOther,
         Gender.preferNotToSay => l.genderPreferNot,
+      };
+}
+
+extension MealKindL10n on MealKind {
+  String localized(AppLocalizations l) => switch (this) {
+        MealKind.breakfast => l.mealBreakfast,
+        MealKind.snack => l.mealSnack,
+        MealKind.lunch => l.mealLunch,
+        MealKind.dinner => l.mealDinner,
+        MealKind.preWorkout => l.mealPreWorkout,
+        MealKind.postWorkout => l.mealPostWorkout,
+      };
+}
+
+extension TipCategoryL10n on TipCategory {
+  String localized(AppLocalizations l) => switch (this) {
+        TipCategory.training => l.tipCategoryTraining,
+        TipCategory.recovery => l.tipCategoryRecovery,
+        TipCategory.nutrition => l.tipCategoryNutrition,
+        TipCategory.hydration => l.tipCategoryHydration,
+        TipCategory.mindset => l.tipCategoryMindset,
       };
 }

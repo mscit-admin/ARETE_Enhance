@@ -1,8 +1,12 @@
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import 'app/arete_app.dart';
 import 'core/constants/enums.dart';
+import 'core/notifications/notification_copy.dart';
+import 'core/notifications/notification_service.dart';
 import 'data/api/api_client.dart';
 import 'data/repositories/api_auth_repository.dart';
 import 'data/repositories/api_profile_repository.dart';
@@ -17,6 +21,7 @@ import 'state/exercise_library_controller.dart';
 import 'state/help_controller.dart';
 import 'state/hydration_controller.dart';
 import 'state/locale_controller.dart';
+import 'state/meal_schedule_controller.dart';
 import 'state/messaging_controller.dart';
 import 'state/my_plan_controller.dart';
 import 'state/notifications_controller.dart';
@@ -24,6 +29,7 @@ import 'state/plans_controller.dart';
 import 'state/profile_controller.dart';
 import 'state/progress_controller.dart';
 import 'state/session_controller.dart';
+import 'state/tips_controller.dart';
 import 'state/trainer_controller.dart';
 import 'state/workout_controller.dart';
 
@@ -45,6 +51,44 @@ void main() {
   final myPlanController = MyPlanController(apiClient);
   final notificationsController = NotificationsController(apiClient);
   final assessmentController = AssessmentController();
+
+  // Reminder controllers. They own their own schedules and settings, so they
+  // start themselves rather than waiting for a sign-in.
+  final hydrationController = HydrationController(profileController);
+  final mealScheduleController = MealScheduleController();
+  final tipsController = TipsController();
+
+  // OS notifications fire while the app is closed, out of reach of
+  // AppLocalizations — mirror the chosen language into the notification copy
+  // and rebuild the schedules whenever it changes.
+  final localeController = LocaleController();
+  void applyNotificationLocale() {
+    final code = localeController.locale?.languageCode ??
+        PlatformDispatcher.instance.locale.languageCode;
+    if (code == NotificationCopy.localeCode) return;
+    NotificationCopy.setLocale(code);
+    hydrationController.applySchedule();
+    mealScheduleController.applySchedule();
+    tipsController.applySchedule();
+  }
+
+  NotificationCopy.setLocale(
+    localeController.locale?.languageCode ??
+        PlatformDispatcher.instance.locale.languageCode,
+  );
+  localeController.addListener(applyNotificationLocale);
+
+  // Tapping a water reminder opens ARETE on the "did you drink?" prompt, so a
+  // glass can be logged straight from the notification.
+  NotificationService.onSelect = (payload) {
+    if (payload == 'hydration') hydrationController.triggerInAppPromptNow();
+  };
+
+  // Restores each controller's settings, asks for the notification permission
+  // once, and (re)builds the OS schedules.
+  hydrationController.init();
+  mealScheduleController.init();
+  tipsController.init();
 
   final authController = AuthController(
     authRepository,
@@ -75,16 +119,16 @@ void main() {
     MultiProvider(
       providers: [
         ChangeNotifierProvider.value(value: authController),
-        ChangeNotifierProvider(create: (_) => LocaleController()),
+        ChangeNotifierProvider.value(value: localeController),
         ChangeNotifierProvider(create: (_) => HelpController()),
         ChangeNotifierProvider.value(value: sessionController),
         ChangeNotifierProvider.value(value: profileController),
         ChangeNotifierProvider(
           create: (_) => TrainerController(profileRepository),
         ),
-        ChangeNotifierProvider(
-          create: (_) => HydrationController(profileController)..init(),
-        ),
+        ChangeNotifierProvider.value(value: hydrationController),
+        ChangeNotifierProvider.value(value: mealScheduleController),
+        ChangeNotifierProvider.value(value: tipsController),
         ChangeNotifierProvider(
           create: (_) => WorkoutController(workoutRepository),
         ),
