@@ -77,7 +77,8 @@ class _CoachNutritionPlanScreenState extends State<CoachNutritionPlanScreen> {
     });
   }
 
-  Future<void> _editSlot(MealSlot slot, {bool isNew = false}) async {
+  /// Edit an existing meal, or add the one passed in — [_upsert] covers both.
+  Future<void> _editSlot(MealSlot slot) async {
     final result = await showModalBottomSheet<MealSlot>(
       context: context,
       isScrollControlled: true,
@@ -85,7 +86,6 @@ class _CoachNutritionPlanScreenState extends State<CoachNutritionPlanScreen> {
     );
     if (result == null) return;
     _upsert(result);
-    if (isNew) return;
   }
 
   Future<void> _send() async {
@@ -205,7 +205,6 @@ class _CoachNutritionPlanScreenState extends State<CoachNutritionPlanScreen> {
                               minuteOfDay: 16 * 60,
                               source: MealSource.coach,
                             ),
-                            isNew: true,
                           ),
                           icon: const Icon(Icons.add, size: 18),
                           label: Text(l.coachNutritionAddMeal),
