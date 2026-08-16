@@ -67,23 +67,14 @@ class _ProfileBody extends StatelessWidget {
         context.watch<AuthController>().user?.isTrainer ?? false;
     final l = AppLocalizations.of(context);
 
-    return RefreshIndicator(
-      onRefresh: context.read<ProfileController>().load,
-      child: ListView(
-        padding: const EdgeInsets.fromLTRB(
-            AppSpacing.screen, AppSpacing.lg, AppSpacing.screen, AppSpacing.xxxl),
-        children: [
-          // ---- Hydration reminder prompt (when due) ----
-          if (hydrationDue) ...[
-            const _HydrationPrompt(),
-            const SizedBox(height: AppSpacing.lg),
-          ],
-
-          // ---- Tip of the day (hides itself once dismissed) ----
-          const DailyTipCard(),
-
-          // ---- Header ----
-          Row(
+    return Column(
+      children: [
+        // ---- Header: pinned, so the account, language and notification
+        // controls stay reachable while the page scrolls ----
+        Padding(
+          padding: const EdgeInsets.fromLTRB(
+              AppSpacing.screen, AppSpacing.lg, AppSpacing.screen, AppSpacing.md),
+          child: Row(
             children: [
               GradientAvatar(
                   initials: initialsFrom(member.fullName),
@@ -125,53 +116,72 @@ class _ProfileBody extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: AppSpacing.lg),
+        ),
 
-          // ---- Streak banner (Carbon emphasis) ----
-          KeyedSubtree(
-            key: TourKeys.homeStreak,
-            child: _StreakBanner(member: member),
+        // ---- Everything below scrolls under the header ----
+        Expanded(
+          child: RefreshIndicator(
+            onRefresh: context.read<ProfileController>().load,
+            child: ListView(
+              padding: const EdgeInsets.fromLTRB(AppSpacing.screen, 0,
+                  AppSpacing.screen, AppSpacing.xxxl),
+              children: [
+                // ---- Hydration reminder prompt (when due) ----
+                if (hydrationDue) ...[
+                  const _HydrationPrompt(),
+                  const SizedBox(height: AppSpacing.lg),
+                ],
+
+                // ---- Tip of the day (hides itself once dismissed) ----
+                const DailyTipCard(),
+
+                // ---- Streak banner (Carbon emphasis) ----
+                KeyedSubtree(
+                  key: TourKeys.homeStreak,
+                  child: _StreakBanner(member: member),
+                ),
+                const SizedBox(height: AppSpacing.lg),
+
+                // ---- Assessment / plan entry ----
+                const _AssessmentEntry(),
+                const SizedBox(height: AppSpacing.xl),
+
+                // ---- Today's activity (Carbon: three horizontal bars) ----
+                KeyedSubtree(
+                  key: TourKeys.homeActivity,
+                  child: _TodayActivityBars(member: member),
+                ),
+                const SizedBox(height: AppSpacing.xl),
+
+                // ---- Today's session (visual entry to Workout Execution) ----
+                SectionLabel(l.profileTodayWorkout),
+                const SizedBox(height: AppSpacing.sm),
+                KeyedSubtree(
+                    key: TourKeys.homeWorkout, child: _TodaySessionCard()),
+                const SizedBox(height: AppSpacing.lg),
+
+                // ---- Goal ----
+                SectionLabel(l.profileGoalLabel(member.goal.localized(l))),
+                const SizedBox(height: AppSpacing.sm),
+                GoalProgressCard(member: member),
+                const SizedBox(height: AppSpacing.lg),
+
+                // ---- Membership ----
+                SectionLabel(l.profileMembership),
+                const SizedBox(height: AppSpacing.sm),
+                MembershipCard(member: member),
+                const SizedBox(height: AppSpacing.lg),
+
+                // ---- Badges ----
+                SectionLabel(l.profileAchievements),
+                const SizedBox(height: AppSpacing.sm),
+                BadgesRow(badges: member.badges),
+                const SizedBox(height: AppSpacing.lg),
+              ],
+            ),
           ),
-          const SizedBox(height: AppSpacing.lg),
-
-          // ---- Assessment / plan entry ----
-          const _AssessmentEntry(),
-          const SizedBox(height: AppSpacing.xl),
-
-          // ---- Today's activity (Carbon: three horizontal bars) ----
-          KeyedSubtree(
-            key: TourKeys.homeActivity,
-            child: _TodayActivityBars(member: member),
-          ),
-          const SizedBox(height: AppSpacing.xl),
-
-          // ---- Today's session (visual entry to Workout Execution) ----
-          SectionLabel(l.profileTodayWorkout),
-          const SizedBox(height: AppSpacing.sm),
-          KeyedSubtree(key: TourKeys.homeWorkout, child: _TodaySessionCard()),
-          const SizedBox(height: AppSpacing.lg),
-
-          // ---- Goal ----
-          SectionLabel(l.profileGoalLabel(member.goal.localized(l))),
-          const SizedBox(height: AppSpacing.sm),
-          GoalProgressCard(member: member),
-          const SizedBox(height: AppSpacing.lg),
-
-          // ---- Membership ----
-          SectionLabel(l.profileMembership),
-          const SizedBox(height: AppSpacing.sm),
-          MembershipCard(member: member),
-          const SizedBox(height: AppSpacing.lg),
-
-          // ---- Badges ----
-          SectionLabel(l.profileAchievements),
-          const SizedBox(height: AppSpacing.sm),
-          BadgesRow(badges: member.badges),
-          const SizedBox(height: AppSpacing.lg),
-
-          // ---- Actions ----
-        ],
-      ),
+        ),
+      ],
     );
   }
 }

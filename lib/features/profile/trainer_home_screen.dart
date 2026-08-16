@@ -78,107 +78,118 @@ class _TrainerHomeScreenState extends State<TrainerHomeScreen> {
 
     return Scaffold(
       body: SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.fromLTRB(AppSpacing.screen, AppSpacing.lg,
-              AppSpacing.screen, AppSpacing.xxxl),
+        child: Column(
           children: [
-            // ---- Header: the trainer's own name ----
-            Row(
-              children: [
-                GradientAvatar(
-                  initials: initialsFrom(member.fullName),
-                  size: 50,
-                  tone: AvatarTone.ember,
-                ),
-                const SizedBox(width: AppSpacing.md),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(l.trainerCoachName(firstName),
-                          style: context.textStyles.headlineSmall),
-                      Text(l.trainerWorkspace,
-                          style: context.textStyles.bodySmall
-                              ?.copyWith(color: p.muted)),
-                    ],
-                  ),
-                ),
-                // Quick switch to trainee mode.
-                IconButton(
-                  tooltip: l.trainerSwitchToTrainee,
-                  onPressed: () => context
-                      .read<SessionController>()
-                      .setRole(UserRole.member),
-                  icon: const Icon(Icons.swap_horiz, color: AppColors.ember),
-                ),
-                const NotificationBell(),
-                LanguageMenuButton(color: p.text),
-                IconButton(
-                  tooltip: l.profileSettingsTooltip,
-                  onPressed: () =>
-                      rootScaffoldKey.currentState?.openEndDrawer(),
-                  icon: Icon(Icons.account_circle_outlined, color: p.text),
-                ),
-              ],
-            ),
-            const SizedBox(height: AppSpacing.lg),
-
-            // ---- Share QR ----
-            _ShareCodeCard(code: connect.trainerCode),
-            const SizedBox(height: AppSpacing.lg),
-
-            // ---- Stats ----
-            AppCard(
-              padding: const EdgeInsets.symmetric(
-                  vertical: 16, horizontal: 8),
+            // ---- Header: pinned, so the account, language and notification
+            // controls stay reachable while the page scrolls ----
+            Padding(
+              padding: const EdgeInsets.fromLTRB(AppSpacing.screen,
+                  AppSpacing.lg, AppSpacing.screen, AppSpacing.md),
               child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
                 children: [
-                  StatTile(
-                      value: '${clients.length}',
-                      label: l.trainerStatClients),
-                  StatTile(
-                      value: '${clients.length}',
-                      label: l.trainerStatActive,
-                      valueColor: AppColors.teal),
-                  StatTile(
-                      value: l.trainerPackagesSet,
-                      label: l.trainerStatPackages),
+                  GradientAvatar(
+                    initials: initialsFrom(member.fullName),
+                    size: 50,
+                    tone: AvatarTone.ember,
+                  ),
+                  const SizedBox(width: AppSpacing.md),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(l.trainerCoachName(firstName),
+                            style: context.textStyles.headlineSmall),
+                        Text(l.trainerWorkspace,
+                            style: context.textStyles.bodySmall
+                                ?.copyWith(color: p.muted)),
+                      ],
+                    ),
+                  ),
+                  // Quick switch to trainee mode.
+                  IconButton(
+                    tooltip: l.trainerSwitchToTrainee,
+                    onPressed: () => context
+                        .read<SessionController>()
+                        .setRole(UserRole.member),
+                    icon: const Icon(Icons.swap_horiz, color: AppColors.ember),
+                  ),
+                  const NotificationBell(),
+                  LanguageMenuButton(color: p.text),
+                  IconButton(
+                    tooltip: l.profileSettingsTooltip,
+                    onPressed: () =>
+                        rootScaffoldKey.currentState?.openEndDrawer(),
+                    icon: Icon(Icons.account_circle_outlined, color: p.text),
+                  ),
                 ],
               ),
             ),
-            const SizedBox(height: AppSpacing.lg),
 
-            SectionLabel(l.trainerYourClients(clients.length)),
-            const SizedBox(height: AppSpacing.sm),
-            if (clients.isEmpty)
-              AppCard(
-                child: Column(
-                  children: [
-                    Icon(Icons.group_add_outlined, color: p.muted, size: 34),
-                    const SizedBox(height: AppSpacing.sm),
-                    Text(l.trainerNoClients,
-                        style: context.textStyles.titleMedium),
-                    const SizedBox(height: 4),
-                    Text(
-                      l.trainerShareQrHint,
-                      textAlign: TextAlign.center,
-                      style: context.textStyles.bodySmall
-                          ?.copyWith(color: p.muted),
+            // ---- Everything below scrolls under the header ----
+            Expanded(
+              child: ListView(
+                padding: const EdgeInsets.fromLTRB(AppSpacing.screen, 0,
+                    AppSpacing.screen, AppSpacing.xxxl),
+                children: [
+                  // ---- Share QR ----
+                  _ShareCodeCard(code: connect.trainerCode),
+                  const SizedBox(height: AppSpacing.lg),
+
+                  // ---- Stats ----
+                  AppCard(
+                    padding: const EdgeInsets.symmetric(
+                        vertical: 16, horizontal: 8),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceAround,
+                      children: [
+                        StatTile(
+                            value: '${clients.length}',
+                            label: l.trainerStatClients),
+                        StatTile(
+                            value: '${clients.length}',
+                            label: l.trainerStatActive,
+                            valueColor: AppColors.teal),
+                        StatTile(
+                            value: l.trainerPackagesSet,
+                            label: l.trainerStatPackages),
+                      ],
                     ),
-                  ],
-                ),
-              )
-            else
-              for (final c in clients) ...[
-                _ClientTile(
-                  memberId: (c['id'] as String?) ?? '',
-                  name: (c['full_name'] as String?) ?? 'Client',
-                  subtitle:
-                      '${_pretty(c['goal'] as String?)} · ${_pretty(c['experience'] as String?)}',
-                ),
-                const SizedBox(height: AppSpacing.sm),
-              ],
+                  ),
+                  const SizedBox(height: AppSpacing.lg),
+
+                  SectionLabel(l.trainerYourClients(clients.length)),
+                  const SizedBox(height: AppSpacing.sm),
+                  if (clients.isEmpty)
+                    AppCard(
+                      child: Column(
+                        children: [
+                          Icon(Icons.group_add_outlined, color: p.muted, size: 34),
+                          const SizedBox(height: AppSpacing.sm),
+                          Text(l.trainerNoClients,
+                              style: context.textStyles.titleMedium),
+                          const SizedBox(height: 4),
+                          Text(
+                            l.trainerShareQrHint,
+                            textAlign: TextAlign.center,
+                            style: context.textStyles.bodySmall
+                                ?.copyWith(color: p.muted),
+                          ),
+                        ],
+                      ),
+                    )
+                  else
+                    for (final c in clients) ...[
+                      _ClientTile(
+                        memberId: (c['id'] as String?) ?? '',
+                        name: (c['full_name'] as String?) ?? 'Client',
+                        subtitle:
+                            '${_pretty(c['goal'] as String?)} · ${_pretty(c['experience'] as String?)}',
+                      ),
+                      const SizedBox(height: AppSpacing.sm),
+                    ],
+                ],
+              ),
+            ),
           ],
         ),
       ),
