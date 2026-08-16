@@ -518,5 +518,34 @@
   "coachNutritionSending": "Envoi…",
   "coachNutritionSent": "Plan envoyé",
   "coachNutritionLastSent": "Dernier envoi {date}",
-  "coachNutritionHint": "L'app du stagiaire l'applique à son planning, ce qui réajuste ses rappels de repas et d'eau."
+  "coachNutritionHint": "L'app du stagiaire l'applique \u00e0 son planning, ce qui r\u00e9ajuste ses rappels de repas et d'eau.",
+
+  "navNutrition": "Repas",
+  "helpNutritionTitle": "Repas et boissons",
+  "helpNutritionBody": "Choisissez le nombre de repas, ce que contient chacun et votre objectif d'eau \u2014 vos rappels suivent.",
+
+  "nutritionPlanSection": "Votre plan",
+  "nutritionPlanDuration": "Dur\u00e9e du plan",
+  "nutritionPlanWeek": "Une semaine",
+  "nutritionPlanTwoWeeks": "Deux semaines",
+  "nutritionPlanMonth": "Un mois",
+  "nutritionPlanOngoing": "Sans fin",
+  "nutritionPlanNoEnd": "Ce plan continue jusqu'\u00e0 ce que vous le changiez.",
+  "nutritionPlanEnds": "Jusqu'au {date} \u00b7 {days} jours restants",
+  "nutritionPlanEnded": "Termin\u00e9 le {date} \u2014 les rappels de repas sont en pause.",
+  "nutritionPlanRenew": "Relancer",
+  "nutritionMealsPerDay": "Repas par jour",
+  "nutritionMealsPerDayHint": "Le modifier r\u00e9partit \u00e0 nouveau vos repas ; noms et ingr\u00e9dients sont conserv\u00e9s.",
+  "nutritionMealsCount": "{count} repas",
+
+  "mealItemsTitle": "Contenu du repas",
+  "mealItemsHint": "Aliments et boissons \u2014 ils apparaissent dans le rappel.",
+  "mealItemsEmpty": "Rien pour l'instant.",
+  "mealItemAdd": "Ajouter un \u00e9l\u00e9ment",
+  "mealItemTitle": "\u00c9l\u00e9ment du repas",
+  "mealItemFood": "Aliment",
+  "mealItemDrink": "Boisson",
+  "mealItemName": "Nom",
+  "mealItemAmount": "Quantit\u00e9 (facultatif)",
+  "mealItemAmountHint": "ex. 150 g \u00b7 1 tasse"
 }

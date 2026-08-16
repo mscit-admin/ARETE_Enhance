@@ -15,6 +15,7 @@ class TourKeys {
   static final navClients = GlobalKey(debugLabel: 'tour_navClients');
   static final navPlans = GlobalKey(debugLabel: 'tour_navPlans');
   static final navMessages = GlobalKey(debugLabel: 'tour_navMessages');
+  static final navNutrition = GlobalKey(debugLabel: 'tour_navNutrition');
 
   // Home-screen internals.
   static final homeAccount = GlobalKey(debugLabel: 'tour_homeAccount');

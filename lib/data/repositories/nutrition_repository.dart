@@ -141,6 +141,26 @@ class NutritionRepository {
     await _put({
       'waterTargetGlasses': waterTargetGlasses,
       'glassMl': glassMl,
+      'planStartDay': next.planStartDay,
+      'planDurationDays': next.planDurationDays,
+    });
+  }
+
+  /// Store how long the plan runs for, keeping everything else as it is.
+  Future<void> savePlanPeriod({
+    required String planStartDay,
+    required int planDurationDays,
+  }) async {
+    final current = await loadCachedSettings();
+    await _cacheSettings(current.copyWith(
+      planStartDay: planStartDay,
+      planDurationDays: planDurationDays,
+    ));
+    await _put({
+      'waterTargetGlasses': current.waterTargetGlasses,
+      'glassMl': current.glassMl,
+      'planStartDay': planStartDay,
+      'planDurationDays': planDurationDays,
     });
   }
 
@@ -151,6 +171,8 @@ class NutritionRepository {
     await _put({
       'waterTargetGlasses': current.waterTargetGlasses,
       'glassMl': current.glassMl,
+      'planStartDay': current.planStartDay,
+      'planDurationDays': current.planDurationDays,
       'mealSchedule': [for (final s in slots) s.toJson()],
     });
   }

@@ -1019,6 +1019,8 @@ const NUTRITION_DEFAULTS = {
   waterTargetGlasses: 8,
   glassMl: 250,
   mealSchedule: null, // null = the app's default schedule
+  planStartDay: '', // '' = no plan period set
+  planDurationDays: 0, // 0 = runs until changed
 };
 
 // Today in the caller's local time. The app sends its own day so a member in
@@ -1029,12 +1031,21 @@ function nutritionDay(req) {
   return new Date().toISOString().slice(0, 10);
 }
 
+// Postgres `date` comes back as a Date; the app wants a plain yyyy-MM-dd.
+function dayString(value) {
+  if (!value) return '';
+  if (typeof value === 'string') return value.slice(0, 10);
+  return new Date(value).toISOString().slice(0, 10);
+}
+
 function settingsToApp(row) {
   if (!row) return { ...NUTRITION_DEFAULTS };
   return {
     waterTargetGlasses: row.water_target_glasses ?? NUTRITION_DEFAULTS.waterTargetGlasses,
     glassMl: row.glass_ml ?? NUTRITION_DEFAULTS.glassMl,
     mealSchedule: row.meal_schedule ?? null,
+    planStartDay: dayString(row.plan_start_day),
+    planDurationDays: row.plan_duration_days ?? 0,
   };
 }
 
@@ -1055,8 +1066,8 @@ const clampInt = (value, min, max, fallback) => {
 // The coach-issued plan currently in force for a member (newest wins).
 async function latestCoachPlan(memberUserId) {
   const { rows } = await db.query(
-    `SELECT p.id, p.water_target_glasses, p.meal_schedule, p.note, p.created_at,
-            u.full_name AS trainer_name
+    `SELECT p.id, p.water_target_glasses, p.duration_days, p.meal_schedule,
+            p.note, p.created_at, u.full_name AS trainer_name
        FROM nutrition_plans p
        LEFT JOIN users u ON u.id = p.trainer_user_id
       WHERE p.member_user_id = $1
@@ -1069,6 +1080,7 @@ async function latestCoachPlan(memberUserId) {
   return {
     id: r.id,
     waterTargetGlasses: r.water_target_glasses,
+    durationDays: r.duration_days ?? 0,
     mealSchedule: Array.isArray(r.meal_schedule) ? r.meal_schedule : [],
     note: r.note || '',
     coachName: r.trainer_name || '',
@@ -1149,15 +1161,24 @@ router.post('/trainer/trainees/:memberId/nutrition', requireAuth, async (req, re
       ? null
       : clampInt(req.body.waterTargetGlasses, 1, 30, NUTRITION_DEFAULTS.waterTargetGlasses);
   const note = String(req.body?.note || '').slice(0, 500);
+  const durationDays = clampInt(req.body?.durationDays, 0, 366, 0);
   try {
     const memberId = await requireOwnClient(req, res);
     if (!memberId) return undefined;
     const ins = await db.query(
       `INSERT INTO nutrition_plans
-              (member_user_id, trainer_user_id, water_target_glasses, meal_schedule, note)
-       VALUES ($1, $2, $3, $4::jsonb, $5)
+              (member_user_id, trainer_user_id, water_target_glasses, duration_days,
+               meal_schedule, note)
+       VALUES ($1, $2, $3, $4, $5::jsonb, $6)
     RETURNING id, created_at`,
-      [memberId, req.user.sub, waterTarget, JSON.stringify(schedule), note || null],
+      [
+        memberId,
+        req.user.sub,
+        waterTarget,
+        durationDays,
+        JSON.stringify(schedule),
+        note || null,
+      ],
     );
     // The app applies the plan on its next load; tell the trainee it arrived.
     await notify(memberId, 'nutrition_plan', note || '', null, {
@@ -1175,23 +1196,43 @@ router.put('/nutrition/settings', requireAuth, async (req, res) => {
   const waterTarget = clampInt(req.body?.waterTargetGlasses, 1, 30, NUTRITION_DEFAULTS.waterTargetGlasses);
   const glassMl = clampInt(req.body?.glassMl, 50, 2000, NUTRITION_DEFAULTS.glassMl);
   const schedule = Array.isArray(req.body?.mealSchedule) ? req.body.mealSchedule : null;
+  const planDuration = clampInt(req.body?.planDurationDays, 0, 366, 0);
+  const rawStart = String(req.body?.planStartDay || '').slice(0, 10);
+  const planStart = /^\d{4}-\d{2}-\d{2}$/.test(rawStart) ? rawStart : null;
   try {
     const r = await db.query(
-      `INSERT INTO nutrition_settings (user_id, water_target_glasses, glass_ml, meal_schedule, updated_at)
-            VALUES ($1, $2, $3, $4::jsonb, now())
+      `INSERT INTO nutrition_settings
+              (user_id, water_target_glasses, glass_ml, meal_schedule,
+               plan_start_day, plan_duration_days, updated_at)
+            VALUES ($1, $2, $3, $4::jsonb, $5::date, $6, now())
        ON CONFLICT (user_id) DO UPDATE
             SET water_target_glasses = EXCLUDED.water_target_glasses,
                 glass_ml             = EXCLUDED.glass_ml,
                 meal_schedule        = COALESCE(EXCLUDED.meal_schedule, nutrition_settings.meal_schedule),
+                plan_start_day       = EXCLUDED.plan_start_day,
+                plan_duration_days   = EXCLUDED.plan_duration_days,
                 updated_at           = now()
          RETURNING *`,
-      [req.user.sub, waterTarget, glassMl, schedule ? JSON.stringify(schedule) : null],
+      [
+        req.user.sub,
+        waterTarget,
+        glassMl,
+        schedule ? JSON.stringify(schedule) : null,
+        planStart,
+        planDuration,
+      ],
     );
     return res.json({ settings: settingsToApp(r.rows[0]) });
   } catch (e) {
     // Un-migrated server: the app keeps its local copy.
     return res.json({
-      settings: { waterTargetGlasses: waterTarget, glassMl, mealSchedule: schedule },
+      settings: {
+        waterTargetGlasses: waterTarget,
+        glassMl,
+        mealSchedule: schedule,
+        planStartDay: planStart || '',
+        planDurationDays: planDuration,
+      },
       unavailable: true,
     });
   }

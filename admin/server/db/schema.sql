@@ -373,3 +373,8 @@ CREATE TABLE IF NOT EXISTS nutrition_plans (
 );
 CREATE INDEX IF NOT EXISTS idx_nutrition_plans_member
   ON nutrition_plans(member_user_id, created_at DESC);
+
+-- Nutrition plan periods: how long the member's plan runs (and the coach's).
+ALTER TABLE nutrition_settings ADD COLUMN IF NOT EXISTS plan_start_day    date;
+ALTER TABLE nutrition_settings ADD COLUMN IF NOT EXISTS plan_duration_days int NOT NULL DEFAULT 0;
+ALTER TABLE nutrition_plans    ADD COLUMN IF NOT EXISTS duration_days      int NOT NULL DEFAULT 0;

@@ -5,6 +5,7 @@ import '../core/notifications/notification_copy.dart';
 import '../core/notifications/notification_service.dart';
 import '../core/notifications/reminder_math.dart';
 import '../data/models/meal_slot.dart';
+import '../data/models/nutrition.dart';
 import '../data/repositories/nutrition_repository.dart';
 
 /// Owns the member's fixed daily meal schedule and the reminders built from it.
@@ -36,6 +37,58 @@ class MealScheduleController extends ChangeNotifier {
 
   /// Only the slots that will actually raise a reminder.
   List<MealSlot> get activeSlots => _slots.where((s) => s.enabled).toList();
+
+  /// How many meals the schedule holds (enabled or not).
+  int get mealsPerDay => _slots.length;
+
+  /// Rebuild the schedule for [count] meals a day, spread evenly across the
+  /// eating window. Names, notes and ingredients of the meals already in place
+  /// are carried over in order, so changing the count keeps the member's work.
+  Future<void> setMealsPerDay(
+    int count, {
+    int startMinutes = 7 * 60,
+    int endMinutes = 21 * 60,
+  }) async {
+    final wanted = count.clamp(
+      NutritionSettings.minMealsPerDay,
+      NutritionSettings.maxMealsPerDay,
+    );
+    final times = ReminderMath.spread(
+      startMinutes: startMinutes,
+      endMinutes: endMinutes + 1, // include the closing hour as a slot
+      count: wanted,
+      minGapMinutes: 60,
+      maxSlots: NotificationService.capacityFor(ReminderChannel.meals),
+    );
+    if (times.isEmpty) return;
+
+    final previous = [..._slots];
+    final next = <MealSlot>[];
+    for (var i = 0; i < times.length; i++) {
+      final kind = _kindFor(i, times.length, times[i]);
+      final old = i < previous.length ? previous[i] : null;
+      next.add(MealSlot(
+        id: old?.id ?? 'meal_${i + 1}',
+        kind: kind,
+        minuteOfDay: times[i],
+        name: old?.name ?? '',
+        note: old?.note ?? '',
+        items: old?.items ?? const [],
+        enabled: old?.enabled ?? true,
+        source: old?.source ?? MealSource.self,
+      ));
+    }
+    await replaceAll(next);
+  }
+
+  /// Breakfast first, dinner last, lunch on the slot closest to 13:00, snacks
+  /// in between — a sane default the member can override per meal.
+  static MealKind _kindFor(int index, int total, int minuteOfDay) {
+    if (index == 0) return MealKind.breakfast;
+    if (index == total - 1) return MealKind.dinner;
+    if (minuteOfDay >= 11 * 60 && minuteOfDay <= 15 * 60) return MealKind.lunch;
+    return MealKind.snack;
+  }
 
   /// The next meal due today, or null once the last one has passed.
   MealSlot? nextUpcoming([DateTime? now]) {
@@ -154,9 +207,15 @@ class MealScheduleController extends ChangeNotifier {
   Future<void> resetToDefaults() => replaceAll(MealSlot.defaults());
 
   /// Rewrite the OS schedule from the current slots.
+  ///
+  /// The plan period lives with the nutrition settings, so it is read straight
+  /// from storage here rather than mirrored into a second field: once the
+  /// member's plan has run out, its meal reminders stop.
   Future<void> applySchedule() async {
     await _notifications.cancelChannel(ReminderChannel.meals);
     if (!_enabled) return;
+    final settings = await _repo.loadCachedSettings();
+    if (!settings.isPlanActive()) return;
     final active = activeSlots;
     final capacity = NotificationService.capacityFor(ReminderChannel.meals);
     for (var i = 0; i < active.length && i < capacity; i++) {
@@ -168,9 +227,13 @@ class MealScheduleController extends ChangeNotifier {
         hour: slot.hour,
         minute: slot.minute,
         title: NotificationCopy.mealTitle(name),
+        // What to eat is more useful than a generic nudge, so the ingredients
+        // lead; the member's own note wins when they wrote one.
         body: slot.note.trim().isNotEmpty
             ? slot.note.trim()
-            : NotificationCopy.mealBody,
+            : (slot.itemsSummary.isNotEmpty
+                ? slot.itemsSummary
+                : NotificationCopy.mealBody),
         payload: 'meal:${slot.id}',
       );
     }

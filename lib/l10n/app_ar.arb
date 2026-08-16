@@ -518,5 +518,34 @@
   "coachNutritionSending": "جارٍ الإرسال…",
   "coachNutritionSent": "تم إرسال الخطة",
   "coachNutritionLastSent": "آخر إرسال {date}",
-  "coachNutritionHint": "يطبّقها تطبيق المتدرب على جدوله، فتتعدّل معها مواعيد تذكيرات وجباته ومائه."
+  "coachNutritionHint": "\u064a\u0637\u0628\u0651\u0642\u0647\u0627 \u062a\u0637\u0628\u064a\u0642 \u0627\u0644\u0645\u062a\u062f\u0631\u0628 \u0639\u0644\u0649 \u062c\u062f\u0648\u0644\u0647\u060c \u0641\u062a\u062a\u0639\u062f\u0651\u0644 \u0645\u0639\u0647\u0627 \u0645\u0648\u0627\u0639\u064a\u062f \u062a\u0630\u0643\u064a\u0631\u0627\u062a \u0648\u062c\u0628\u0627\u062a\u0647 \u0648\u0645\u0627\u0626\u0647.",
+
+  "navNutrition": "الأكل",
+  "helpNutritionTitle": "الأكل والشرب",
+  "helpNutritionBody": "حدّد عدد وجباتك ومكوّنات كل وجبة ومقدار الماء الذي تستهدفه — وتذكيراتك تتبعها.",
+
+  "nutritionPlanSection": "خطتك",
+  "nutritionPlanDuration": "مدة الخطة",
+  "nutritionPlanWeek": "أسبوع",
+  "nutritionPlanTwoWeeks": "أسبوعان",
+  "nutritionPlanMonth": "شهر",
+  "nutritionPlanOngoing": "بلا نهاية",
+  "nutritionPlanNoEnd": "تستمر هذه الخطة حتى تغيّرها.",
+  "nutritionPlanEnds": "تستمر حتى {date} · بقي {days} يوماً",
+  "nutritionPlanEnded": "انتهت في {date} — تذكيرات الوجبات متوقفة.",
+  "nutritionPlanRenew": "تشغيلها من جديد",
+  "nutritionMealsPerDay": "عدد الوجبات يومياً",
+  "nutritionMealsPerDayHint": "تغييره يعيد توزيع وجباتك على اليوم مع الاحتفاظ بالأسماء والمكوّنات.",
+  "nutritionMealsCount": "{count} وجبات",
+
+  "mealItemsTitle": "مكوّنات هذه الوجبة",
+  "mealItemsHint": "طعامٌ ومشروبات — وتظهر في نص التذكير.",
+  "mealItemsEmpty": "لم تُضف أي مكوّن بعد.",
+  "mealItemAdd": "إضافة مكوّن",
+  "mealItemTitle": "مكوّن الوجبة",
+  "mealItemFood": "طعام",
+  "mealItemDrink": "مشروب",
+  "mealItemName": "الاسم",
+  "mealItemAmount": "المقدار (اختياري)",
+  "mealItemAmountHint": "مثال: ١٥٠ جم · كوب واحد"
 }

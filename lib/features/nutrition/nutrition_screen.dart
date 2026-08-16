@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../../core/notifications/reminder_math.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_theme.dart';
@@ -16,6 +15,7 @@ import '../../state/hydration_controller.dart';
 import '../../state/meal_schedule_controller.dart';
 import '../../state/nutrition_controller.dart';
 import '../alerts/alerts_screen.dart';
+import 'widgets/meal_editor_sheet.dart';
 
 /// Meals & Drinks — today's water intake against the daily goal, and the fixed
 /// meal schedule with what has already been eaten.
@@ -47,6 +47,10 @@ class NutritionScreen extends StatelessWidget {
           padding: const EdgeInsets.all(AppSpacing.screen),
           children: [
             const _CoachPlanCard(),
+            SectionLabel(l.nutritionPlanSection),
+            const SizedBox(height: AppSpacing.sm),
+            const _PlanCard(),
+            const SizedBox(height: AppSpacing.xl),
             SectionLabel(l.nutritionWaterSection),
             const SizedBox(height: AppSpacing.sm),
             const _WaterCard(),
@@ -133,6 +137,128 @@ class _CoachPlanCard extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// How long the plan runs for and how many meals a day it holds. Both re-time
+/// the reminders, so they live above the water and meal cards.
+class _PlanCard extends StatelessWidget {
+  const _PlanCard();
+
+  static String _durationLabel(AppLocalizations l, int days) => switch (days) {
+        7 => l.nutritionPlanWeek,
+        14 => l.nutritionPlanTwoWeeks,
+        30 => l.nutritionPlanMonth,
+        _ => l.nutritionPlanOngoing,
+      };
+
+  static String _formatDay(DateTime d) =>
+      '${d.year}-${d.month.toString().padLeft(2, '0')}-'
+      '${d.day.toString().padLeft(2, '0')}';
+
+  @override
+  Widget build(BuildContext context) {
+    final n = context.watch<NutritionController>();
+    final meals = context.watch<MealScheduleController>();
+    final l = AppLocalizations.of(context);
+    final p = context.palette;
+    final end = n.planEnd;
+    final daysLeft = n.planDaysLeft;
+
+    return AppCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(l.nutritionPlanDuration, style: context.textStyles.titleMedium),
+          const SizedBox(height: AppSpacing.sm),
+          Wrap(
+            spacing: AppSpacing.sm,
+            runSpacing: AppSpacing.sm,
+            children: [
+              for (final days in NutritionSettings.planDurations)
+                ChoiceChip(
+                  label: Text(_durationLabel(l, days)),
+                  selected: n.planDurationDays == days,
+                  selectedColor: AppColors.gold.withValues(alpha: 0.20),
+                  onSelected: (_) async {
+                    final mealsController =
+                        context.read<MealScheduleController>();
+                    await context
+                        .read<NutritionController>()
+                        .setPlanDuration(days);
+                    // The meal reminders only fire while the plan is running.
+                    await mealsController.applySchedule();
+                  },
+                ),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          if (end == null)
+            Text(l.nutritionPlanNoEnd,
+                style: context.textStyles.bodySmall?.copyWith(color: p.muted))
+          else if (n.planExpired)
+            Row(
+              children: [
+                Expanded(
+                  child: Text(l.nutritionPlanEnded(_formatDay(end)),
+                      style: context.textStyles.bodySmall
+                          ?.copyWith(color: AppColors.warning)),
+                ),
+                TextButton(
+                  onPressed: () async {
+                    final mealsController =
+                        context.read<MealScheduleController>();
+                    await context.read<NutritionController>().renewPlan();
+                    await mealsController.applySchedule();
+                  },
+                  child: Text(l.nutritionPlanRenew),
+                ),
+              ],
+            )
+          else
+            Text(
+              l.nutritionPlanEnds(_formatDay(end), daysLeft ?? 0),
+              style: context.textStyles.bodySmall?.copyWith(color: p.muted),
+            ),
+
+          const Divider(height: AppSpacing.xl * 2),
+
+          // ---- meals per day ----
+          Text(l.nutritionMealsPerDay, style: context.textStyles.titleMedium),
+          Text(l.nutritionMealsPerDayHint,
+              style: context.textStyles.bodySmall?.copyWith(color: p.muted)),
+          const SizedBox(height: AppSpacing.sm),
+          Row(
+            children: [
+              IconButton.filledTonal(
+                onPressed: meals.mealsPerDay <=
+                        NutritionSettings.minMealsPerDay
+                    ? null
+                    : () => context
+                        .read<MealScheduleController>()
+                        .setMealsPerDay(meals.mealsPerDay - 1),
+                icon: const Icon(Icons.remove),
+              ),
+              Expanded(
+                child: Center(
+                  child: Text(l.nutritionMealsCount(meals.mealsPerDay),
+                      style: context.textStyles.titleMedium),
+                ),
+              ),
+              IconButton.filledTonal(
+                onPressed: meals.mealsPerDay >=
+                        NutritionSettings.maxMealsPerDay
+                    ? null
+                    : () => context
+                        .read<MealScheduleController>()
+                        .setMealsPerDay(meals.mealsPerDay + 1),
+                icon: const Icon(Icons.add),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
@@ -372,15 +498,12 @@ class _MealsCard extends StatelessWidget {
                   color: slot.enabled ? null : p.muted,
                 ),
               ),
-              subtitle: Text(
-                slot.note.trim().isEmpty
-                    ? formatMinuteOfDay(context, slot.minuteOfDay)
-                    : '${formatMinuteOfDay(context, slot.minuteOfDay)} · ${slot.note.trim()}',
-              ),
+              subtitle: Text(_subtitleFor(context, slot)),
+              isThreeLine: slot.items.isNotEmpty,
               secondary: IconButton(
                 tooltip: l.alertsEditMeal,
                 icon: const Icon(Icons.edit_outlined, size: 20),
-                onPressed: () => _editTime(context, slot),
+                onPressed: () => _editMeal(context, slot),
               ),
             ),
             const Divider(height: 1),
@@ -424,16 +547,20 @@ class _MealsCard extends StatelessWidget {
     );
   }
 
-  /// Re-time a meal straight from the list; the reminder follows.
-  Future<void> _editTime(BuildContext context, MealSlot slot) async {
-    final picked = await showTimePicker(
-      context: context,
-      initialTime: TimeOfDay(hour: slot.hour, minute: slot.minute),
-    );
-    if (picked == null || !context.mounted) return;
-    await context.read<MealScheduleController>().setTime(
-          slot.id,
-          ReminderMath.toMinuteOfDay(picked.hour, picked.minute),
-        );
+  /// Time on the first line, then what the meal is made of (or the note).
+  static String _subtitleFor(BuildContext context, MealSlot slot) {
+    final time = formatMinuteOfDay(context, slot.minuteOfDay);
+    final detail = slot.items.isNotEmpty
+        ? slot.itemsSummary
+        : slot.note.trim();
+    return detail.isEmpty ? time : '$time\n$detail';
+  }
+
+  /// Edit the meal — time, kind, name, ingredients and drinks. The reminder
+  /// follows whatever changes.
+  Future<void> _editMeal(BuildContext context, MealSlot slot) async {
+    final meals = context.read<MealScheduleController>();
+    final edited = await showMealEditor(context, slot: slot);
+    if (edited != null) await meals.upsert(edited);
   }
 }

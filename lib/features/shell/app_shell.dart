@@ -13,6 +13,7 @@ import '../profile/trainer_home_screen.dart';
 import 'root_scaffold_key.dart';
 import '../trainer/plans_screen.dart';
 import '../trainer/trainer_messages_screen.dart';
+import '../nutrition/nutrition_screen.dart';
 import '../workout/workout_home_screen.dart';
 import '../progress/progress_screen.dart';
 import '../coach/coach_screen.dart';
@@ -21,6 +22,7 @@ import '../../state/connect_controller.dart';
 import '../../state/help_controller.dart';
 import '../../state/messaging_controller.dart';
 import '../../state/notifications_controller.dart';
+import '../../state/nutrition_controller.dart';
 import '../../state/my_plan_controller.dart';
 import '../../state/plans_controller.dart';
 import '../../state/profile_controller.dart';
@@ -144,6 +146,13 @@ class _AppShellState extends State<AppShell> {
         before: () async => _goTab(1),
       ),
       TourStep(
+        target: TourKeys.navNutrition,
+        circle: true,
+        title: l.helpNutritionTitle,
+        body: l.helpNutritionBody,
+        before: () async => _goTab(4),
+      ),
+      TourStep(
         target: TourKeys.navProgress,
         circle: true,
         title: l.helpProgressTitle,
@@ -215,11 +224,11 @@ class _AppShellState extends State<AppShell> {
 
     // Layout: destination 0 is the raised centre button (Home / Clients);
     // the rest sit to the left and right of the notch.
-    //   Member  → left: Coach        · centre: Home    · right: Train, Progress
-    //   Trainer → left: Messages     · centre: Clients · right: Plans
+    //   Member  → Meals, Train · centre: Home · Progress, Coach
+    //   Trainer → Messages     · centre: Clients · Plans
     const centreIndex = 0;
-    final leftIndices = isTrainer ? const [2] : const [3];
-    final rightIndices = isTrainer ? const [1] : const [1, 2];
+    final leftIndices = isTrainer ? const [2] : const [4, 1];
+    final rightIndices = isTrainer ? const [1] : const [2, 3];
 
     void select(int i) => _goTab(i);
 
@@ -318,6 +327,8 @@ class _AppShellState extends State<AppShell> {
       final profile = context.read<ProfileController>();
       if (i == 0) {
         profile.load();
+      } else if (i == 4) {
+        context.read<NutritionController>().load();
       } else if (i == 3) {
         profile.load();
         context.read<MyPlanController>().load();
@@ -357,6 +368,14 @@ class _AppShellState extends State<AppShell> {
           activeIcon: Icons.chat_bubble,
           screen: const CoachScreen(),
           navKey: TourKeys.navCoach,
+        ),
+        // Appended so the earlier indices (and the guided tour) stay put.
+        _TabDef(
+          label: l.navNutrition,
+          icon: Icons.restaurant_outlined,
+          activeIcon: Icons.restaurant,
+          screen: const NutritionScreen(),
+          navKey: TourKeys.navNutrition,
         ),
       ];
 

@@ -79,6 +79,7 @@ class CoachNutritionController extends ChangeNotifier {
   Future<String?> send({
     required List<MealSlot> mealSchedule,
     required int waterTargetGlasses,
+    int durationDays = 0,
     String note = '',
   }) async {
     if (_memberId.isEmpty) return 'No client selected';
@@ -91,6 +92,7 @@ class CoachNutritionController extends ChangeNotifier {
         {
           'mealSchedule': [for (final s in mealSchedule) s.toJson()],
           'waterTargetGlasses': waterTargetGlasses,
+          'durationDays': durationDays,
           'note': note,
         },
         auth: true,

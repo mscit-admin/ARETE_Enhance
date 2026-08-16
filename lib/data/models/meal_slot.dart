@@ -1,4 +1,5 @@
 import '../../core/notifications/reminder_math.dart';
+import 'meal_item.dart';
 
 /// The meals a schedule can hold. `preWorkout`/`postWorkout` exist so a coach
 /// plan can pin meals around a session later on.
@@ -22,6 +23,7 @@ class MealSlot {
     this.enabled = true,
     this.source = MealSource.self,
     this.note = '',
+    this.items = const [],
   });
 
   final String id;
@@ -37,6 +39,17 @@ class MealSlot {
 
   /// Free-text hint shown with the reminder (e.g. "protein + slow carbs").
   final String note;
+
+  /// What the meal is made of — food and drinks alike.
+  final List<MealItem> items;
+
+  List<MealItem> get foods => [for (final i in items) if (!i.isDrink) i];
+  List<MealItem> get drinks => [for (final i in items) if (i.isDrink) i];
+
+  /// "Chicken · 150 g, Rice, Water" — the one-line summary used in lists and
+  /// in the reminder body when the member wrote no note.
+  String get itemsSummary =>
+      [for (final i in items) i.label].where((s) => s.isNotEmpty).join('، ');
 
   int get hour => ReminderMath.hourOf(minuteOfDay);
   int get minute => ReminderMath.minuteOf(minuteOfDay);
@@ -63,6 +76,7 @@ class MealSlot {
     bool? enabled,
     MealSource? source,
     String? note,
+    List<MealItem>? items,
   }) =>
       MealSlot(
         id: id,
@@ -72,6 +86,7 @@ class MealSlot {
         enabled: enabled ?? this.enabled,
         source: source ?? this.source,
         note: note ?? this.note,
+        items: items ?? this.items,
       );
 
   Map<String, dynamic> toJson() => {
@@ -82,6 +97,7 @@ class MealSlot {
         'enabled': enabled,
         'source': source.name,
         'note': note,
+        'items': [for (final i in items) i.toJson()],
       };
 
   /// Tolerant of older/partial payloads — an unknown kind falls back to a snack
@@ -101,5 +117,6 @@ class MealSlot {
           orElse: () => MealSource.self,
         ),
         note: (j['note'] ?? '').toString(),
+        items: MealItem.listFromJson(j['items']),
       );
 }

@@ -14,6 +14,7 @@ import '../../shared/widgets/section_label.dart';
 import '../../state/hydration_controller.dart';
 import '../../state/meal_schedule_controller.dart';
 import '../../state/tips_controller.dart';
+import '../nutrition/widgets/meal_editor_sheet.dart';
 
 /// Every reminder ARETE can raise, in one place: water (driven by the daily
 /// target), the meal schedule, and the daily fitness tip.
@@ -361,133 +362,10 @@ class _MealsSection extends StatelessWidget {
         MealKind.postWorkout => Icons.fitness_center_outlined,
       };
 
-  Future<void> _editMeal(BuildContext context, MealSlot slot) {
-    return showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      builder: (_) => _MealEditorSheet(slot: slot),
-    );
-  }
-}
-
-/// Edit one meal: kind, time, optional name and note — or remove it.
-class _MealEditorSheet extends StatefulWidget {
-  const _MealEditorSheet({required this.slot});
-
-  final MealSlot slot;
-
-  @override
-  State<_MealEditorSheet> createState() => _MealEditorSheetState();
-}
-
-class _MealEditorSheetState extends State<_MealEditorSheet> {
-  late MealKind _kind = widget.slot.kind;
-  late int _minuteOfDay = widget.slot.minuteOfDay;
-  late final TextEditingController _name =
-      TextEditingController(text: widget.slot.name);
-  late final TextEditingController _note =
-      TextEditingController(text: widget.slot.note);
-
-  @override
-  void dispose() {
-    _name.dispose();
-    _note.dispose();
-    super.dispose();
-  }
-
-  Future<void> _pickTime() async {
-    final picked = await showTimePicker(
-      context: context,
-      initialTime: TimeOfDay(
-        hour: ReminderMath.hourOf(_minuteOfDay),
-        minute: ReminderMath.minuteOf(_minuteOfDay),
-      ),
-    );
-    if (picked == null) return;
-    setState(() =>
-        _minuteOfDay = ReminderMath.toMinuteOfDay(picked.hour, picked.minute));
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final l = AppLocalizations.of(context);
-    return Padding(
-      padding: EdgeInsets.only(
-        left: AppSpacing.screen,
-        right: AppSpacing.screen,
-        top: AppSpacing.lg,
-        bottom: MediaQuery.of(context).viewInsets.bottom + AppSpacing.lg,
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(l.alertsEditMeal, style: context.textStyles.titleMedium),
-          const SizedBox(height: AppSpacing.lg),
-          DropdownButtonFormField<MealKind>(
-            value: _kind,
-            decoration: InputDecoration(labelText: l.alertsMealKind),
-            items: [
-              for (final k in MealKind.values)
-                DropdownMenuItem(value: k, child: Text(k.localized(l))),
-            ],
-            onChanged: (v) => v == null ? null : setState(() => _kind = v),
-          ),
-          const SizedBox(height: AppSpacing.md),
-          ListTile(
-            contentPadding: EdgeInsets.zero,
-            leading: const Icon(Icons.schedule),
-            title: Text(formatMinuteOfDay(context, _minuteOfDay)),
-            trailing: TextButton(
-              onPressed: _pickTime,
-              child: Text(l.actionChoose),
-            ),
-          ),
-          TextField(
-            controller: _name,
-            decoration: InputDecoration(labelText: l.alertsMealName),
-            textInputAction: TextInputAction.next,
-          ),
-          const SizedBox(height: AppSpacing.md),
-          TextField(
-            controller: _note,
-            decoration: InputDecoration(labelText: l.alertsMealNote),
-          ),
-          const SizedBox(height: AppSpacing.lg),
-          Row(
-            children: [
-              Expanded(
-                child: ElevatedButton(
-                  onPressed: () {
-                    context.read<MealScheduleController>().upsert(
-                          widget.slot.copyWith(
-                            kind: _kind,
-                            minuteOfDay: _minuteOfDay,
-                            name: _name.text.trim(),
-                            note: _note.text.trim(),
-                          ),
-                        );
-                    Navigator.of(context).pop();
-                  },
-                  child: Text(l.alertsSave),
-                ),
-              ),
-              const SizedBox(width: AppSpacing.sm),
-              TextButton(
-                onPressed: () {
-                  context
-                      .read<MealScheduleController>()
-                      .removeSlot(widget.slot.id);
-                  Navigator.of(context).pop();
-                },
-                child: Text(l.alertsRemove,
-                    style: const TextStyle(color: AppColors.danger)),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
+  Future<void> _editMeal(BuildContext context, MealSlot slot) async {
+    final meals = context.read<MealScheduleController>();
+    final edited = await showMealEditor(context, slot: slot);
+    if (edited != null) await meals.upsert(edited);
   }
 }
 

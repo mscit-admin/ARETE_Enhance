@@ -20,6 +20,12 @@ Future<bool> applyCoachNutritionPlan({
   final active = plan ?? nutrition.coachPlan;
   if (active == null || active.mealSchedule.isEmpty) return false;
 
+  // The coach also says how long the plan should run. Start the period *before*
+  // the schedule is written, so the reminder rebuild that follows already sees
+  // a running plan (a previous plan may have lapsed and paused them).
+  if (active.durationDays > 0) {
+    await nutrition.setPlanDuration(active.durationDays);
+  }
   await meals.replaceAll(active.mealSchedule);
   if (active.waterTargetGlasses != null) {
     await nutrition.setTargetGlasses(active.waterTargetGlasses!);

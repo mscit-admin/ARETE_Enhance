@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/l10n/enum_labels.dart';
-import '../../core/notifications/reminder_math.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_theme.dart';
@@ -13,6 +12,7 @@ import '../../shared/widgets/app_card.dart';
 import '../../shared/widgets/section_label.dart';
 import '../../state/coach_nutrition_controller.dart';
 import '../alerts/alerts_screen.dart' show formatMinuteOfDay;
+import '../nutrition/widgets/meal_editor_sheet.dart';
 
 /// Coach side: build the meal schedule and water goal for one trainee and send
 /// it. The trainee's app applies it to their own schedule, which re-times both
@@ -36,6 +36,7 @@ class _CoachNutritionPlanScreenState extends State<CoachNutritionPlanScreen> {
   final _note = TextEditingController();
   List<MealSlot> _slots = [];
   int _waterTarget = NutritionSettings.defaultTargetGlasses;
+  int _durationDays = 7;
   bool _ready = false;
 
   @override
@@ -57,6 +58,7 @@ class _CoachNutritionPlanScreenState extends State<CoachNutritionPlanScreen> {
     setState(() {
       _slots = c.startingSchedule()..sort(_byTime);
       _waterTarget = c.startingWaterTarget();
+      _durationDays = c.plan?.durationDays ?? 7;
       _note.text = c.plan?.note ?? '';
       _ready = true;
     });
@@ -79,11 +81,7 @@ class _CoachNutritionPlanScreenState extends State<CoachNutritionPlanScreen> {
 
   /// Edit an existing meal, or add the one passed in — [_upsert] covers both.
   Future<void> _editSlot(MealSlot slot) async {
-    final result = await showModalBottomSheet<MealSlot>(
-      context: context,
-      isScrollControlled: true,
-      builder: (_) => _SlotEditor(slot: slot),
-    );
+    final result = await showMealEditor(context, slot: slot, asCoach: true);
     if (result == null) return;
     _upsert(result);
   }
@@ -95,6 +93,7 @@ class _CoachNutritionPlanScreenState extends State<CoachNutritionPlanScreen> {
     final error = await context.read<CoachNutritionController>().send(
           mealSchedule: _slots,
           waterTargetGlasses: _waterTarget,
+          durationDays: _durationDays,
           note: _note.text.trim(),
         );
     if (!mounted) return;
@@ -165,6 +164,27 @@ class _CoachNutritionPlanScreenState extends State<CoachNutritionPlanScreen> {
                 ),
                 const SizedBox(height: AppSpacing.xl),
 
+                // ---- how long the plan runs ----
+                SectionLabel(l.nutritionPlanDuration),
+                const SizedBox(height: AppSpacing.sm),
+                AppCard(
+                  child: Wrap(
+                    spacing: AppSpacing.sm,
+                    runSpacing: AppSpacing.sm,
+                    children: [
+                      for (final days in NutritionSettings.planDurations)
+                        ChoiceChip(
+                          label: Text(_durationLabel(l, days)),
+                          selected: _durationDays == days,
+                          selectedColor: AppColors.gold.withValues(alpha: 0.20),
+                          onSelected: (_) =>
+                              setState(() => _durationDays = days),
+                        ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.xl),
+
                 // ---- meals ----
                 SectionLabel(l.coachNutritionMeals),
                 const SizedBox(height: AppSpacing.sm),
@@ -179,11 +199,8 @@ class _CoachNutritionPlanScreenState extends State<CoachNutritionPlanScreen> {
                           title: Text(slot.name.trim().isNotEmpty
                               ? slot.name.trim()
                               : slot.kind.localized(l)),
-                          subtitle: Text(
-                            slot.note.trim().isEmpty
-                                ? formatMinuteOfDay(context, slot.minuteOfDay)
-                                : '${formatMinuteOfDay(context, slot.minuteOfDay)} · ${slot.note.trim()}',
-                          ),
+                          subtitle: Text(_subtitleFor(context, slot)),
+                          isThreeLine: slot.items.isNotEmpty,
                           trailing: IconButton(
                             tooltip: l.alertsRemove,
                             icon: const Icon(Icons.delete_outline,
@@ -245,110 +262,25 @@ class _CoachNutritionPlanScreenState extends State<CoachNutritionPlanScreen> {
     );
   }
 
+  static String _durationLabel(AppLocalizations l, int days) => switch (days) {
+        7 => l.nutritionPlanWeek,
+        14 => l.nutritionPlanTwoWeeks,
+        30 => l.nutritionPlanMonth,
+        _ => l.nutritionPlanOngoing,
+      };
+
+  /// Time, then the ingredients (or the note) of the meal.
+  static String _subtitleFor(BuildContext context, MealSlot slot) {
+    final time = formatMinuteOfDay(context, slot.minuteOfDay);
+    final detail =
+        slot.items.isNotEmpty ? slot.itemsSummary : slot.note.trim();
+    return detail.isEmpty ? time : '$time\n$detail';
+  }
+
   static String _formatDate(DateTime? d) {
     if (d == null) return '—';
     final local = d.toLocal();
     return '${local.year}-${local.month.toString().padLeft(2, '0')}-'
         '${local.day.toString().padLeft(2, '0')}';
-  }
-}
-
-/// Edit one meal of the plan: kind, time, name and note.
-class _SlotEditor extends StatefulWidget {
-  const _SlotEditor({required this.slot});
-
-  final MealSlot slot;
-
-  @override
-  State<_SlotEditor> createState() => _SlotEditorState();
-}
-
-class _SlotEditorState extends State<_SlotEditor> {
-  late MealKind _kind = widget.slot.kind;
-  late int _minuteOfDay = widget.slot.minuteOfDay;
-  late final TextEditingController _name =
-      TextEditingController(text: widget.slot.name);
-  late final TextEditingController _note =
-      TextEditingController(text: widget.slot.note);
-
-  @override
-  void dispose() {
-    _name.dispose();
-    _note.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final l = AppLocalizations.of(context);
-    return Padding(
-      padding: EdgeInsets.only(
-        left: AppSpacing.screen,
-        right: AppSpacing.screen,
-        top: AppSpacing.lg,
-        bottom: MediaQuery.of(context).viewInsets.bottom + AppSpacing.lg,
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(l.alertsEditMeal, style: context.textStyles.titleMedium),
-          const SizedBox(height: AppSpacing.lg),
-          DropdownButtonFormField<MealKind>(
-            value: _kind,
-            decoration: InputDecoration(labelText: l.alertsMealKind),
-            items: [
-              for (final k in MealKind.values)
-                DropdownMenuItem(value: k, child: Text(k.localized(l))),
-            ],
-            onChanged: (v) => v == null ? null : setState(() => _kind = v),
-          ),
-          const SizedBox(height: AppSpacing.md),
-          ListTile(
-            contentPadding: EdgeInsets.zero,
-            leading: const Icon(Icons.schedule),
-            title: Text(formatMinuteOfDay(context, _minuteOfDay)),
-            trailing: TextButton(
-              onPressed: () async {
-                final picked = await showTimePicker(
-                  context: context,
-                  initialTime: TimeOfDay(
-                    hour: ReminderMath.hourOf(_minuteOfDay),
-                    minute: ReminderMath.minuteOf(_minuteOfDay),
-                  ),
-                );
-                if (picked == null) return;
-                setState(() => _minuteOfDay =
-                    ReminderMath.toMinuteOfDay(picked.hour, picked.minute));
-              },
-              child: Text(l.actionChoose),
-            ),
-          ),
-          TextField(
-            controller: _name,
-            decoration: InputDecoration(labelText: l.alertsMealName),
-            textInputAction: TextInputAction.next,
-          ),
-          const SizedBox(height: AppSpacing.md),
-          TextField(
-            controller: _note,
-            decoration: InputDecoration(labelText: l.alertsMealNote),
-          ),
-          const SizedBox(height: AppSpacing.lg),
-          ElevatedButton(
-            onPressed: () => Navigator.of(context).pop(
-              widget.slot.copyWith(
-                kind: _kind,
-                minuteOfDay: _minuteOfDay,
-                name: _name.text.trim(),
-                note: _note.text.trim(),
-                source: MealSource.coach,
-              ),
-            ),
-            child: Text(l.alertsSave),
-          ),
-        ],
-      ),
-    );
   }
 }

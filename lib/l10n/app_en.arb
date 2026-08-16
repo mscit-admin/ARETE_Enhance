@@ -604,5 +604,39 @@
   "coachNutritionSent": "Plan sent",
   "coachNutritionLastSent": "Last sent {date}",
   "@coachNutritionLastSent": { "placeholders": { "date": { "type": "String" } } },
-  "coachNutritionHint": "The trainee's app applies this to their schedule, which re-times their meal and water reminders."
+  "coachNutritionHint": "The trainee's app applies this to their schedule, which re-times their meal and water reminders.",
+
+  "navNutrition": "Meals",
+  "helpNutritionTitle": "Meals & drinks",
+  "helpNutritionBody": "Set how many meals you eat, what goes in each one, and how much water you are aiming for. Your reminders follow it.",
+
+  "nutritionPlanSection": "Your plan",
+  "nutritionPlanDuration": "Plan length",
+  "nutritionPlanWeek": "A week",
+  "nutritionPlanTwoWeeks": "Two weeks",
+  "nutritionPlanMonth": "A month",
+  "nutritionPlanOngoing": "No end date",
+  "nutritionPlanNoEnd": "This plan runs until you change it.",
+  "nutritionPlanEnds": "Runs until {date} \u00b7 {days} days left",
+  "@nutritionPlanEnds": {
+    "placeholders": { "date": { "type": "String" }, "days": { "type": "int" } }
+  },
+  "nutritionPlanEnded": "Ended on {date} \u2014 meal reminders are paused.",
+  "@nutritionPlanEnded": { "placeholders": { "date": { "type": "String" } } },
+  "nutritionPlanRenew": "Run it again",
+  "nutritionMealsPerDay": "Meals a day",
+  "nutritionMealsPerDayHint": "Changing this re-spreads your meals across the day; names and ingredients are kept.",
+  "nutritionMealsCount": "{count} meals",
+  "@nutritionMealsCount": { "placeholders": { "count": { "type": "int" } } },
+
+  "mealItemsTitle": "What is in this meal",
+  "mealItemsHint": "Food and drinks alike \u2014 they show up in the reminder.",
+  "mealItemsEmpty": "Nothing added yet.",
+  "mealItemAdd": "Add an item",
+  "mealItemTitle": "Meal item",
+  "mealItemFood": "Food",
+  "mealItemDrink": "Drink",
+  "mealItemName": "Name",
+  "mealItemAmount": "Amount (optional)",
+  "mealItemAmountHint": "e.g. 150 g \u00b7 1 cup"
 }

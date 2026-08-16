@@ -53,6 +53,36 @@ class NutritionController extends ChangeNotifier {
 
   Set<String> get mealsDone => _today.mealsDone;
 
+  // ---- plan period ----
+
+  /// 7 / 14 / 30 days, or [NutritionSettings.ongoing] for no end date.
+  int get planDurationDays => _settings.planDurationDays;
+  DateTime? get planEnd => _settings.planEnd;
+  bool get planActive => _settings.isPlanActive();
+  bool get planExpired => !planActive;
+
+  /// Days left including today; null when the plan has no end date.
+  int? get planDaysLeft => _settings.daysLeft();
+
+  /// Start (or restart) the plan today for [days] — 0 leaves it open-ended.
+  /// The meal reminders stop once the period runs out, so the caller rebuilds
+  /// the schedule afterwards.
+  Future<void> setPlanDuration(int days) async {
+    final today = NutritionDay.keyFor(DateTime.now());
+    _settings = _settings.copyWith(
+      planDurationDays: days < 0 ? 0 : days,
+      planStartDay: days <= 0 ? '' : today,
+    );
+    notifyListeners();
+    await _repo.savePlanPeriod(
+      planStartDay: _settings.planStartDay,
+      planDurationDays: _settings.planDurationDays,
+    );
+  }
+
+  /// Run the same length again from today.
+  Future<void> renewPlan() => setPlanDuration(_settings.planDurationDays);
+
   bool isMealDone(String id) => _today.isDone(id);
 
   /// Load settings and today's intake (server first, cache otherwise).
