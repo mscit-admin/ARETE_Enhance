@@ -1021,6 +1021,7 @@ const NUTRITION_DEFAULTS = {
   mealSchedule: null, // null = the app's default schedule
   planStartDay: '', // '' = no plan period set
   planDurationDays: 0, // 0 = runs until changed
+  weeklyMeals: false, // false = the same meals every day
 };
 
 // Today in the caller's local time. The app sends its own day so a member in
@@ -1046,6 +1047,7 @@ function settingsToApp(row) {
     mealSchedule: row.meal_schedule ?? null,
     planStartDay: dayString(row.plan_start_day),
     planDurationDays: row.plan_duration_days ?? 0,
+    weeklyMeals: row.weekly_meals ?? false,
   };
 }
 
@@ -1197,20 +1199,22 @@ router.put('/nutrition/settings', requireAuth, async (req, res) => {
   const glassMl = clampInt(req.body?.glassMl, 50, 2000, NUTRITION_DEFAULTS.glassMl);
   const schedule = Array.isArray(req.body?.mealSchedule) ? req.body.mealSchedule : null;
   const planDuration = clampInt(req.body?.planDurationDays, 0, 366, 0);
+  const weeklyMeals = req.body?.weeklyMeals === true;
   const rawStart = String(req.body?.planStartDay || '').slice(0, 10);
   const planStart = /^\d{4}-\d{2}-\d{2}$/.test(rawStart) ? rawStart : null;
   try {
     const r = await db.query(
       `INSERT INTO nutrition_settings
               (user_id, water_target_glasses, glass_ml, meal_schedule,
-               plan_start_day, plan_duration_days, updated_at)
-            VALUES ($1, $2, $3, $4::jsonb, $5::date, $6, now())
+               plan_start_day, plan_duration_days, weekly_meals, updated_at)
+            VALUES ($1, $2, $3, $4::jsonb, $5::date, $6, $7, now())
        ON CONFLICT (user_id) DO UPDATE
             SET water_target_glasses = EXCLUDED.water_target_glasses,
                 glass_ml             = EXCLUDED.glass_ml,
                 meal_schedule        = COALESCE(EXCLUDED.meal_schedule, nutrition_settings.meal_schedule),
                 plan_start_day       = EXCLUDED.plan_start_day,
                 plan_duration_days   = EXCLUDED.plan_duration_days,
+                weekly_meals         = EXCLUDED.weekly_meals,
                 updated_at           = now()
          RETURNING *`,
       [
@@ -1220,6 +1224,7 @@ router.put('/nutrition/settings', requireAuth, async (req, res) => {
         schedule ? JSON.stringify(schedule) : null,
         planStart,
         planDuration,
+        weeklyMeals,
       ],
     );
     return res.json({ settings: settingsToApp(r.rows[0]) });
@@ -1232,6 +1237,7 @@ router.put('/nutrition/settings', requireAuth, async (req, res) => {
         mealSchedule: schedule,
         planStartDay: planStart || '',
         planDurationDays: planDuration,
+        weeklyMeals,
       },
       unavailable: true,
     });

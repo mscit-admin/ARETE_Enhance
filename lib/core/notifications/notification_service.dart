@@ -33,12 +33,16 @@ class NotificationService {
   static const int _hydrationBaseId = 1000;
   static const int _mealsBaseId = 1100;
   static const int _tipsBaseId = 1200;
+  static const int _weeklyMealsBaseId = 1300;
   static const int _instantId = 1900;
 
   /// How many distinct daily slots each channel may hold.
   static const Map<ReminderChannel, int> _capacity = {
     ReminderChannel.hydration: 24,
-    ReminderChannel.meals: 12,
+    // A weekly plan needs one scheduled notification per meal *per weekday*,
+    // so the block sits above the other channels and is sized for 8 meals a
+    // day across a full week.
+    ReminderChannel.meals: 56,
     // A week of tips: each day carries different text, so they are queued as
     // one-shots rather than a single repeating notification.
     ReminderChannel.tips: 7,
@@ -50,9 +54,15 @@ class NotificationService {
 
   static int baseIdFor(ReminderChannel channel) => switch (channel) {
         ReminderChannel.hydration => _hydrationBaseId,
-        ReminderChannel.meals => _mealsBaseId,
+        ReminderChannel.meals => _weeklyMealsBaseId,
         ReminderChannel.tips => _tipsBaseId,
       };
+
+  /// Ids 1100–1111 were the old daily-only meal block. Nothing schedules into
+  /// them any more, but an app updated in place may still have them pending, so
+  /// they are cleared alongside the current block.
+  static const int legacyMealsBaseId = _mealsBaseId;
+  static const int legacyMealsCapacity = 12;
 
   static int capacityFor(ReminderChannel channel) => _capacity[channel] ?? 1;
 
@@ -242,6 +252,40 @@ class NotificationService {
     );
   }
 
+  /// Schedule (or replace) a reminder that repeats on one weekday.
+  ///
+  /// [weekday] follows Dart's convention (`DateTime.monday` = 1). Used by meal
+  /// plans that differ from day to day.
+  Future<void> scheduleWeekly({
+    required ReminderChannel channel,
+    required int slot,
+    required int weekday,
+    required int hour,
+    required int minute,
+    required String title,
+    required String body,
+    String? payload,
+  }) async {
+    if (kIsWeb) return;
+    if (slot < 0 || slot >= capacityFor(channel)) return;
+    await init();
+    await _guard(
+      'scheduleWeekly',
+      () => _plugin.zonedSchedule(
+        baseIdFor(channel) + slot,
+        title,
+        body,
+        _nextInstanceOfWeekday(weekday, hour, minute),
+        _detailsFor(channel),
+        androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+        uiLocalNotificationDateInterpretation:
+            UILocalNotificationDateInterpretation.absoluteTime,
+        matchDateTimeComponents: DateTimeComponents.dayOfWeekAndTime,
+        payload: payload,
+      ),
+    );
+  }
+
   /// Drop every scheduled reminder belonging to [channel].
   Future<void> cancelChannel(ReminderChannel channel) async {
     if (kIsWeb) return;
@@ -250,7 +294,21 @@ class NotificationService {
       for (var i = 0; i < capacityFor(channel); i++) {
         await _plugin.cancel(base + i);
       }
+      if (channel == ReminderChannel.meals) {
+        for (var i = 0; i < legacyMealsCapacity; i++) {
+          await _plugin.cancel(legacyMealsBaseId + i);
+        }
+      }
     });
+  }
+
+  /// The next [hour]:[minute] that falls on [weekday].
+  tz.TZDateTime _nextInstanceOfWeekday(int weekday, int hour, int minute) {
+    var next = _nextInstanceOf(hour, minute);
+    for (var i = 0; i < 7 && next.weekday != weekday; i++) {
+      next = next.add(const Duration(days: 1));
+    }
+    return next;
   }
 
   /// The next occurrence of [hour]:[minute] in the device's local time,

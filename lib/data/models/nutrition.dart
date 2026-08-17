@@ -12,6 +12,7 @@ class NutritionSettings {
     this.mealSchedule,
     this.planStartDay = '',
     this.planDurationDays = 0,
+    this.weeklyMeals = false,
   });
 
   static const int defaultTargetGlasses = 8;
@@ -39,6 +40,10 @@ class NutritionSettings {
 
   /// 7, 14, 30 — or [ongoing] for a plan that never expires.
   final int planDurationDays;
+
+  /// False: one set of meals repeated every day. True: the meals differ by
+  /// weekday and the week repeats.
+  final bool weeklyMeals;
 
   /// The daily goal in litres, for display next to the glass count.
   double get targetLitres => waterTargetGlasses * glassMl / 1000;
@@ -81,6 +86,7 @@ class NutritionSettings {
     List<MealSlot>? mealSchedule,
     String? planStartDay,
     int? planDurationDays,
+    bool? weeklyMeals,
   }) =>
       NutritionSettings(
         waterTargetGlasses: waterTargetGlasses ?? this.waterTargetGlasses,
@@ -88,6 +94,7 @@ class NutritionSettings {
         mealSchedule: mealSchedule ?? this.mealSchedule,
         planStartDay: planStartDay ?? this.planStartDay,
         planDurationDays: planDurationDays ?? this.planDurationDays,
+        weeklyMeals: weeklyMeals ?? this.weeklyMeals,
       );
 
   Map<String, dynamic> toJson() => {
@@ -95,6 +102,7 @@ class NutritionSettings {
         'glassMl': glassMl,
         'planStartDay': planStartDay,
         'planDurationDays': planDurationDays,
+        'weeklyMeals': weeklyMeals,
         if (mealSchedule != null)
           'mealSchedule': [for (final s in mealSchedule!) s.toJson()],
       };
@@ -108,6 +116,7 @@ class NutritionSettings {
         maxTargetGlasses,
       ),
       glassMl: _clamp((j['glassMl'] as num?)?.toInt() ?? defaultGlassMl, 50, 2000),
+      weeklyMeals: j['weeklyMeals'] as bool? ?? false,
       planStartDay: _dayOnly(j['planStartDay']),
       planDurationDays:
           _clamp((j['planDurationDays'] as num?)?.toInt() ?? ongoing, 0, 366),

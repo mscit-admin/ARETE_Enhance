@@ -547,5 +547,14 @@
   "mealItemDrink": "Boisson",
   "mealItemName": "Nom",
   "mealItemAmount": "Quantit\u00e9 (facultatif)",
-  "mealItemAmountHint": "ex. 150 g \u00b7 1 tasse"
+  "mealItemAmountHint": "ex. 150 g \u00b7 1 tasse",
+
+  "nutritionWeeklyPlan": "Plan hebdomadaire",
+  "nutritionWeeklyPlanOn": "Chaque jour a ses repas, et la semaine se r\u00e9p\u00e8te.",
+  "nutritionWeeklyPlanOff": "Les m\u00eames repas chaque jour.",
+  "nutritionOtherDay": "Vous planifiez un autre jour \u2014 le pointage concerne aujourd'hui.",
+  "nutritionCopyDay": "Copier ce jour vers\u2026",
+  "nutritionCopyDayTitle": "Copier les repas de ce jour vers",
+  "nutritionCopyDayConfirm": "Copier",
+  "mealDaysEveryDay": "Tous les jours"
 }

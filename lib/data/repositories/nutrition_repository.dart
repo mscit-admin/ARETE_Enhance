@@ -143,6 +143,7 @@ class NutritionRepository {
       'glassMl': glassMl,
       'planStartDay': next.planStartDay,
       'planDurationDays': next.planDurationDays,
+      'weeklyMeals': next.weeklyMeals,
     });
   }
 
@@ -161,18 +162,26 @@ class NutritionRepository {
       'glassMl': current.glassMl,
       'planStartDay': planStartDay,
       'planDurationDays': planDurationDays,
+      'weeklyMeals': current.weeklyMeals,
     });
   }
 
-  /// Store the meal schedule, keeping the water goal as it is.
-  Future<void> saveMealSchedule(List<MealSlot> slots) async {
+  /// Store the meal schedule (and whether it varies by weekday), keeping the
+  /// water goal as it is.
+  Future<void> saveMealSchedule(
+    List<MealSlot> slots, {
+    bool? weeklyMeals,
+  }) async {
     final current = await loadCachedSettings();
-    await _cacheSettings(current.copyWith(mealSchedule: slots));
+    final weekly = weeklyMeals ?? current.weeklyMeals;
+    await _cacheSettings(
+        current.copyWith(mealSchedule: slots, weeklyMeals: weekly));
     await _put({
       'waterTargetGlasses': current.waterTargetGlasses,
       'glassMl': current.glassMl,
       'planStartDay': current.planStartDay,
       'planDurationDays': current.planDurationDays,
+      'weeklyMeals': weekly,
       'mealSchedule': [for (final s in slots) s.toJson()],
     });
   }

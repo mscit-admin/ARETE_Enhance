@@ -27,10 +27,15 @@ class MealScheduleController extends ChangeNotifier {
   static const _kEnabled = 'meals_reminders_enabled';
 
   bool _enabled = true;
+  bool _weekly = false;
   List<MealSlot> _slots = MealSlot.defaults();
   bool _restored = false;
 
   bool get enabled => _enabled;
+
+  /// False: one set of meals every day. True: the meals differ by weekday and
+  /// the week repeats.
+  bool get weekly => _weekly;
 
   /// The schedule, always ordered by time of day.
   List<MealSlot> get slots => List.unmodifiable(_slots);
@@ -38,8 +43,58 @@ class MealScheduleController extends ChangeNotifier {
   /// Only the slots that will actually raise a reminder.
   List<MealSlot> get activeSlots => _slots.where((s) => s.enabled).toList();
 
-  /// How many meals the schedule holds (enabled or not).
-  int get mealsPerDay => _slots.length;
+  /// The meals that apply on [weekday] (`DateTime.monday` = 1), in time order.
+  List<MealSlot> slotsFor(int weekday) =>
+      [for (final s in _slots) if (s.appliesOn(weekday)) s];
+
+  /// Today's meals — what the screen shows and what gets ticked off.
+  List<MealSlot> slotsToday([DateTime? now]) =>
+      slotsFor((now ?? DateTime.now()).weekday);
+
+  /// How many meals a given day holds (all days are alike unless [weekly]).
+  int mealsOn(int weekday) => slotsFor(weekday).length;
+
+  /// How many meals the schedule holds for today.
+  int get mealsPerDay => _weekly ? mealsOn(DateTime.now().weekday) : _slots.length;
+
+  /// Switch between one repeated day and a week that varies.
+  ///
+  /// Nothing is thrown away either way: slots keep their days, and a slot with
+  /// no days set already means "every day", so turning the week off simply
+  /// stops the app filtering by weekday.
+  Future<void> setWeekly(bool value) async {
+    if (_weekly == value) return;
+    _weekly = value;
+    notifyListeners();
+    await _persist();
+    await applySchedule();
+  }
+
+  /// Copy every meal of [from] onto [to], replacing whatever those days held.
+  /// This is how a member fills a week from one day they already like.
+  Future<void> copyDay(int from, Set<int> to) async {
+    final targets = to.where((d) => d != from).toSet();
+    if (targets.isEmpty) return;
+    final source = slotsFor(from);
+    if (source.isEmpty) return;
+
+    // Clear the target days out of every existing meal; one left with no day
+    // at all was only on the days being overwritten, so it goes.
+    final kept = <MealSlot>[];
+    for (final slot in _slots) {
+      final effective =
+          slot.everyDay ? MealSlot.allWeekdays.toSet() : slot.days;
+      final remaining = effective.where((d) => !targets.contains(d)).toSet();
+      if (remaining.isNotEmpty) kept.add(slot.copyWith(days: remaining));
+    }
+    // Then lay the source day's meals over them, each copy with its own id so
+    // ticking one off does not tick the original.
+    final stamp = DateTime.now().millisecondsSinceEpoch;
+    for (var i = 0; i < source.length; i++) {
+      kept.add(source[i].withId('copy_${stamp}_$i').copyWith(days: targets));
+    }
+    await replaceAll(kept);
+  }
 
   /// Rebuild the schedule for [count] meals a day, spread evenly across the
   /// eating window. Names, notes and ingredients of the meals already in place
@@ -48,6 +103,7 @@ class MealScheduleController extends ChangeNotifier {
     int count, {
     int startMinutes = 7 * 60,
     int endMinutes = 21 * 60,
+    int? weekday,
   }) async {
     final wanted = count.clamp(
       NutritionSettings.minMealsPerDay,
@@ -62,20 +118,37 @@ class MealScheduleController extends ChangeNotifier {
     );
     if (times.isEmpty) return;
 
-    final previous = [..._slots];
-    final next = <MealSlot>[];
+    // Weekly plans regenerate one day and leave the rest of the week alone.
+    final day = _weekly ? (weekday ?? DateTime.now().weekday) : null;
+    final previous = day == null ? [..._slots] : slotsFor(day);
+    final untouched = day == null
+        ? <MealSlot>[]
+        : [
+            for (final slot in _slots)
+              if (!slot.appliesOn(day))
+                slot
+              else if (slot.everyDay)
+                // A meal that ran all week keeps the other six days.
+                slot.copyWith(
+                    days: MealSlot.allWeekdays.where((d) => d != day).toSet())
+              else if (slot.days.length > 1)
+                slot.copyWith(days: slot.days.where((d) => d != day).toSet()),
+          ];
+
+    final stamp = DateTime.now().millisecondsSinceEpoch;
+    final next = <MealSlot>[...untouched];
     for (var i = 0; i < times.length; i++) {
-      final kind = _kindFor(i, times.length, times[i]);
       final old = i < previous.length ? previous[i] : null;
       next.add(MealSlot(
-        id: old?.id ?? 'meal_${i + 1}',
-        kind: kind,
+        id: old?.id ?? (day == null ? 'meal_${i + 1}' : 'meal_${stamp}_$i'),
+        kind: _kindFor(i, times.length, times[i]),
         minuteOfDay: times[i],
         name: old?.name ?? '',
         note: old?.note ?? '',
         items: old?.items ?? const [],
         enabled: old?.enabled ?? true,
         source: old?.source ?? MealSource.self,
+        days: day == null ? const {} : {day},
       ));
     }
     await replaceAll(next);
@@ -93,7 +166,7 @@ class MealScheduleController extends ChangeNotifier {
   /// The next meal due today, or null once the last one has passed.
   MealSlot? nextUpcoming([DateTime? now]) {
     final minuteOfDay = ReminderMath.nowMinuteOfDay(now);
-    for (final slot in _slots) {
+    for (final slot in slotsToday(now)) {
       if (slot.enabled && slot.minuteOfDay > minuteOfDay) return slot;
     }
     return null;
@@ -118,7 +191,9 @@ class MealScheduleController extends ChangeNotifier {
   }
 
   Future<void> _loadSlots() async {
-    final stored = (await _repo.loadCachedSettings()).mealSchedule;
+    final settings = await _repo.loadCachedSettings();
+    _weekly = settings.weeklyMeals;
+    final stored = settings.mealSchedule;
     if (stored != null && stored.isNotEmpty) _slots = [...stored];
     _sort();
   }
@@ -136,7 +211,7 @@ class MealScheduleController extends ChangeNotifier {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setBool(_kEnabled, _enabled);
     } catch (_) {}
-    await _repo.saveMealSchedule(_slots);
+    await _repo.saveMealSchedule(_slots, weeklyMeals: _weekly);
   }
 
   void _sort() => _slots.sort((a, b) => a.minuteOfDay.compareTo(b.minuteOfDay));
@@ -185,13 +260,18 @@ class MealScheduleController extends ChangeNotifier {
     await applySchedule();
   }
 
-  /// Add a snack the member can then rename and re-time.
-  Future<void> addSnack({int minuteOfDay = 16 * 60}) async {
+  /// Add a snack the member can then rename and re-time. On a weekly plan the
+  /// caller passes the day it belongs to; an empty set means every day.
+  Future<void> addSnack({
+    int minuteOfDay = 16 * 60,
+    Set<int> days = const {},
+  }) async {
     final id = 'snack_${DateTime.now().millisecondsSinceEpoch}';
     await upsert(MealSlot(
       id: id,
       kind: MealKind.snack,
       minuteOfDay: minuteOfDay.clamp(0, ReminderMath.minutesPerDay - 1),
+      days: days,
     ));
   }
 
@@ -216,27 +296,50 @@ class MealScheduleController extends ChangeNotifier {
     if (!_enabled) return;
     final settings = await _repo.loadCachedSettings();
     if (!settings.isPlanActive()) return;
-    final active = activeSlots;
     final capacity = NotificationService.capacityFor(ReminderChannel.meals);
-    for (var i = 0; i < active.length && i < capacity; i++) {
-      final slot = active[i];
-      final name = NotificationCopy.mealName(slot);
-      await _notifications.scheduleDaily(
-        channel: ReminderChannel.meals,
-        slot: i,
-        hour: slot.hour,
-        minute: slot.minute,
-        title: NotificationCopy.mealTitle(name),
-        // What to eat is more useful than a generic nudge, so the ingredients
-        // lead; the member's own note wins when they wrote one.
-        body: slot.note.trim().isNotEmpty
-            ? slot.note.trim()
-            : (slot.itemsSummary.isNotEmpty
-                ? slot.itemsSummary
-                : NotificationCopy.mealBody),
-        payload: 'meal:${slot.id}',
-      );
+    var index = 0;
+
+    if (!_weekly) {
+      for (final slot in activeSlots) {
+        if (index >= capacity) break;
+        await _notifications.scheduleDaily(
+          channel: ReminderChannel.meals,
+          slot: index++,
+          hour: slot.hour,
+          minute: slot.minute,
+          title: NotificationCopy.mealTitle(NotificationCopy.mealName(slot)),
+          body: _bodyFor(slot),
+          payload: 'meal:${slot.id}',
+        );
+      }
+      return;
     }
+
+    // A week that varies needs one scheduled reminder per meal *per weekday*.
+    for (final weekday in MealSlot.allWeekdays) {
+      for (final slot in slotsFor(weekday)) {
+        if (!slot.enabled) continue;
+        if (index >= capacity) return;
+        await _notifications.scheduleWeekly(
+          channel: ReminderChannel.meals,
+          slot: index++,
+          weekday: weekday,
+          hour: slot.hour,
+          minute: slot.minute,
+          title: NotificationCopy.mealTitle(NotificationCopy.mealName(slot)),
+          body: _bodyFor(slot),
+          payload: 'meal:${slot.id}',
+        );
+      }
+    }
+  }
+
+  /// What to eat is more useful than a generic nudge, so the ingredients lead;
+  /// the member's own note wins when they wrote one.
+  static String _bodyFor(MealSlot slot) {
+    if (slot.note.trim().isNotEmpty) return slot.note.trim();
+    if (slot.itemsSummary.isNotEmpty) return slot.itemsSummary;
+    return NotificationCopy.mealBody;
   }
 
   Future<void> sendTestNotification() {

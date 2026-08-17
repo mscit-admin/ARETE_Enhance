@@ -26,6 +26,8 @@ Future<bool> applyCoachNutritionPlan({
   if (active.durationDays > 0) {
     await nutrition.setPlanDuration(active.durationDays);
   }
+  // A plan whose meals name their weekdays is a weekly one; follow it.
+  await meals.setWeekly(active.mealSchedule.any((s) => !s.everyDay));
   await meals.replaceAll(active.mealSchedule);
   if (active.waterTargetGlasses != null) {
     await nutrition.setTargetGlasses(active.waterTargetGlasses!);

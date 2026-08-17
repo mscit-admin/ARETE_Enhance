@@ -16,6 +16,7 @@ import '../../state/meal_schedule_controller.dart';
 import '../../state/nutrition_controller.dart';
 import '../alerts/alerts_screen.dart';
 import 'widgets/meal_editor_sheet.dart';
+import 'widgets/weekday_picker.dart';
 
 /// Meals & Drinks — today's water intake against the daily goal, and the fixed
 /// meal schedule with what has already been eaten.
@@ -434,8 +435,17 @@ class _GlassRow extends StatelessWidget {
 
 // ---------------------------------------------------------------- meals ----
 
-class _MealsCard extends StatelessWidget {
+class _MealsCard extends StatefulWidget {
   const _MealsCard();
+
+  @override
+  State<_MealsCard> createState() => _MealsCardState();
+}
+
+class _MealsCardState extends State<_MealsCard> {
+  /// The weekday on screen. Only meaningful for a weekly plan; it starts on
+  /// today so the card opens on what the member is eating now.
+  int _day = DateTime.now().weekday;
 
   @override
   Widget build(BuildContext context) {
@@ -443,7 +453,9 @@ class _MealsCard extends StatelessWidget {
     final n = context.watch<NutritionController>();
     final l = AppLocalizations.of(context);
     final p = context.palette;
-    final slots = meals.slots;
+    final weekly = meals.weekly;
+    final isToday = !weekly || _day == DateTime.now().weekday;
+    final slots = weekly ? meals.slotsFor(_day) : meals.slots;
     final done = n.doneCount(slots);
     final next = meals.nextUpcoming();
 
@@ -462,16 +474,22 @@ class _MealsCard extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        l.nutritionMealsDone(done, meals.activeSlots.length),
+                        isToday
+                            ? l.nutritionMealsDone(
+                                done, slots.where((s) => s.enabled).length)
+                            : l.nutritionMealsCount(slots.length),
                         style: context.textStyles.titleMedium,
                       ),
                       Text(
-                        next == null
-                            ? l.nutritionNoMealsLeft
-                            : l.nutritionNextMeal(
-                                mealLabel(l, next),
-                                formatMinuteOfDay(context, next.minuteOfDay),
-                              ),
+                        !isToday
+                            ? l.nutritionOtherDay
+                            : next == null
+                                ? l.nutritionNoMealsLeft
+                                : l.nutritionNextMeal(
+                                    mealLabel(l, next),
+                                    formatMinuteOfDay(
+                                        context, next.minuteOfDay),
+                                  ),
                         style: context.textStyles.bodySmall
                             ?.copyWith(color: p.muted),
                       ),
@@ -482,17 +500,43 @@ class _MealsCard extends StatelessWidget {
             ),
           ),
           const Divider(height: 1),
+          SwitchListTile(
+            secondary: const Icon(Icons.calendar_view_week_outlined),
+            title: Text(l.nutritionWeeklyPlan),
+            subtitle: Text(
+                weekly ? l.nutritionWeeklyPlanOn : l.nutritionWeeklyPlanOff,
+                style: context.textStyles.bodySmall),
+            value: weekly,
+            activeColor: AppColors.gold,
+            onChanged: (v) => context.read<MealScheduleController>()
+                .setWeekly(v)
+                .then((_) => setState(() => _day = DateTime.now().weekday)),
+          ),
+          if (weekly)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(
+                  AppSpacing.md, 0, AppSpacing.md, AppSpacing.md),
+              child: WeekdayPicker(
+                selected: {_day},
+                onChanged: (days) =>
+                    setState(() => _day = days.first),
+              ),
+            ),
+          const Divider(height: 1),
           for (final slot in slots) ...[
             CheckboxListTile(
-              value: n.isMealDone(slot.id),
+              value: isToday && n.isMealDone(slot.id),
               activeColor: AppColors.gold,
               controlAffinity: ListTileControlAffinity.leading,
-              onChanged: (_) =>
-                  context.read<NutritionController>().toggleMealDone(slot.id),
+              // Only today can be ticked off; other days are being planned.
+              onChanged: !isToday
+                  ? null
+                  : (_) =>
+                      context.read<NutritionController>().toggleMealDone(slot.id),
               title: Text(
                 mealLabel(l, slot),
                 style: TextStyle(
-                  decoration: n.isMealDone(slot.id)
+                  decoration: isToday && n.isMealDone(slot.id)
                       ? TextDecoration.lineThrough
                       : null,
                   color: slot.enabled ? null : p.muted,
@@ -521,8 +565,9 @@ class _MealsCard extends StatelessWidget {
                   children: [
                     Expanded(
                       child: OutlinedButton.icon(
-                        onPressed: () =>
-                            context.read<MealScheduleController>().addSnack(),
+                        onPressed: () => context
+                            .read<MealScheduleController>()
+                            .addSnack(days: weekly ? {_day} : const {}),
                         icon: const Icon(Icons.add, size: 18),
                         label: Text(l.alertsAddSnack),
                       ),
@@ -539,6 +584,14 @@ class _MealsCard extends StatelessWidget {
                     ),
                   ],
                 ),
+                if (weekly) ...[
+                  const SizedBox(height: AppSpacing.sm),
+                  OutlinedButton.icon(
+                    onPressed: () => _copyDay(context),
+                    icon: const Icon(Icons.copy_all_outlined, size: 18),
+                    label: Text(l.nutritionCopyDay),
+                  ),
+                ],
               ],
             ),
           ),
@@ -556,11 +609,26 @@ class _MealsCard extends StatelessWidget {
     return detail.isEmpty ? time : '$time\n$detail';
   }
 
-  /// Edit the meal — time, kind, name, ingredients and drinks. The reminder
-  /// follows whatever changes.
+  /// Edit the meal — time, kind, name, ingredients, drinks and (on a weekly
+  /// plan) which days it applies to. The reminder follows whatever changes.
   Future<void> _editMeal(BuildContext context, MealSlot slot) async {
     final meals = context.read<MealScheduleController>();
-    final edited = await showMealEditor(context, slot: slot);
+    final edited =
+        await showMealEditor(context, slot: slot, weekly: meals.weekly);
     if (edited != null) await meals.upsert(edited);
+  }
+
+  /// Fill other days from the one on screen.
+  Future<void> _copyDay(BuildContext context) async {
+    final l = AppLocalizations.of(context);
+    final meals = context.read<MealScheduleController>();
+    final days = await showCopyDaysSheet(
+      context,
+      from: _day,
+      title: l.nutritionCopyDayTitle,
+      confirmLabel: l.nutritionCopyDayConfirm,
+    );
+    if (days == null || days.isEmpty) return;
+    await meals.copyDay(_day, days);
   }
 }

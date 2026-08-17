@@ -378,3 +378,7 @@ CREATE INDEX IF NOT EXISTS idx_nutrition_plans_member
 ALTER TABLE nutrition_settings ADD COLUMN IF NOT EXISTS plan_start_day    date;
 ALTER TABLE nutrition_settings ADD COLUMN IF NOT EXISTS plan_duration_days int NOT NULL DEFAULT 0;
 ALTER TABLE nutrition_plans    ADD COLUMN IF NOT EXISTS duration_days      int NOT NULL DEFAULT 0;
+
+-- Whether the member's meals vary by weekday (the schedule itself carries the
+-- days each meal applies to, inside meal_schedule).
+ALTER TABLE nutrition_settings ADD COLUMN IF NOT EXISTS weekly_meals boolean NOT NULL DEFAULT false;

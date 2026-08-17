@@ -24,6 +24,7 @@ class MealSlot {
     this.source = MealSource.self,
     this.note = '',
     this.items = const [],
+    this.days = const {},
   });
 
   final String id;
@@ -43,6 +44,20 @@ class MealSlot {
   /// What the meal is made of — food and drinks alike.
   final List<MealItem> items;
 
+  /// The weekdays this meal applies to, using Dart's convention
+  /// (`DateTime.monday` = 1 … `DateTime.sunday` = 7).
+  ///
+  /// An empty set means *every* day — which is also what a schedule written
+  /// before weekly plans existed loads as, so nothing has to be migrated.
+  final Set<int> days;
+
+  bool get everyDay => days.isEmpty || days.length >= 7;
+
+  bool appliesOn(int weekday) => days.isEmpty || days.contains(weekday);
+
+  bool appliesToday([DateTime? now]) =>
+      appliesOn((now ?? DateTime.now()).weekday);
+
   List<MealItem> get foods => [for (final i in items) if (!i.isDrink) i];
   List<MealItem> get drinks => [for (final i in items) if (i.isDrink) i];
 
@@ -50,6 +65,9 @@ class MealSlot {
   /// in the reminder body when the member wrote no note.
   String get itemsSummary =>
       [for (final i in items) i.label].where((s) => s.isNotEmpty).join('، ');
+
+  /// Monday-first list of weekdays, for pickers that want a stable order.
+  static const List<int> allWeekdays = [1, 2, 3, 4, 5, 6, 7];
 
   int get hour => ReminderMath.hourOf(minuteOfDay);
   int get minute => ReminderMath.minuteOf(minuteOfDay);
@@ -77,6 +95,7 @@ class MealSlot {
     MealSource? source,
     String? note,
     List<MealItem>? items,
+    Set<int>? days,
   }) =>
       MealSlot(
         id: id,
@@ -87,6 +106,21 @@ class MealSlot {
         source: source ?? this.source,
         note: note ?? this.note,
         items: items ?? this.items,
+        days: days ?? this.days,
+      );
+
+  /// The same meal under a new id — used when a day's meals are copied onto
+  /// other days and each copy needs its own identity for the day's tick-list.
+  MealSlot withId(String newId) => MealSlot(
+        id: newId,
+        kind: kind,
+        minuteOfDay: minuteOfDay,
+        name: name,
+        enabled: enabled,
+        source: source,
+        note: note,
+        items: items,
+        days: days,
       );
 
   Map<String, dynamic> toJson() => {
@@ -98,6 +132,7 @@ class MealSlot {
         'source': source.name,
         'note': note,
         'items': [for (final i in items) i.toJson()],
+        'days': days.toList()..sort(),
       };
 
   /// Tolerant of older/partial payloads — an unknown kind falls back to a snack
@@ -118,5 +153,19 @@ class MealSlot {
         ),
         note: (j['note'] ?? '').toString(),
         items: MealItem.listFromJson(j['items']),
+        days: _weekdaysFromJson(j['days']),
       );
+
+  /// Keeps only real weekdays (1..7); anything else is dropped, which reads as
+  /// "every day".
+  static Set<int> _weekdaysFromJson(Object? raw) {
+    if (raw is! List) return const {};
+    final days = <int>{};
+    for (final entry in raw) {
+      final day =
+          entry is num ? entry.toInt() : int.tryParse(entry.toString()) ?? 0;
+      if (day >= DateTime.monday && day <= DateTime.sunday) days.add(day);
+    }
+    return days;
+  }
 }

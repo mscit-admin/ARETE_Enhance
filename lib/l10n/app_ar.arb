@@ -547,5 +547,14 @@
   "mealItemDrink": "مشروب",
   "mealItemName": "الاسم",
   "mealItemAmount": "المقدار (اختياري)",
-  "mealItemAmountHint": "مثال: ١٥٠ جم · كوب واحد"
+  "mealItemAmountHint": "مثال: ١٥٠ جم · كوب واحد",
+
+  "nutritionWeeklyPlan": "جدول أسبوعي",
+  "nutritionWeeklyPlanOn": "لكل يوم وجباته، والأسبوع يتكرر.",
+  "nutritionWeeklyPlanOff": "نفس الوجبات كل يوم.",
+  "nutritionOtherDay": "تخطيط ليوم آخر — والتأشير للاستهلاك اليوم فقط.",
+  "nutritionCopyDay": "نسخ هذا اليوم إلى…",
+  "nutritionCopyDayTitle": "نسخ وجبات هذا اليوم إلى",
+  "nutritionCopyDayConfirm": "نسخ",
+  "mealDaysEveryDay": "كل الأيام"
 }

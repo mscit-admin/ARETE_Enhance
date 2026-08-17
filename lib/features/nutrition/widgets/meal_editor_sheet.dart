@@ -8,6 +8,7 @@ import '../../../core/theme/app_theme.dart';
 import '../../../data/models/meal_item.dart';
 import '../../../data/models/meal_slot.dart';
 import '../../../l10n/app_localizations.dart';
+import 'weekday_picker.dart';
 
 /// Edit one meal — kind, time, name, note and what it is made of.
 ///
@@ -18,21 +19,31 @@ Future<MealSlot?> showMealEditor(
   BuildContext context, {
   required MealSlot slot,
   bool asCoach = false,
+  bool weekly = false,
 }) {
   return showModalBottomSheet<MealSlot>(
     context: context,
     isScrollControlled: true,
-    builder: (_) => MealEditorSheet(slot: slot, asCoach: asCoach),
+    builder: (_) =>
+        MealEditorSheet(slot: slot, asCoach: asCoach, weekly: weekly),
   );
 }
 
 class MealEditorSheet extends StatefulWidget {
-  const MealEditorSheet({super.key, required this.slot, this.asCoach = false});
+  const MealEditorSheet({
+    super.key,
+    required this.slot,
+    this.asCoach = false,
+    this.weekly = false,
+  });
 
   final MealSlot slot;
 
   /// A coach's edits are stamped [MealSource.coach].
   final bool asCoach;
+
+  /// Show the weekday picker — only meaningful when the plan varies by day.
+  final bool weekly;
 
   @override
   State<MealEditorSheet> createState() => _MealEditorSheetState();
@@ -42,6 +53,7 @@ class _MealEditorSheetState extends State<MealEditorSheet> {
   late MealKind _kind = widget.slot.kind;
   late int _minuteOfDay = widget.slot.minuteOfDay;
   late final List<MealItem> _items = [...widget.slot.items];
+  late Set<int> _days = {...widget.slot.days};
   late final TextEditingController _name =
       TextEditingController(text: widget.slot.name);
   late final TextEditingController _note =
@@ -127,6 +139,26 @@ class _MealEditorSheetState extends State<MealEditorSheet> {
               decoration: InputDecoration(labelText: l.alertsMealName),
               textInputAction: TextInputAction.next,
             ),
+
+            // ---- which days it applies to ----
+            if (widget.weekly) ...[
+              const SizedBox(height: AppSpacing.md),
+              SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                title: Text(l.mealDaysEveryDay),
+                value: _days.isEmpty,
+                activeColor: AppColors.gold,
+                onChanged: (everyDay) => setState(() {
+                  _days = everyDay ? {} : {widget.slot.days.firstOrNull ?? DateTime.now().weekday};
+                }),
+              ),
+              if (_days.isNotEmpty)
+                WeekdayPicker(
+                  selected: _days,
+                  multiSelect: true,
+                  onChanged: (days) => setState(() => _days = days),
+                ),
+            ],
             const SizedBox(height: AppSpacing.lg),
 
             // ---- what the meal is made of ----
@@ -181,6 +213,7 @@ class _MealEditorSheetState extends State<MealEditorSheet> {
                   name: _name.text.trim(),
                   note: _note.text.trim(),
                   items: _items,
+                  days: _days,
                   source: widget.asCoach ? MealSource.coach : null,
                 ),
               ),

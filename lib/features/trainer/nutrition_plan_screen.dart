@@ -13,6 +13,7 @@ import '../../shared/widgets/section_label.dart';
 import '../../state/coach_nutrition_controller.dart';
 import '../alerts/alerts_screen.dart' show formatMinuteOfDay;
 import '../nutrition/widgets/meal_editor_sheet.dart';
+import '../nutrition/widgets/weekday_picker.dart';
 
 /// Coach side: build the meal schedule and water goal for one trainee and send
 /// it. The trainee's app applies it to their own schedule, which re-times both
@@ -37,6 +38,8 @@ class _CoachNutritionPlanScreenState extends State<CoachNutritionPlanScreen> {
   List<MealSlot> _slots = [];
   int _waterTarget = NutritionSettings.defaultTargetGlasses;
   int _durationDays = 7;
+  bool _weekly = false;
+  int _day = DateTime.now().weekday;
   bool _ready = false;
 
   @override
@@ -57,6 +60,8 @@ class _CoachNutritionPlanScreenState extends State<CoachNutritionPlanScreen> {
     if (!mounted) return;
     setState(() {
       _slots = c.startingSchedule()..sort(_byTime);
+      // A plan whose meals name their days is a weekly one.
+      _weekly = _slots.any((s) => !s.everyDay);
       _waterTarget = c.startingWaterTarget();
       _durationDays = c.plan?.durationDays ?? 7;
       _note.text = c.plan?.note ?? '';
@@ -66,6 +71,10 @@ class _CoachNutritionPlanScreenState extends State<CoachNutritionPlanScreen> {
 
   static int _byTime(MealSlot a, MealSlot b) =>
       a.minuteOfDay.compareTo(b.minuteOfDay);
+
+  /// The meals shown: the whole plan, or one weekday of it.
+  List<MealSlot> get _visibleSlots =>
+      _weekly ? [for (final s in _slots) if (s.appliesOn(_day)) s] : _slots;
 
   void _upsert(MealSlot slot) {
     setState(() {
@@ -81,9 +90,39 @@ class _CoachNutritionPlanScreenState extends State<CoachNutritionPlanScreen> {
 
   /// Edit an existing meal, or add the one passed in — [_upsert] covers both.
   Future<void> _editSlot(MealSlot slot) async {
-    final result = await showMealEditor(context, slot: slot, asCoach: true);
+    final result = await showMealEditor(context, slot: slot,
+        asCoach: true, weekly: _weekly);
     if (result == null) return;
     _upsert(result);
+  }
+
+  /// Copy the day on screen onto other days, so a week is built from one.
+  Future<void> _copyDay() async {
+    final l = AppLocalizations.of(context);
+    final days = await showCopyDaysSheet(
+      context,
+      from: _day,
+      title: l.nutritionCopyDayTitle,
+      confirmLabel: l.nutritionCopyDayConfirm,
+    );
+    if (days == null || days.isEmpty) return;
+    final source = _slots.where((s) => s.appliesOn(_day)).toList();
+    final stamp = DateTime.now().millisecondsSinceEpoch;
+    setState(() {
+      // Clear the target days out of the existing meals, then lay the source
+      // day over them.
+      final kept = <MealSlot>[];
+      for (final slot in _slots) {
+        final effective =
+            slot.everyDay ? MealSlot.allWeekdays.toSet() : slot.days;
+        final remaining = effective.where((d) => !days.contains(d)).toSet();
+        if (remaining.isNotEmpty) kept.add(slot.copyWith(days: remaining));
+      }
+      for (var i = 0; i < source.length; i++) {
+        kept.add(source[i].withId('coach_${stamp}_$i').copyWith(days: days));
+      }
+      _slots = kept..sort(_byTime);
+    });
   }
 
   Future<void> _send() async {
@@ -192,7 +231,40 @@ class _CoachNutritionPlanScreenState extends State<CoachNutritionPlanScreen> {
                   padding: EdgeInsets.zero,
                   child: Column(
                     children: [
-                      for (final slot in _slots) ...[
+                      SwitchListTile(
+                        secondary:
+                            const Icon(Icons.calendar_view_week_outlined),
+                        title: Text(l.nutritionWeeklyPlan),
+                        subtitle: Text(
+                          _weekly
+                              ? l.nutritionWeeklyPlanOn
+                              : l.nutritionWeeklyPlanOff,
+                          style: context.textStyles.bodySmall,
+                        ),
+                        value: _weekly,
+                        activeColor: AppColors.gold,
+                        onChanged: (v) => setState(() {
+                          _weekly = v;
+                          if (!v) {
+                            // Back to one repeated day: every meal applies daily.
+                            _slots = [
+                              for (final s in _slots) s.copyWith(days: const {}),
+                            ];
+                          }
+                        }),
+                      ),
+                      if (_weekly)
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(AppSpacing.md, 0,
+                              AppSpacing.md, AppSpacing.md),
+                          child: WeekdayPicker(
+                            selected: {_day},
+                            onChanged: (days) =>
+                                setState(() => _day = days.first),
+                          ),
+                        ),
+                      const Divider(height: 1),
+                      for (final slot in _visibleSlots) ...[
                         ListTile(
                           leading: const Icon(Icons.restaurant_outlined,
                               color: AppColors.gold),
@@ -214,17 +286,31 @@ class _CoachNutritionPlanScreenState extends State<CoachNutritionPlanScreen> {
                       ],
                       Padding(
                         padding: const EdgeInsets.all(AppSpacing.md),
-                        child: OutlinedButton.icon(
-                          onPressed: () => _editSlot(
-                            MealSlot(
-                              id: 'coach_${DateTime.now().millisecondsSinceEpoch}',
-                              kind: MealKind.snack,
-                              minuteOfDay: 16 * 60,
-                              source: MealSource.coach,
+                        child: Column(
+                          children: [
+                            OutlinedButton.icon(
+                              onPressed: () => _editSlot(
+                                MealSlot(
+                                  id: 'coach_${DateTime.now().millisecondsSinceEpoch}',
+                                  kind: MealKind.snack,
+                                  minuteOfDay: 16 * 60,
+                                  source: MealSource.coach,
+                                  days: _weekly ? {_day} : const {},
+                                ),
+                              ),
+                              icon: const Icon(Icons.add, size: 18),
+                              label: Text(l.coachNutritionAddMeal),
                             ),
-                          ),
-                          icon: const Icon(Icons.add, size: 18),
-                          label: Text(l.coachNutritionAddMeal),
+                            if (_weekly) ...[
+                              const SizedBox(height: AppSpacing.sm),
+                              OutlinedButton.icon(
+                                onPressed: _copyDay,
+                                icon: const Icon(Icons.copy_all_outlined,
+                                    size: 18),
+                                label: Text(l.nutritionCopyDay),
+                              ),
+                            ],
+                          ],
                         ),
                       ),
                     ],

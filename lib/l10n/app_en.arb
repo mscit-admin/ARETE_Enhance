@@ -638,5 +638,14 @@
   "mealItemDrink": "Drink",
   "mealItemName": "Name",
   "mealItemAmount": "Amount (optional)",
-  "mealItemAmountHint": "e.g. 150 g \u00b7 1 cup"
+  "mealItemAmountHint": "e.g. 150 g \u00b7 1 cup",
+
+  "nutritionWeeklyPlan": "Weekly plan",
+  "nutritionWeeklyPlanOn": "Each day has its own meals, and the week repeats.",
+  "nutritionWeeklyPlanOff": "The same meals every day.",
+  "nutritionOtherDay": "Planning another day \u2014 ticking off is for today.",
+  "nutritionCopyDay": "Copy this day to\u2026",
+  "nutritionCopyDayTitle": "Copy this day's meals to",
+  "nutritionCopyDayConfirm": "Copy",
+  "mealDaysEveryDay": "Every day"
 }
