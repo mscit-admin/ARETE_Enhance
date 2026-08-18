@@ -477,5 +477,18 @@
   "weekdayThu": "Jeu",
   "weekdayFri": "Ven",
   "weekdaySat": "Sam",
-  "weekdaySun": "Dim"
+  "weekdaySun": "Dim",
+
+  "actionSave": "Enregistrer",
+  "actionApply": "Appliquer",
+  "mealBuilderTitle": "Plan de repas",
+  "mealBuilderPlanName": "Nom du plan",
+  "mealBuilderSaved": "Plan de repas enregistré",
+  "mealBuilderSaveFailed": "Impossible d'enregistrer le plan",
+  "mealBuilderDayTotal": "Total du jour : {count} kcal",
+  "@mealBuilderDayTotal": { "placeholders": { "count": { "type": "int" } } },
+  "mealBuilderCopyToAll": "Copier sur tous les jours",
+  "mealBuilderCopyConfirm": "Remplacer tous les autres jours par les repas de ce jour ?",
+  "mealBuilderNoFoods": "Aucun aliment ajouté.",
+  "mealBuilderAddFood": "Ajouter un aliment"
 }

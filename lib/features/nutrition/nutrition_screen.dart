@@ -82,7 +82,10 @@ class _Body extends StatelessWidget {
     final l = AppLocalizations.of(context);
     final plan = c.plan;
 
-    return ListView(
+    return RefreshIndicator(
+      onRefresh: () => context.read<NutritionController>().load(),
+      child: ListView(
+      physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.fromLTRB(
           AppSpacing.screen, AppSpacing.lg, AppSpacing.screen, AppSpacing.xxxl),
       children: [
@@ -107,6 +110,7 @@ class _Body extends StatelessWidget {
               style: context.textStyles.bodySmall
                   ?.copyWith(color: context.palette.muted)),
       ],
+      ),
     );
   }
 }

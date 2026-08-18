@@ -528,5 +528,18 @@
   "weekdayThu": "Thu",
   "weekdayFri": "Fri",
   "weekdaySat": "Sat",
-  "weekdaySun": "Sun"
+  "weekdaySun": "Sun",
+
+  "actionSave": "Save",
+  "actionApply": "Apply",
+  "mealBuilderTitle": "Meal plan",
+  "mealBuilderPlanName": "Plan name",
+  "mealBuilderSaved": "Meal plan saved",
+  "mealBuilderSaveFailed": "Couldn't save the plan",
+  "mealBuilderDayTotal": "Day total: {count} kcal",
+  "@mealBuilderDayTotal": { "placeholders": { "count": { "type": "int" } } },
+  "mealBuilderCopyToAll": "Copy to all days",
+  "mealBuilderCopyConfirm": "Replace every other day with this day's meals?",
+  "mealBuilderNoFoods": "No foods added yet.",
+  "mealBuilderAddFood": "Add food"
 }

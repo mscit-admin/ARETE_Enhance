@@ -477,5 +477,18 @@
   "weekdayThu": "خميس",
   "weekdayFri": "جمعة",
   "weekdaySat": "سبت",
-  "weekdaySun": "أحد"
+  "weekdaySun": "أحد",
+
+  "actionSave": "حفظ",
+  "actionApply": "تطبيق",
+  "mealBuilderTitle": "خطة الوجبات",
+  "mealBuilderPlanName": "اسم الخطة",
+  "mealBuilderSaved": "تم حفظ خطة الوجبات",
+  "mealBuilderSaveFailed": "تعذّر حفظ الخطة",
+  "mealBuilderDayTotal": "إجمالي اليوم: {count} سعرة",
+  "@mealBuilderDayTotal": { "placeholders": { "count": { "type": "int" } } },
+  "mealBuilderCopyToAll": "نسخ إلى كل الأيام",
+  "mealBuilderCopyConfirm": "استبدال كل الأيام الأخرى بوجبات هذا اليوم؟",
+  "mealBuilderNoFoods": "لم تُضف أطعمة بعد.",
+  "mealBuilderAddFood": "إضافة طعام"
 }
