@@ -18,6 +18,7 @@ import '../../state/profile_controller.dart';
 import '../../state/session_controller.dart';
 import '../assessment/assessment_flow_screen.dart';
 import '../assessment/starter_plan_detail_screen.dart';
+import '../nutrition/nutrition_screen.dart';
 import '../help/tour_keys.dart';
 import '../notifications/notification_bell.dart';
 import '../shell/root_scaffold_key.dart';
@@ -145,6 +146,10 @@ class _ProfileBody extends StatelessWidget {
           KeyedSubtree(key: TourKeys.homeWorkout, child: _TodaySessionCard()),
           const SizedBox(height: AppSpacing.lg),
 
+          // ---- Nutrition (Food & Drink) ----
+          const _NutritionEntry(),
+          const SizedBox(height: AppSpacing.lg),
+
           // ---- Goal ----
           SectionLabel(l.profileGoalLabel(member.goal.localized(l))),
           const SizedBox(height: AppSpacing.sm),
@@ -222,6 +227,62 @@ class _TodaySessionCard extends StatelessWidget {
                 color: AppColors.onAccent, size: 30),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// Entry point to the Food & Drink (nutrition) screen.
+class _NutritionEntry extends StatelessWidget {
+  const _NutritionEntry();
+
+  @override
+  Widget build(BuildContext context) {
+    final p = context.palette;
+    final l = AppLocalizations.of(context);
+    return Material(
+      color: p.surface,
+      borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
+        onTap: () => Navigator.of(context).push(
+          MaterialPageRoute(builder: (_) => const NutritionScreen()),
+        ),
+        child: Container(
+          padding: const EdgeInsets.all(AppSpacing.lg),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
+            border: Border.all(color: p.line),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: AppColors.limeTintBg,
+                  borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+                  border: Border.all(color: AppColors.limeTintBorder),
+                ),
+                child: const Icon(Icons.restaurant_menu,
+                    color: AppColors.accent),
+              ),
+              const SizedBox(width: AppSpacing.md),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(l.foodDrinkTitle,
+                        style: context.textStyles.titleMedium),
+                    Text(l.foodDrinkHomeSubtitle,
+                        style: TextStyle(fontSize: 12.5, color: p.muted)),
+                  ],
+                ),
+              ),
+              Icon(Icons.chevron_right, color: p.muted),
+            ],
+          ),
+        ),
       ),
     );
   }

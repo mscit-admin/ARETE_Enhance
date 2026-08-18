@@ -69,3 +69,12 @@ extension GenderL10n on Gender {
         Gender.preferNotToSay => l.genderPreferNot,
       };
 }
+
+extension MealTypeL10n on MealType {
+  String localized(AppLocalizations l) => switch (this) {
+        MealType.breakfast => l.mealBreakfast,
+        MealType.lunch => l.mealLunch,
+        MealType.dinner => l.mealDinner,
+        MealType.snack => l.mealSnack,
+      };
+}

@@ -7,6 +7,7 @@ import 'data/api/api_client.dart';
 import 'data/repositories/api_auth_repository.dart';
 import 'data/repositories/api_profile_repository.dart';
 import 'data/repositories/mock_coach_repository.dart';
+import 'data/repositories/mock_nutrition_repository.dart';
 import 'data/repositories/mock_progress_repository.dart';
 import 'data/repositories/mock_workout_repository.dart';
 import 'state/assessment_controller.dart';
@@ -17,9 +18,11 @@ import 'state/exercise_library_controller.dart';
 import 'state/help_controller.dart';
 import 'state/hydration_controller.dart';
 import 'state/locale_controller.dart';
+import 'state/meal_plan_builder_controller.dart';
 import 'state/messaging_controller.dart';
 import 'state/my_plan_controller.dart';
 import 'state/notifications_controller.dart';
+import 'state/nutrition_controller.dart';
 import 'state/plans_controller.dart';
 import 'state/profile_controller.dart';
 import 'state/progress_controller.dart';
@@ -37,6 +40,7 @@ void main() {
   final workoutRepository = MockWorkoutRepository();
   final progressRepository = MockProgressRepository();
   final coachRepository = MockCoachRepository();
+  final nutritionRepository = MockNutritionRepository();
   final authRepository = ApiAuthRepository(apiClient);
 
   final profileController = ProfileController(profileRepository);
@@ -44,6 +48,10 @@ void main() {
   final connectController = ConnectController(apiClient);
   final myPlanController = MyPlanController(apiClient);
   final notificationsController = NotificationsController(apiClient);
+  final nutritionController =
+      NutritionController(nutritionRepository, profileController);
+  final mealPlanBuilderController =
+      MealPlanBuilderController(nutritionRepository);
   final assessmentController = AssessmentController();
 
   final authController = AuthController(
@@ -63,6 +71,8 @@ void main() {
       connectController.clear();
       myPlanController.clear();
       notificationsController.clear();
+      nutritionController.clear();
+      mealPlanBuilderController.clear();
       assessmentController.clearSelectedPlan();
     },
   )..bootstrap();
@@ -104,6 +114,8 @@ void main() {
         ),
         ChangeNotifierProvider.value(value: myPlanController),
         ChangeNotifierProvider.value(value: notificationsController),
+        ChangeNotifierProvider.value(value: nutritionController),
+        ChangeNotifierProvider.value(value: mealPlanBuilderController),
         ChangeNotifierProvider(
           create: (_) => MessagingController(apiClient),
         ),

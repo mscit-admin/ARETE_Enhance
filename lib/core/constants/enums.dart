@@ -89,6 +89,25 @@ extension ActivityLevelX on ActivityLevel {
       };
 }
 
+/// The meal slots a day's nutrition plan is broken into.
+enum MealType { breakfast, lunch, dinner, snack }
+
+extension MealTypeX on MealType {
+  String get label => switch (this) {
+        MealType.breakfast => 'Breakfast',
+        MealType.lunch => 'Lunch',
+        MealType.dinner => 'Dinner',
+        MealType.snack => 'Snack',
+      };
+
+  /// Stable key used in JSON / logging.
+  String get key => name;
+
+  static MealType fromKey(String key) =>
+      MealType.values.firstWhere((t) => t.name == key,
+          orElse: () => MealType.snack);
+}
+
 enum Gender { male, female, other, preferNotToSay }
 
 extension GenderX on Gender {
