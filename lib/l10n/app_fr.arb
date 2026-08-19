@@ -11,6 +11,7 @@
   "navClients": "Clients",
   "navPlans": "Plans",
   "navMessages": "Messages",
+  "navAssessment": "Éval",
 
   "actionDone": "Terminé",
   "actionRetry": "Réessayer",
@@ -377,6 +378,8 @@
   "helpProgressBody": "Suivez l'évolution de votre poids, votre volume d'entraînement et vos mensurations dans le temps.",
   "helpNutritionTitle": "Alimentation",
   "helpNutritionBody": "Suivez le plan de repas attribué par votre coach, cochez les repas consommés, enregistrez des repas supplémentaires et suivez votre hydratation.",
+  "helpAssessmentTitle": "Évaluation",
+  "helpAssessmentBody": "Réalisez l'évaluation santé rapide pour générer un plan de départ, et consultez le plan obtenu à tout moment.",
   "helpCoachTitle": "Coach",
   "helpCoachBody": "Discutez avec votre coach, recevez les plans qu'il vous attribue et restez connecté.",
   "helpProfileTitle": "Votre compte",

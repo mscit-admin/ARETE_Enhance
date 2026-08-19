@@ -12,6 +12,7 @@
   "navClients": "Clients",
   "navPlans": "Plans",
   "navMessages": "Messages",
+  "navAssessment": "Assess",
 
   "actionDone": "Done",
   "actionRetry": "Retry",
@@ -428,6 +429,8 @@
   "helpProgressBody": "Follow your weight trend, training volume and body measurements over time.",
   "helpNutritionTitle": "Food & Drink",
   "helpNutritionBody": "Follow the meal plan your coach assigns, tick meals off as you eat them, log extra meals, and track your water.",
+  "helpAssessmentTitle": "Assessment",
+  "helpAssessmentBody": "Run the quick health assessment to generate a starter plan, and revisit the resulting plan any time.",
   "helpCoachTitle": "Coach",
   "helpCoachBody": "Chat with your coach, receive the plans they assign you, and stay connected.",
   "helpProfileTitle": "Your account",

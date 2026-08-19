@@ -11,6 +11,7 @@
   "navClients": "المتدربون",
   "navPlans": "الخطط",
   "navMessages": "الرسائل",
+  "navAssessment": "التقييم",
 
   "actionDone": "تم",
   "actionRetry": "إعادة المحاولة",
@@ -377,6 +378,8 @@
   "helpProgressBody": "تابع منحنى وزنك وحجم تدريبك وقياسات جسمك عبر الزمن.",
   "helpNutritionTitle": "الأكل والشرب",
   "helpNutritionBody": "تابع خطة الوجبات التي يُسنِدها مدرّبك، وحدّد الوجبات عند تناولها، وسجّل وجبات إضافية، وتتبّع شرب الماء.",
+  "helpAssessmentTitle": "التقييم",
+  "helpAssessmentBody": "أجرِ التقييم الصحي السريع لإنشاء خطة مبدئية، وارجع إلى الخطة الناتجة في أي وقت.",
   "helpCoachTitle": "المدرب",
   "helpCoachBody": "تحدّث مع مدربك، واستقبل الخطط التي يُسندها إليك، وابقَ على تواصل.",
   "helpProfileTitle": "حسابك",

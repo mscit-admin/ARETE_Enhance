@@ -11,13 +11,10 @@ import '../../l10n/app_localizations.dart';
 import '../../shared/widgets/gradient_avatar.dart';
 import '../../shared/widgets/language_menu_button.dart';
 import '../../shared/widgets/section_label.dart';
-import '../../state/assessment_controller.dart';
 import '../../state/auth_controller.dart';
 import '../../state/hydration_controller.dart';
 import '../../state/profile_controller.dart';
 import '../../state/session_controller.dart';
-import '../assessment/assessment_flow_screen.dart';
-import '../assessment/starter_plan_detail_screen.dart';
 import '../help/tour_keys.dart';
 import '../notifications/notification_bell.dart';
 import '../shell/root_scaffold_key.dart';
@@ -126,10 +123,6 @@ class _ProfileBody extends StatelessWidget {
             key: TourKeys.homeStreak,
             child: _StreakBanner(member: member),
           ),
-          const SizedBox(height: AppSpacing.lg),
-
-          // ---- Assessment / plan entry ----
-          const _AssessmentEntry(),
           const SizedBox(height: AppSpacing.xl),
 
           // ---- Today's activity (Carbon: three horizontal bars) ----
@@ -407,85 +400,6 @@ class _ActivityBar extends StatelessWidget {
           ),
         ),
       ],
-    );
-  }
-}
-
-/// Entry point to the Health Assessment. Shows the selected plan once chosen.
-class _AssessmentEntry extends StatelessWidget {
-  const _AssessmentEntry();
-
-  @override
-  Widget build(BuildContext context) {
-    final assessment = context.watch<AssessmentController>();
-    final plan = assessment.selectedPlan;
-    final p = context.palette;
-    final l = AppLocalizations.of(context);
-
-    return Material(
-      color: plan == null ? AppColors.ink : p.surface,
-      borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
-        onTap: () => Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (_) => plan == null
-                ? const AssessmentFlowScreen()
-                : StarterPlanDetailScreen(plan: plan),
-          ),
-        ),
-        child: Container(
-          padding: const EdgeInsets.all(AppSpacing.lg),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
-            border: plan == null ? null : Border.all(color: p.line),
-          ),
-          child: Row(
-            children: [
-              Container(
-                width: 44,
-                height: 44,
-                decoration: BoxDecoration(
-                  color: plan == null
-                      ? Colors.white.withValues(alpha: 0.12)
-                      : p.emberSoft,
-                  borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-                ),
-                child: Icon(
-                  plan == null ? Icons.assignment_outlined : Icons.check_circle,
-                  color: plan == null ? Colors.white : AppColors.ember,
-                ),
-              ),
-              const SizedBox(width: AppSpacing.md),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      plan == null ? l.assessGetStarter : l.assessYourPlan,
-                      style: context.textStyles.titleMedium?.copyWith(
-                          color: plan == null ? Colors.white : p.text),
-                    ),
-                    Text(
-                      plan == null ? l.assessTake2min : plan.name,
-                      style: TextStyle(
-                        fontSize: 12.5,
-                        color: plan == null
-                            ? Colors.white.withValues(alpha: 0.6)
-                            : p.muted,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Icon(Icons.chevron_right,
-                  color: plan == null
-                      ? Colors.white.withValues(alpha: 0.6)
-                      : p.muted),
-            ],
-          ),
-        ),
-      ),
     );
   }
 }

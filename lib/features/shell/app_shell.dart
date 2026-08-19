@@ -11,6 +11,7 @@ import '../profile/account_drawer.dart';
 import '../profile/member_profile_screen.dart';
 import '../profile/trainer_home_screen.dart';
 import 'root_scaffold_key.dart';
+import '../assessment/assessment_entry_screen.dart';
 import '../trainer/plans_screen.dart';
 import '../trainer/trainer_messages_screen.dart';
 import '../workout/workout_home_screen.dart';
@@ -202,6 +203,13 @@ class _AppShellState extends State<AppShell> {
           body: l.helpProgressBody,
           before: () => coach(3),
         ),
+        TourStep(
+          target: TourKeys.navAssessment,
+          circle: true,
+          title: l.helpAssessmentTitle,
+          body: l.helpAssessmentBody,
+          before: () => coach(4),
+        ),
       ]);
     }
     return steps;
@@ -225,10 +233,10 @@ class _AppShellState extends State<AppShell> {
 
     // Layout: destination 0 is the raised centre button (Home / Clients);
     // the rest sit to the left and right of the notch.
-    //   Member  → left: Coach        · centre: Home    · right: Train, Nutrition
-    //   Trainer → left: Messages     · centre: Clients · right: Plans, Progress
+    //   Member  → left: Coach              · centre: Home    · right: Train, Nutrition
+    //   Trainer → left: Messages, Assessment · centre: Clients · right: Plans, Progress
     const centreIndex = 0;
-    final leftIndices = isTrainer ? const [2] : const [3];
+    final leftIndices = isTrainer ? const [2, 4] : const [3];
     final rightIndices = isTrainer ? const [1, 3] : const [1, 2];
 
     void select(int i) => _goTab(i);
@@ -402,6 +410,13 @@ class _AppShellState extends State<AppShell> {
           activeIcon: Icons.insights_rounded,
           screen: const ProgressScreen(),
           navKey: TourKeys.navProgress,
+        ),
+        _TabDef(
+          label: l.navAssessment,
+          icon: Icons.assignment_turned_in_outlined,
+          activeIcon: Icons.assignment_turned_in,
+          screen: const AssessmentEntryScreen(),
+          navKey: TourKeys.navAssessment,
         ),
       ];
 }
