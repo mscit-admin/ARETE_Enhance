@@ -8,7 +8,9 @@ import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_theme.dart';
 import '../../data/models/nutrition.dart';
 import '../../l10n/app_localizations.dart';
+import '../../shared/widgets/gradient_avatar.dart';
 import '../../shared/widgets/section_label.dart';
+import '../../state/connect_controller.dart';
 import '../../state/meal_plan_builder_controller.dart';
 import '../../state/profile_controller.dart';
 import '../nutrition/nutrition_screen.dart' show weekdayShort;
@@ -20,8 +22,8 @@ const _slotOrder = [
   MealType.dinner,
 ];
 
-/// Coach-side weekly meal-plan builder. The coach composes each day's meals
-/// from the food library and saves the plan for their members.
+/// Coach-side weekly meal-plan builder. The coach picks a client, composes each
+/// day's meals from the food library, and assigns the plan to that member.
 class MealPlanBuilderScreen extends StatefulWidget {
   const MealPlanBuilderScreen({super.key});
 
@@ -31,14 +33,15 @@ class MealPlanBuilderScreen extends StatefulWidget {
 
 class _MealPlanBuilderScreenState extends State<MealPlanBuilderScreen> {
   final _titleCtrl = TextEditingController();
-  bool _titleInit = false;
+  String? _titleForClient;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final c = context.read<MealPlanBuilderController>();
-      if (c.status == LoadStatus.idle) c.load();
+      if (c.status == LoadStatus.idle) c.init();
+      context.read<ConnectController>().loadClients();
     });
   }
 
@@ -48,13 +51,39 @@ class _MealPlanBuilderScreenState extends State<MealPlanBuilderScreen> {
     super.dispose();
   }
 
-  Future<void> _save() async {
+  Future<void> _pickClient() async {
+    final l = AppLocalizations.of(context);
+    final clients = context.read<ConnectController>().clients;
+    if (clients.isEmpty) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(l.plansNoClients)));
+      return;
+    }
+    final chosen = await showModalBottomSheet<Map<String, dynamic>>(
+      context: context,
+      showDragHandle: true,
+      builder: (_) => _ClientSheet(clients: clients),
+    );
+    if (chosen == null || !mounted) return;
+    final coachName = context.read<ProfileController>().member?.fullName ?? '';
+    await context.read<MealPlanBuilderController>().selectClient(
+          chosen['id'] as String,
+          (chosen['full_name'] as String?) ?? 'Client',
+          coachName,
+        );
+  }
+
+  Future<void> _assign() async {
     final l = AppLocalizations.of(context);
     final c = context.read<MealPlanBuilderController>();
-    final ok = await c.save();
+    final name = c.clientName;
+    final ok = await c.assign();
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(ok ? l.mealBuilderSaved : l.mealBuilderSaveFailed)),
+      SnackBar(
+        content:
+            Text(ok ? l.mealBuilderAssignedTo(name) : l.mealBuilderSaveFailed),
+      ),
     );
     if (ok) Navigator.of(context).pop();
   }
@@ -64,26 +93,26 @@ class _MealPlanBuilderScreenState extends State<MealPlanBuilderScreen> {
     final c = context.watch<MealPlanBuilderController>();
     final l = AppLocalizations.of(context);
 
-    // Seed the title field once the plan has loaded.
-    if (c.status == LoadStatus.ready && !_titleInit) {
+    // Keep the title field in sync with the selected client's plan.
+    if (c.hasClient && _titleForClient != c.clientId) {
       _titleCtrl.text = c.title;
-      _titleInit = true;
+      _titleForClient = c.clientId;
     }
 
     return Scaffold(
       appBar: AppBar(
         title: Text(l.mealBuilderTitle),
         actions: [
-          if (c.status == LoadStatus.ready)
+          if (c.hasClient && c.status == LoadStatus.ready)
             TextButton(
-              onPressed: c.saving ? null : _save,
+              onPressed: c.saving ? null : _assign,
               child: c.saving
                   ? const SizedBox(
                       width: 18,
                       height: 18,
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
-                  : Text(l.actionSave),
+                  : Text(l.mealBuilderAssign),
             ),
         ],
       ),
@@ -92,28 +121,109 @@ class _MealPlanBuilderScreenState extends State<MealPlanBuilderScreen> {
           LoadStatus.idle || LoadStatus.loading =>
             const Center(child: CircularProgressIndicator()),
           LoadStatus.error => Center(child: Text(l.foodDrinkCouldNotLoad)),
-          LoadStatus.ready => _Body(titleCtrl: _titleCtrl),
+          LoadStatus.ready => c.hasClient
+              ? _Editor(titleCtrl: _titleCtrl, onChangeClient: _pickClient)
+              : _ClientPrompt(onPick: _pickClient),
         },
       ),
     );
   }
 }
 
-class _Body extends StatelessWidget {
-  const _Body({required this.titleCtrl});
+/// Shown before a client is chosen.
+class _ClientPrompt extends StatelessWidget {
+  const _ClientPrompt({required this.onPick});
+
+  final VoidCallback onPick;
+
+  @override
+  Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    final p = context.palette;
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(AppSpacing.xxxl),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.person_search, size: 44, color: p.muted),
+            const SizedBox(height: AppSpacing.md),
+            Text(l.mealBuilderPickClientTitle,
+                style: context.textStyles.titleLarge, textAlign: TextAlign.center),
+            const SizedBox(height: AppSpacing.sm),
+            Text(l.mealBuilderPickClientBody,
+                textAlign: TextAlign.center,
+                style: context.textStyles.bodySmall?.copyWith(color: p.muted)),
+            const SizedBox(height: AppSpacing.lg),
+            ElevatedButton.icon(
+              onPressed: onPick,
+              icon: const Icon(Icons.person_add_alt, size: 18),
+              label: Text(l.mealBuilderSelectClient),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _Editor extends StatelessWidget {
+  const _Editor({required this.titleCtrl, required this.onChangeClient});
 
   final TextEditingController titleCtrl;
+  final VoidCallback onChangeClient;
 
   @override
   Widget build(BuildContext context) {
     final c = context.watch<MealPlanBuilderController>();
     final l = AppLocalizations.of(context);
+    final p = context.palette;
     final wd = c.selectedWeekday;
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(
           AppSpacing.screen, AppSpacing.lg, AppSpacing.screen, AppSpacing.xxxl),
       children: [
+        // Selected client row (tap to change).
+        Material(
+          color: p.surface,
+          borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+          child: InkWell(
+            borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+            onTap: onChangeClient,
+            child: Container(
+              padding: const EdgeInsets.all(AppSpacing.md),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+                border: Border.all(color: p.line),
+              ),
+              child: Row(
+                children: [
+                  GradientAvatar(initials: initialsFrom(c.clientName), size: 36),
+                  const SizedBox(width: AppSpacing.md),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(l.mealBuilderClientLabel,
+                            style: context.textStyles.bodySmall
+                                ?.copyWith(color: p.muted)),
+                        Text(c.clientName,
+                            style: context.textStyles.titleMedium),
+                      ],
+                    ),
+                  ),
+                  Text(l.mealBuilderChangeClient,
+                      style: const TextStyle(
+                          color: AppColors.accent,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 12.5)),
+                ],
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(height: AppSpacing.lg),
         TextField(
           controller: titleCtrl,
           textCapitalization: TextCapitalization.words,
@@ -131,8 +241,7 @@ class _Body extends StatelessWidget {
             Expanded(
               child: Text(
                 l.mealBuilderDayTotal(c.dayKcal(wd)),
-                style: context.textStyles.bodySmall
-                    ?.copyWith(color: context.palette.muted),
+                style: context.textStyles.bodySmall?.copyWith(color: p.muted),
               ),
             ),
             TextButton.icon(
@@ -174,6 +283,42 @@ class _Body extends StatelessWidget {
     if (ok == true && context.mounted) {
       context.read<MealPlanBuilderController>().copyDayToAll(weekday);
     }
+  }
+}
+
+class _ClientSheet extends StatelessWidget {
+  const _ClientSheet({required this.clients});
+
+  final List<Map<String, dynamic>> clients;
+
+  @override
+  Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(
+            AppSpacing.screen, 0, AppSpacing.screen, AppSpacing.lg),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(l.mealBuilderSelectClient,
+                style: context.textStyles.titleLarge),
+            const SizedBox(height: AppSpacing.md),
+            for (final c in clients)
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: GradientAvatar(
+                    initials: initialsFrom((c['full_name'] as String?) ?? 'Client'),
+                    size: 40),
+                title: Text((c['full_name'] as String?) ?? 'Client'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => Navigator.of(context).pop(c),
+              ),
+          ],
+        ),
+      ),
+    );
   }
 }
 
@@ -220,9 +365,8 @@ class _DayRow extends StatelessWidget {
                           style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w800,
-                            color: wd == selected
-                                ? AppColors.onAccent
-                                : p.text,
+                            color:
+                                wd == selected ? AppColors.onAccent : p.text,
                           ),
                         ),
                       ),

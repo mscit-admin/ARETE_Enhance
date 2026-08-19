@@ -541,5 +541,14 @@
   "mealBuilderCopyToAll": "Copy to all days",
   "mealBuilderCopyConfirm": "Replace every other day with this day's meals?",
   "mealBuilderNoFoods": "No foods added yet.",
-  "mealBuilderAddFood": "Add food"
+  "mealBuilderAddFood": "Add food",
+  "mealBuilderAssign": "Assign",
+  "mealBuilderAssignedTo": "Assigned to {name}",
+  "@mealBuilderAssignedTo": { "placeholders": { "name": { "type": "String" } } },
+  "mealBuilderSelectClient": "Select client",
+  "mealBuilderChangeClient": "Change",
+  "mealBuilderClientLabel": "Client",
+  "mealBuilderPickClientTitle": "Pick a client",
+  "mealBuilderPickClientBody": "Choose which trainee this meal plan is for.",
+  "foodDrinkNoAssignedPlan": "Your coach hasn't assigned a meal plan yet. You can still log your own meals below."
 }

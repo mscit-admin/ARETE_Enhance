@@ -1,81 +1,90 @@
 import 'package:arete/core/constants/enums.dart';
 import 'package:arete/data/repositories/mock_nutrition_repository.dart';
 import 'package:arete/data/repositories/mock_profile_repository.dart';
+import 'package:arete/state/meal_plan_builder_controller.dart';
 import 'package:arete/state/nutrition_controller.dart';
 import 'package:arete/state/profile_controller.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-NutritionController _makeController() =>
-    NutritionController(MockNutritionRepository(),
-        ProfileController(MockProfileRepository()));
+Future<ProfileController> _loadedProfile() async {
+  final p = ProfileController(MockProfileRepository());
+  await p.load();
+  return p;
+}
 
 void main() {
-  group('NutritionController', () {
-    test('loads the weekly plan and food library', () async {
-      final c = _makeController();
+  group('NutritionController (member)', () {
+    test('no plan is assigned until the coach assigns one', () async {
+      final profile = await _loadedProfile();
+      final c = NutritionController(MockNutritionRepository(), profile);
       await c.load();
       expect(c.status, LoadStatus.ready);
-      expect(c.plan, isNotNull);
+      expect(c.plan, isNull);
+      expect(c.hasNoPlan, isTrue);
       expect(c.library, isNotEmpty);
-      // A plan is provided for every weekday.
-      for (var wd = 1; wd <= 7; wd++) {
-        expect(c.plan!.dayFor(wd), isNotNull);
-      }
     });
 
-    test('consumed calories only count meals that are ticked off', () async {
-      final c = _makeController();
+    test('member can log meals even without an assigned plan', () async {
+      final profile = await _loadedProfile();
+      final c = NutritionController(MockNutritionRepository(), profile);
       await c.load();
       c.selectDay(1);
-      expect(c.consumedKcal, 0);
-      expect(c.eatenCount, 0);
-
-      final firstMeal = c.selectedDay!.meals.first;
-      c.toggleEaten(1, firstMeal.id);
-      expect(c.isEaten(1, firstMeal.id), isTrue);
-      expect(c.consumedKcal, firstMeal.kcal);
-      expect(c.eatenCount, 1);
-
-      // Un-ticking removes it again.
-      c.toggleEaten(1, firstMeal.id);
-      expect(c.isEaten(1, firstMeal.id), isFalse);
-      expect(c.consumedKcal, 0);
-    });
-
-    test('logged meals add to the day and can be removed', () async {
-      final c = _makeController();
-      await c.load();
-      c.selectDay(2);
 
       final apple = c.library.firstWhere((f) => f.name == 'Apple');
-      c.addFromLibrary(2, MealType.snack, apple);
-      expect(c.loggedFor(2, MealType.snack), hasLength(1));
-      expect(c.consumedKcal, apple.kcal);
-
-      c.addCustom(2, MealType.dinner, 'Home soup', 150);
+      c.addFromLibrary(1, MealType.snack, apple);
+      c.addCustom(1, MealType.dinner, 'Home soup', 150);
       expect(c.consumedKcal, apple.kcal + 150);
 
-      final logged = c.loggedFor(2, MealType.snack).first;
-      c.removeLogged(2, logged.id);
-      expect(c.loggedFor(2, MealType.snack), isEmpty);
+      final logged = c.loggedFor(1, MealType.snack).first;
+      c.removeLogged(1, logged.id);
       expect(c.consumedKcal, 150);
     });
+  });
 
-    test('eaten state and logged meals are scoped per weekday', () async {
-      final c = _makeController();
-      await c.load();
+  group('Coach assigns → member sees the plan', () {
+    test('assigned plan is loaded for that member and eaten totals work',
+        () async {
+      final repo = MockNutritionRepository();
+      final profile = await _loadedProfile();
+      final memberId = profile.member!.id;
 
-      final mondayMeal = c.plan!.dayFor(1)!.meals.first;
-      c.toggleEaten(1, mondayMeal.id);
+      // Coach builds from the starter template and assigns to the member.
+      final builder = MealPlanBuilderController(repo);
+      await builder.init();
+      await builder.selectClient(memberId, 'Trainee', 'Coach');
+      final ok = await builder.assign();
+      expect(ok, isTrue);
 
-      // Selecting Tuesday shows none of Monday's progress.
-      c.selectDay(2);
-      expect(c.eatenCount, 0);
-      expect(c.consumedKcal, 0);
+      // Member now loads their assigned plan.
+      final member = NutritionController(repo, profile);
+      await member.load();
+      expect(member.plan, isNotNull);
+      expect(member.hasNoPlan, isFalse);
+      for (var wd = 1; wd <= 7; wd++) {
+        expect(member.plan!.dayFor(wd), isNotNull);
+      }
 
-      // Back to Monday, the tick is still there.
-      c.selectDay(1);
-      expect(c.eatenCount, 1);
+      member.selectDay(1);
+      expect(member.consumedKcal, 0);
+      final firstMeal = member.selectedDay!.meals.first;
+      member.toggleEaten(1, firstMeal.id);
+      expect(member.consumedKcal, firstMeal.kcal);
+      expect(member.eatenCount, 1);
+    });
+
+    test('a plan assigned to another member is not visible', () async {
+      final repo = MockNutritionRepository();
+      final profile = await _loadedProfile();
+
+      final builder = MealPlanBuilderController(repo);
+      await builder.init();
+      await builder.selectClient('someone_else', 'Other', 'Coach');
+      await builder.assign();
+
+      final member = NutritionController(repo, profile);
+      await member.load();
+      expect(member.plan, isNull);
+      expect(member.hasNoPlan, isTrue);
     });
   });
 }

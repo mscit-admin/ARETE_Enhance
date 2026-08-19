@@ -490,5 +490,14 @@
   "mealBuilderCopyToAll": "نسخ إلى كل الأيام",
   "mealBuilderCopyConfirm": "استبدال كل الأيام الأخرى بوجبات هذا اليوم؟",
   "mealBuilderNoFoods": "لم تُضف أطعمة بعد.",
-  "mealBuilderAddFood": "إضافة طعام"
+  "mealBuilderAddFood": "إضافة طعام",
+  "mealBuilderAssign": "إسناد",
+  "mealBuilderAssignedTo": "تم الإسناد إلى {name}",
+  "@mealBuilderAssignedTo": { "placeholders": { "name": { "type": "String" } } },
+  "mealBuilderSelectClient": "اختيار متدرب",
+  "mealBuilderChangeClient": "تغيير",
+  "mealBuilderClientLabel": "المتدرب",
+  "mealBuilderPickClientTitle": "اختر متدرباً",
+  "mealBuilderPickClientBody": "اختر المتدرب الذي ستُسند له خطة الوجبات هذه.",
+  "foodDrinkNoAssignedPlan": "لم يُسنِد مدرّبك خطة وجبات بعد. لا يزال بإمكانك تسجيل وجباتك أدناه."
 }

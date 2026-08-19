@@ -490,5 +490,14 @@
   "mealBuilderCopyToAll": "Copier sur tous les jours",
   "mealBuilderCopyConfirm": "Remplacer tous les autres jours par les repas de ce jour ?",
   "mealBuilderNoFoods": "Aucun aliment ajouté.",
-  "mealBuilderAddFood": "Ajouter un aliment"
+  "mealBuilderAddFood": "Ajouter un aliment",
+  "mealBuilderAssign": "Attribuer",
+  "mealBuilderAssignedTo": "Attribué à {name}",
+  "@mealBuilderAssignedTo": { "placeholders": { "name": { "type": "String" } } },
+  "mealBuilderSelectClient": "Choisir un client",
+  "mealBuilderChangeClient": "Changer",
+  "mealBuilderClientLabel": "Client",
+  "mealBuilderPickClientTitle": "Choisir un client",
+  "mealBuilderPickClientBody": "Choisissez le client concerné par ce plan de repas.",
+  "foodDrinkNoAssignedPlan": "Votre coach n'a pas encore attribué de plan de repas. Vous pouvez tout de même enregistrer vos repas ci-dessous."
 }
