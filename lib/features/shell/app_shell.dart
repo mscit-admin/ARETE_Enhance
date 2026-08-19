@@ -14,6 +14,7 @@ import 'root_scaffold_key.dart';
 import '../trainer/plans_screen.dart';
 import '../trainer/trainer_messages_screen.dart';
 import '../workout/workout_home_screen.dart';
+import '../nutrition/nutrition_screen.dart';
 import '../progress/progress_screen.dart';
 import '../coach/coach_screen.dart';
 import '../../state/auth_controller.dart';
@@ -22,8 +23,10 @@ import '../../state/help_controller.dart';
 import '../../state/messaging_controller.dart';
 import '../../state/notifications_controller.dart';
 import '../../state/my_plan_controller.dart';
+import '../../state/nutrition_controller.dart';
 import '../../state/plans_controller.dart';
 import '../../state/profile_controller.dart';
+import '../../state/progress_controller.dart';
 import '../../state/session_controller.dart';
 
 /// Root scaffold with bottom navigation. The tab set adapts to the active
@@ -144,10 +147,10 @@ class _AppShellState extends State<AppShell> {
         before: () async => _goTab(1),
       ),
       TourStep(
-        target: TourKeys.navProgress,
+        target: TourKeys.navNutrition,
         circle: true,
-        title: l.helpProgressTitle,
-        body: l.helpProgressBody,
+        title: l.helpNutritionTitle,
+        body: l.helpNutritionBody,
         before: () async => _goTab(2),
       ),
       TourStep(
@@ -192,6 +195,13 @@ class _AppShellState extends State<AppShell> {
           body: l.helpMessagesBody,
           before: () => coach(2),
         ),
+        TourStep(
+          target: TourKeys.navProgress,
+          circle: true,
+          title: l.helpProgressTitle,
+          body: l.helpProgressBody,
+          before: () => coach(3),
+        ),
       ]);
     }
     return steps;
@@ -215,11 +225,11 @@ class _AppShellState extends State<AppShell> {
 
     // Layout: destination 0 is the raised centre button (Home / Clients);
     // the rest sit to the left and right of the notch.
-    //   Member  → left: Coach        · centre: Home    · right: Train, Progress
-    //   Trainer → left: Messages     · centre: Clients · right: Plans
+    //   Member  → left: Coach        · centre: Home    · right: Train, Nutrition
+    //   Trainer → left: Messages     · centre: Clients · right: Plans, Progress
     const centreIndex = 0;
     final leftIndices = isTrainer ? const [2] : const [3];
-    final rightIndices = isTrainer ? const [1] : const [1, 2];
+    final rightIndices = isTrainer ? const [1, 3] : const [1, 2];
 
     void select(int i) => _goTab(i);
 
@@ -313,11 +323,15 @@ class _AppShellState extends State<AppShell> {
         connect.loadClients();
       } else if (i == 2) {
         connect.loadClients();
+      } else if (i == 3) {
+        context.read<ProgressController>().load();
       }
     } else {
       final profile = context.read<ProfileController>();
       if (i == 0) {
         profile.load();
+      } else if (i == 2) {
+        context.read<NutritionController>().load();
       } else if (i == 3) {
         profile.load();
         context.read<MyPlanController>().load();
@@ -345,11 +359,11 @@ class _AppShellState extends State<AppShell> {
           navKey: TourKeys.navTrain,
         ),
         _TabDef(
-          label: l.navProgress,
-          icon: Icons.insights_outlined,
-          activeIcon: Icons.insights_rounded,
-          screen: const ProgressScreen(),
-          navKey: TourKeys.navProgress,
+          label: l.navNutrition,
+          icon: Icons.restaurant_menu_outlined,
+          activeIcon: Icons.restaurant_menu,
+          screen: const NutritionScreen(),
+          navKey: TourKeys.navNutrition,
         ),
         _TabDef(
           label: l.navCoach,
@@ -381,6 +395,13 @@ class _AppShellState extends State<AppShell> {
           activeIcon: Icons.chat_bubble,
           screen: const TrainerMessagesScreen(),
           navKey: TourKeys.navMessages,
+        ),
+        _TabDef(
+          label: l.navProgress,
+          icon: Icons.insights_outlined,
+          activeIcon: Icons.insights_rounded,
+          screen: const ProgressScreen(),
+          navKey: TourKeys.navProgress,
         ),
       ];
 }

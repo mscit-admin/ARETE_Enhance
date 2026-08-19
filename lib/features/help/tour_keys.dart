@@ -10,6 +10,7 @@ class TourKeys {
   // Bottom-navigation destinations.
   static final navHome = GlobalKey(debugLabel: 'tour_navHome');
   static final navTrain = GlobalKey(debugLabel: 'tour_navTrain');
+  static final navNutrition = GlobalKey(debugLabel: 'tour_navNutrition');
   static final navProgress = GlobalKey(debugLabel: 'tour_navProgress');
   static final navCoach = GlobalKey(debugLabel: 'tour_navCoach');
   static final navClients = GlobalKey(debugLabel: 'tour_navClients');

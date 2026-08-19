@@ -5,6 +5,7 @@
 
   "navHome": "Accueil",
   "navTrain": "Entraîner",
+  "navNutrition": "Repas",
   "navProgress": "Progrès",
   "navCoach": "Coach",
   "navClients": "Clients",
@@ -374,6 +375,8 @@
   "helpTrainBody": "Démarrez une séance et enregistrez vos séries, répétitions et charges. Les records sont suivis automatiquement.",
   "helpProgressTitle": "Progression",
   "helpProgressBody": "Suivez l'évolution de votre poids, votre volume d'entraînement et vos mensurations dans le temps.",
+  "helpNutritionTitle": "Alimentation",
+  "helpNutritionBody": "Suivez le plan de repas attribué par votre coach, cochez les repas consommés, enregistrez des repas supplémentaires et suivez votre hydratation.",
   "helpCoachTitle": "Coach",
   "helpCoachBody": "Discutez avec votre coach, recevez les plans qu'il vous attribue et restez connecté.",
   "helpProfileTitle": "Votre compte",

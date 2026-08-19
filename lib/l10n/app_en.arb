@@ -6,6 +6,7 @@
 
   "navHome": "Home",
   "navTrain": "Train",
+  "navNutrition": "Food",
   "navProgress": "Progress",
   "navCoach": "Coach",
   "navClients": "Clients",
@@ -425,6 +426,8 @@
   "helpTrainBody": "Start a session and log your sets, reps and weights. Personal records are tracked automatically.",
   "helpProgressTitle": "Progress",
   "helpProgressBody": "Follow your weight trend, training volume and body measurements over time.",
+  "helpNutritionTitle": "Food & Drink",
+  "helpNutritionBody": "Follow the meal plan your coach assigns, tick meals off as you eat them, log extra meals, and track your water.",
   "helpCoachTitle": "Coach",
   "helpCoachBody": "Chat with your coach, receive the plans they assign you, and stay connected.",
   "helpProfileTitle": "Your account",
