@@ -161,6 +161,13 @@ class _AppShellState extends State<AppShell> {
         body: l.helpCoachBody,
         before: () async => _goTab(3),
       ),
+      TourStep(
+        target: TourKeys.navAssessment,
+        circle: true,
+        title: l.helpAssessmentTitle,
+        body: l.helpAssessmentBody,
+        before: () async => _goTab(4),
+      ),
     ];
 
     if (isTrainerAccount) {
@@ -203,13 +210,6 @@ class _AppShellState extends State<AppShell> {
           body: l.helpProgressBody,
           before: () => coach(3),
         ),
-        TourStep(
-          target: TourKeys.navAssessment,
-          circle: true,
-          title: l.helpAssessmentTitle,
-          body: l.helpAssessmentBody,
-          before: () => coach(4),
-        ),
       ]);
     }
     return steps;
@@ -233,11 +233,11 @@ class _AppShellState extends State<AppShell> {
 
     // Layout: destination 0 is the raised centre button (Home / Clients);
     // the rest sit to the left and right of the notch.
-    //   Member  → left: Coach              · centre: Home    · right: Train, Nutrition
-    //   Trainer → left: Messages, Assessment · centre: Clients · right: Plans, Progress
+    //   Member  → left: Assessment, Coach · centre: Home    · right: Nutrition, Train
+    //   Trainer → left: Messages          · centre: Clients · right: Plans, Progress
     const centreIndex = 0;
-    final leftIndices = isTrainer ? const [2, 4] : const [3];
-    final rightIndices = isTrainer ? const [1, 3] : const [1, 2];
+    final leftIndices = isTrainer ? const [2] : const [4, 3];
+    final rightIndices = isTrainer ? const [1, 3] : const [2, 1];
 
     void select(int i) => _goTab(i);
 
@@ -380,6 +380,13 @@ class _AppShellState extends State<AppShell> {
           screen: const CoachScreen(),
           navKey: TourKeys.navCoach,
         ),
+        _TabDef(
+          label: l.navAssessment,
+          icon: Icons.assignment_turned_in_outlined,
+          activeIcon: Icons.assignment_turned_in,
+          screen: const AssessmentEntryScreen(),
+          navKey: TourKeys.navAssessment,
+        ),
       ];
 
   List<_TabDef> _trainerTabs(AppLocalizations l) => [
@@ -410,13 +417,6 @@ class _AppShellState extends State<AppShell> {
           activeIcon: Icons.insights_rounded,
           screen: const ProgressScreen(),
           navKey: TourKeys.navProgress,
-        ),
-        _TabDef(
-          label: l.navAssessment,
-          icon: Icons.assignment_turned_in_outlined,
-          activeIcon: Icons.assignment_turned_in,
-          screen: const AssessmentEntryScreen(),
-          navKey: TourKeys.navAssessment,
         ),
       ];
 }
