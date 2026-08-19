@@ -8,23 +8,60 @@ import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_theme.dart';
 import '../../data/models/member.dart';
 import '../../l10n/app_localizations.dart';
-import '../../shared/widgets/gradient_avatar.dart';
 import '../../shared/widgets/language_menu_button.dart';
 import '../../shared/widgets/section_label.dart';
-import '../../state/assessment_controller.dart';
 import '../../state/auth_controller.dart';
 import '../../state/hydration_controller.dart';
 import '../../state/profile_controller.dart';
 import '../../state/session_controller.dart';
-import '../assessment/assessment_flow_screen.dart';
-import '../assessment/starter_plan_detail_screen.dart';
-import '../nutrition/nutrition_screen.dart';
 import '../help/tour_keys.dart';
 import '../notifications/notification_bell.dart';
 import '../shell/root_scaffold_key.dart';
 import 'widgets/badges_row.dart';
 import 'widgets/goal_progress_card.dart';
+import 'widgets/member_avatar.dart';
 import 'widgets/membership_card.dart';
+
+/// Shows the membership card in a bottom sheet (opened from the Home header).
+Future<void> showMembershipSheet(BuildContext context, Member member) {
+  final p = context.palette;
+  final l = AppLocalizations.of(context);
+  return showModalBottomSheet<void>(
+    context: context,
+    backgroundColor: p.surface,
+    isScrollControlled: true,
+    shape: const RoundedRectangleBorder(
+      borderRadius:
+          BorderRadius.vertical(top: Radius.circular(AppSpacing.radiusXl)),
+    ),
+    builder: (_) => SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(AppSpacing.lg, AppSpacing.md,
+            AppSpacing.lg, AppSpacing.xl),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: p.line,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            const SizedBox(height: AppSpacing.md),
+            SectionLabel(l.profileMembership),
+            const SizedBox(height: AppSpacing.sm),
+            MembershipCard(member: member),
+          ],
+        ),
+      ),
+    ),
+  );
+}
 
 /// Member home / profile — the first fully-built module of Phase 1.
 class MemberProfileScreen extends StatelessWidget {
@@ -80,25 +117,40 @@ class _ProfileBody extends StatelessWidget {
           // ---- Header ----
           Row(
             children: [
-              GradientAvatar(
-                  initials: initialsFrom(member.fullName),
-                  size: 50,
-                  tone: AvatarTone.lime),
+              MemberAvatar(member: member, size: 50),
               const SizedBox(width: AppSpacing.md),
+              // Tapping the name/identity opens the membership sheet.
               Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(l.profileHey(firstName),
-                        style: context.textStyles.headlineSmall),
-                    const SizedBox(height: 2),
-                    Text(
-                      l.profileMemberStreak(member.membership.tier.localized(l),
-                          member.currentStreakDays),
-                      style: context.textStyles.bodySmall
-                          ?.copyWith(color: p.muted),
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
+                  onTap: () => showMembershipSheet(context, member),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 4),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Flexible(
+                              child: Text(l.profileHey(firstName),
+                                  style: context.textStyles.headlineSmall,
+                                  overflow: TextOverflow.ellipsis),
+                            ),
+                            const SizedBox(width: 4),
+                            Icon(Icons.expand_more, size: 18, color: p.muted),
+                          ],
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          l.profileMemberStreak(
+                              member.membership.tier.localized(l),
+                              member.currentStreakDays),
+                          style: context.textStyles.bodySmall
+                              ?.copyWith(color: p.muted),
+                        ),
+                      ],
                     ),
-                  ],
+                  ),
                 ),
               ),
               if (isTrainerAccount)
@@ -127,10 +179,6 @@ class _ProfileBody extends StatelessWidget {
             key: TourKeys.homeStreak,
             child: _StreakBanner(member: member),
           ),
-          const SizedBox(height: AppSpacing.lg),
-
-          // ---- Assessment / plan entry ----
-          const _AssessmentEntry(),
           const SizedBox(height: AppSpacing.xl),
 
           // ---- Today's activity (Carbon: three horizontal bars) ----
@@ -146,20 +194,10 @@ class _ProfileBody extends StatelessWidget {
           KeyedSubtree(key: TourKeys.homeWorkout, child: _TodaySessionCard()),
           const SizedBox(height: AppSpacing.lg),
 
-          // ---- Nutrition (Food & Drink) ----
-          const _NutritionEntry(),
-          const SizedBox(height: AppSpacing.lg),
-
           // ---- Goal ----
           SectionLabel(l.profileGoalLabel(member.goal.localized(l))),
           const SizedBox(height: AppSpacing.sm),
           GoalProgressCard(member: member),
-          const SizedBox(height: AppSpacing.lg),
-
-          // ---- Membership ----
-          SectionLabel(l.profileMembership),
-          const SizedBox(height: AppSpacing.sm),
-          MembershipCard(member: member),
           const SizedBox(height: AppSpacing.lg),
 
           // ---- Badges ----
@@ -227,62 +265,6 @@ class _TodaySessionCard extends StatelessWidget {
                 color: AppColors.onAccent, size: 30),
           ),
         ],
-      ),
-    );
-  }
-}
-
-/// Entry point to the Food & Drink (nutrition) screen.
-class _NutritionEntry extends StatelessWidget {
-  const _NutritionEntry();
-
-  @override
-  Widget build(BuildContext context) {
-    final p = context.palette;
-    final l = AppLocalizations.of(context);
-    return Material(
-      color: p.surface,
-      borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
-        onTap: () => Navigator.of(context).push(
-          MaterialPageRoute(builder: (_) => const NutritionScreen()),
-        ),
-        child: Container(
-          padding: const EdgeInsets.all(AppSpacing.lg),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
-            border: Border.all(color: p.line),
-          ),
-          child: Row(
-            children: [
-              Container(
-                width: 44,
-                height: 44,
-                decoration: BoxDecoration(
-                  color: AppColors.limeTintBg,
-                  borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-                  border: Border.all(color: AppColors.limeTintBorder),
-                ),
-                child: const Icon(Icons.restaurant_menu,
-                    color: AppColors.accent),
-              ),
-              const SizedBox(width: AppSpacing.md),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(l.foodDrinkTitle,
-                        style: context.textStyles.titleMedium),
-                    Text(l.foodDrinkHomeSubtitle,
-                        style: TextStyle(fontSize: 12.5, color: p.muted)),
-                  ],
-                ),
-              ),
-              Icon(Icons.chevron_right, color: p.muted),
-            ],
-          ),
-        ),
       ),
     );
   }
@@ -468,85 +450,6 @@ class _ActivityBar extends StatelessWidget {
           ),
         ),
       ],
-    );
-  }
-}
-
-/// Entry point to the Health Assessment. Shows the selected plan once chosen.
-class _AssessmentEntry extends StatelessWidget {
-  const _AssessmentEntry();
-
-  @override
-  Widget build(BuildContext context) {
-    final assessment = context.watch<AssessmentController>();
-    final plan = assessment.selectedPlan;
-    final p = context.palette;
-    final l = AppLocalizations.of(context);
-
-    return Material(
-      color: plan == null ? AppColors.ink : p.surface,
-      borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
-        onTap: () => Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (_) => plan == null
-                ? const AssessmentFlowScreen()
-                : StarterPlanDetailScreen(plan: plan),
-          ),
-        ),
-        child: Container(
-          padding: const EdgeInsets.all(AppSpacing.lg),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
-            border: plan == null ? null : Border.all(color: p.line),
-          ),
-          child: Row(
-            children: [
-              Container(
-                width: 44,
-                height: 44,
-                decoration: BoxDecoration(
-                  color: plan == null
-                      ? Colors.white.withValues(alpha: 0.12)
-                      : p.emberSoft,
-                  borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-                ),
-                child: Icon(
-                  plan == null ? Icons.assignment_outlined : Icons.check_circle,
-                  color: plan == null ? Colors.white : AppColors.ember,
-                ),
-              ),
-              const SizedBox(width: AppSpacing.md),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      plan == null ? l.assessGetStarter : l.assessYourPlan,
-                      style: context.textStyles.titleMedium?.copyWith(
-                          color: plan == null ? Colors.white : p.text),
-                    ),
-                    Text(
-                      plan == null ? l.assessTake2min : plan.name,
-                      style: TextStyle(
-                        fontSize: 12.5,
-                        color: plan == null
-                            ? Colors.white.withValues(alpha: 0.6)
-                            : p.muted,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Icon(Icons.chevron_right,
-                  color: plan == null
-                      ? Colors.white.withValues(alpha: 0.6)
-                      : p.muted),
-            ],
-          ),
-        ),
-      ),
     );
   }
 }

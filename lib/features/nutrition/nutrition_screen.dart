@@ -93,6 +93,10 @@ class _Body extends StatelessWidget {
           _PlanHeader(title: plan.title, coach: plan.coachName),
           const SizedBox(height: AppSpacing.md),
         ],
+        if (c.hasNoPlan) ...[
+          const _NoPlanBanner(),
+          const SizedBox(height: AppSpacing.md),
+        ],
         _DaySelector(
           selected: c.selectedWeekday,
           today: DateTime.now().weekday,
@@ -105,7 +109,7 @@ class _Body extends StatelessWidget {
           _MealSection(type: type),
           const SizedBox(height: AppSpacing.lg),
         ],
-        if (c.selectedDay == null)
+        if (plan != null && c.selectedDay == null)
           Text(l.foodDrinkNoPlanDay,
               style: context.textStyles.bodySmall
                   ?.copyWith(color: context.palette.muted)),
@@ -141,6 +145,36 @@ class _PlanHeader extends StatelessWidget {
               ?.copyWith(color: context.palette.muted),
         ),
       ],
+    );
+  }
+}
+
+/// Shown when the coach hasn't assigned a meal plan yet. The member can still
+/// log their own meals below.
+class _NoPlanBanner extends StatelessWidget {
+  const _NoPlanBanner();
+
+  @override
+  Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    final p = context.palette;
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.md),
+      decoration: BoxDecoration(
+        color: p.surfaceAlt,
+        borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+        border: Border.all(color: p.line),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.info_outline, size: 18, color: p.muted),
+          const SizedBox(width: AppSpacing.sm),
+          Expanded(
+            child: Text(l.foodDrinkNoAssignedPlan,
+                style: context.textStyles.bodySmall?.copyWith(color: p.muted)),
+          ),
+        ],
+      ),
     );
   }
 }

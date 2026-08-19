@@ -6,11 +6,13 @@
 
   "navHome": "Home",
   "navTrain": "Train",
+  "navNutrition": "Food",
   "navProgress": "Progress",
   "navCoach": "Coach",
   "navClients": "Clients",
   "navPlans": "Plans",
   "navMessages": "Messages",
+  "navAssessment": "Assess",
 
   "actionDone": "Done",
   "actionRetry": "Retry",
@@ -425,6 +427,10 @@
   "helpTrainBody": "Start a session and log your sets, reps and weights. Personal records are tracked automatically.",
   "helpProgressTitle": "Progress",
   "helpProgressBody": "Follow your weight trend, training volume and body measurements over time.",
+  "helpNutritionTitle": "Food & Drink",
+  "helpNutritionBody": "Follow the meal plan your coach assigns, tick meals off as you eat them, log extra meals, and track your water.",
+  "helpAssessmentTitle": "Assessment",
+  "helpAssessmentBody": "Run the quick health assessment to generate a starter plan, and revisit the resulting plan any time.",
   "helpCoachTitle": "Coach",
   "helpCoachBody": "Chat with your coach, receive the plans they assign you, and stay connected.",
   "helpProfileTitle": "Your account",
@@ -541,5 +547,14 @@
   "mealBuilderCopyToAll": "Copy to all days",
   "mealBuilderCopyConfirm": "Replace every other day with this day's meals?",
   "mealBuilderNoFoods": "No foods added yet.",
-  "mealBuilderAddFood": "Add food"
+  "mealBuilderAddFood": "Add food",
+  "mealBuilderAssign": "Assign",
+  "mealBuilderAssignedTo": "Assigned to {name}",
+  "@mealBuilderAssignedTo": { "placeholders": { "name": { "type": "String" } } },
+  "mealBuilderSelectClient": "Select client",
+  "mealBuilderChangeClient": "Change",
+  "mealBuilderClientLabel": "Client",
+  "mealBuilderPickClientTitle": "Pick a client",
+  "mealBuilderPickClientBody": "Choose which trainee this meal plan is for.",
+  "foodDrinkNoAssignedPlan": "Your coach hasn't assigned a meal plan yet. You can still log your own meals below."
 }

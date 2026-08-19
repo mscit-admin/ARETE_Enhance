@@ -5,11 +5,13 @@
 
   "navHome": "Accueil",
   "navTrain": "Entraîner",
+  "navNutrition": "Repas",
   "navProgress": "Progrès",
   "navCoach": "Coach",
   "navClients": "Clients",
   "navPlans": "Plans",
   "navMessages": "Messages",
+  "navAssessment": "Éval",
 
   "actionDone": "Terminé",
   "actionRetry": "Réessayer",
@@ -374,6 +376,10 @@
   "helpTrainBody": "Démarrez une séance et enregistrez vos séries, répétitions et charges. Les records sont suivis automatiquement.",
   "helpProgressTitle": "Progression",
   "helpProgressBody": "Suivez l'évolution de votre poids, votre volume d'entraînement et vos mensurations dans le temps.",
+  "helpNutritionTitle": "Alimentation",
+  "helpNutritionBody": "Suivez le plan de repas attribué par votre coach, cochez les repas consommés, enregistrez des repas supplémentaires et suivez votre hydratation.",
+  "helpAssessmentTitle": "Évaluation",
+  "helpAssessmentBody": "Réalisez l'évaluation santé rapide pour générer un plan de départ, et consultez le plan obtenu à tout moment.",
   "helpCoachTitle": "Coach",
   "helpCoachBody": "Discutez avec votre coach, recevez les plans qu'il vous attribue et restez connecté.",
   "helpProfileTitle": "Votre compte",
@@ -490,5 +496,14 @@
   "mealBuilderCopyToAll": "Copier sur tous les jours",
   "mealBuilderCopyConfirm": "Remplacer tous les autres jours par les repas de ce jour ?",
   "mealBuilderNoFoods": "Aucun aliment ajouté.",
-  "mealBuilderAddFood": "Ajouter un aliment"
+  "mealBuilderAddFood": "Ajouter un aliment",
+  "mealBuilderAssign": "Attribuer",
+  "mealBuilderAssignedTo": "Attribué à {name}",
+  "@mealBuilderAssignedTo": { "placeholders": { "name": { "type": "String" } } },
+  "mealBuilderSelectClient": "Choisir un client",
+  "mealBuilderChangeClient": "Changer",
+  "mealBuilderClientLabel": "Client",
+  "mealBuilderPickClientTitle": "Choisir un client",
+  "mealBuilderPickClientBody": "Choisissez le client concerné par ce plan de repas.",
+  "foodDrinkNoAssignedPlan": "Votre coach n'a pas encore attribué de plan de repas. Vous pouvez tout de même enregistrer vos repas ci-dessous."
 }

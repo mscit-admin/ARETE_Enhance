@@ -1,11 +1,16 @@
 import '../models/nutrition.dart';
 
-/// Source of the member's assigned meal plan and the food library they can log
-/// extra meals from.
+/// Source of meal plans and the food library. Meal plans are assigned per
+/// member by their coach — mirroring how workout plans are assigned.
 abstract class NutritionRepository {
-  Future<MealPlan> getMealPlan();
   Future<List<FoodItem>> getFoodLibrary();
 
-  /// Persist a plan authored by the coach so the member sees it on next load.
-  Future<void> saveMealPlan(MealPlan plan);
+  /// The plan the coach has assigned to [memberId], or null if none.
+  Future<MealPlan?> getAssignedPlan(String memberId);
+
+  /// A blank/starter plan the coach can begin authoring from.
+  Future<MealPlan> starterPlan();
+
+  /// Coach assigns (or updates) [plan] for a specific member.
+  Future<void> assignPlan(String memberId, MealPlan plan);
 }

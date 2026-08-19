@@ -43,7 +43,8 @@ class NutritionController extends ChangeNotifier {
     _status = LoadStatus.loading;
     notifyListeners();
     try {
-      _plan = await _repo.getMealPlan();
+      final memberId = _profile.member?.id;
+      _plan = memberId == null ? null : await _repo.getAssignedPlan(memberId);
       _library = await _repo.getFoodLibrary();
       _status = LoadStatus.ready;
     } catch (_) {
@@ -51,6 +52,9 @@ class NutritionController extends ChangeNotifier {
     }
     notifyListeners();
   }
+
+  /// True once loaded but the coach hasn't assigned a plan yet.
+  bool get hasNoPlan => _status == LoadStatus.ready && _plan == null;
 
   void selectDay(int weekday) {
     if (weekday == _selectedWeekday) return;

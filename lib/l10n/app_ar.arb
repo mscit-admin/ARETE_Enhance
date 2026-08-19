@@ -5,11 +5,13 @@
 
   "navHome": "الرئيسية",
   "navTrain": "التمرين",
+  "navNutrition": "التغذية",
   "navProgress": "التقدم",
   "navCoach": "المدرب",
   "navClients": "المتدربون",
   "navPlans": "الخطط",
   "navMessages": "الرسائل",
+  "navAssessment": "التقييم",
 
   "actionDone": "تم",
   "actionRetry": "إعادة المحاولة",
@@ -374,6 +376,10 @@
   "helpTrainBody": "ابدأ جلسة وسجّل مجموعاتك وتكراراتك وأوزانك. تُحفظ أرقامك القياسية تلقائيًا.",
   "helpProgressTitle": "التقدّم",
   "helpProgressBody": "تابع منحنى وزنك وحجم تدريبك وقياسات جسمك عبر الزمن.",
+  "helpNutritionTitle": "الأكل والشرب",
+  "helpNutritionBody": "تابع خطة الوجبات التي يُسنِدها مدرّبك، وحدّد الوجبات عند تناولها، وسجّل وجبات إضافية، وتتبّع شرب الماء.",
+  "helpAssessmentTitle": "التقييم",
+  "helpAssessmentBody": "أجرِ التقييم الصحي السريع لإنشاء خطة مبدئية، وارجع إلى الخطة الناتجة في أي وقت.",
   "helpCoachTitle": "المدرب",
   "helpCoachBody": "تحدّث مع مدربك، واستقبل الخطط التي يُسندها إليك، وابقَ على تواصل.",
   "helpProfileTitle": "حسابك",
@@ -490,5 +496,14 @@
   "mealBuilderCopyToAll": "نسخ إلى كل الأيام",
   "mealBuilderCopyConfirm": "استبدال كل الأيام الأخرى بوجبات هذا اليوم؟",
   "mealBuilderNoFoods": "لم تُضف أطعمة بعد.",
-  "mealBuilderAddFood": "إضافة طعام"
+  "mealBuilderAddFood": "إضافة طعام",
+  "mealBuilderAssign": "إسناد",
+  "mealBuilderAssignedTo": "تم الإسناد إلى {name}",
+  "@mealBuilderAssignedTo": { "placeholders": { "name": { "type": "String" } } },
+  "mealBuilderSelectClient": "اختيار متدرب",
+  "mealBuilderChangeClient": "تغيير",
+  "mealBuilderClientLabel": "المتدرب",
+  "mealBuilderPickClientTitle": "اختر متدرباً",
+  "mealBuilderPickClientBody": "اختر المتدرب الذي ستُسند له خطة الوجبات هذه.",
+  "foodDrinkNoAssignedPlan": "لم يُسنِد مدرّبك خطة وجبات بعد. لا يزال بإمكانك تسجيل وجباتك أدناه."
 }
