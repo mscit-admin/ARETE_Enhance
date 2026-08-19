@@ -8,7 +8,6 @@ import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_theme.dart';
 import '../../data/models/member.dart';
 import '../../l10n/app_localizations.dart';
-import '../../shared/widgets/gradient_avatar.dart';
 import '../../shared/widgets/language_menu_button.dart';
 import '../../shared/widgets/section_label.dart';
 import '../../state/auth_controller.dart';
@@ -20,7 +19,49 @@ import '../notifications/notification_bell.dart';
 import '../shell/root_scaffold_key.dart';
 import 'widgets/badges_row.dart';
 import 'widgets/goal_progress_card.dart';
+import 'widgets/member_avatar.dart';
 import 'widgets/membership_card.dart';
+
+/// Shows the membership card in a bottom sheet (opened from the Home header).
+Future<void> showMembershipSheet(BuildContext context, Member member) {
+  final p = context.palette;
+  final l = AppLocalizations.of(context);
+  return showModalBottomSheet<void>(
+    context: context,
+    backgroundColor: p.surface,
+    isScrollControlled: true,
+    shape: const RoundedRectangleBorder(
+      borderRadius:
+          BorderRadius.vertical(top: Radius.circular(AppSpacing.radiusXl)),
+    ),
+    builder: (_) => SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(AppSpacing.lg, AppSpacing.md,
+            AppSpacing.lg, AppSpacing.xl),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: p.line,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            const SizedBox(height: AppSpacing.md),
+            SectionLabel(l.profileMembership),
+            const SizedBox(height: AppSpacing.sm),
+            MembershipCard(member: member),
+          ],
+        ),
+      ),
+    ),
+  );
+}
 
 /// Member home / profile — the first fully-built module of Phase 1.
 class MemberProfileScreen extends StatelessWidget {
@@ -76,25 +117,40 @@ class _ProfileBody extends StatelessWidget {
           // ---- Header ----
           Row(
             children: [
-              GradientAvatar(
-                  initials: initialsFrom(member.fullName),
-                  size: 50,
-                  tone: AvatarTone.lime),
+              MemberAvatar(member: member, size: 50),
               const SizedBox(width: AppSpacing.md),
+              // Tapping the name/identity opens the membership sheet.
               Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(l.profileHey(firstName),
-                        style: context.textStyles.headlineSmall),
-                    const SizedBox(height: 2),
-                    Text(
-                      l.profileMemberStreak(member.membership.tier.localized(l),
-                          member.currentStreakDays),
-                      style: context.textStyles.bodySmall
-                          ?.copyWith(color: p.muted),
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
+                  onTap: () => showMembershipSheet(context, member),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 4),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Flexible(
+                              child: Text(l.profileHey(firstName),
+                                  style: context.textStyles.headlineSmall,
+                                  overflow: TextOverflow.ellipsis),
+                            ),
+                            const SizedBox(width: 4),
+                            Icon(Icons.expand_more, size: 18, color: p.muted),
+                          ],
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          l.profileMemberStreak(
+                              member.membership.tier.localized(l),
+                              member.currentStreakDays),
+                          style: context.textStyles.bodySmall
+                              ?.copyWith(color: p.muted),
+                        ),
+                      ],
                     ),
-                  ],
+                  ),
                 ),
               ),
               if (isTrainerAccount)
@@ -142,12 +198,6 @@ class _ProfileBody extends StatelessWidget {
           SectionLabel(l.profileGoalLabel(member.goal.localized(l))),
           const SizedBox(height: AppSpacing.sm),
           GoalProgressCard(member: member),
-          const SizedBox(height: AppSpacing.lg),
-
-          // ---- Membership ----
-          SectionLabel(l.profileMembership),
-          const SizedBox(height: AppSpacing.sm),
-          MembershipCard(member: member),
           const SizedBox(height: AppSpacing.lg),
 
           // ---- Badges ----
