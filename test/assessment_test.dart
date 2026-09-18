@@ -2,10 +2,14 @@ import 'package:arete/core/constants/enums.dart';
 import 'package:arete/data/mock/mock_plans.dart';
 import 'package:arete/data/models/assessment.dart';
 import 'package:arete/features/assessment/plan_matcher.dart';
+import 'package:arete/l10n/app_localizations.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   const matcher = PlanMatcher();
+  // rank() takes an AppLocalizations for its human-readable reasons.
+  final l = lookupAppLocalizations(const Locale('en'));
 
   test('intermediate muscle-builder with a full gym gets Upper/Lower', () {
     final a = AssessmentAnswers()
@@ -17,7 +21,7 @@ void main() {
       ..clear()
       ..add(EquipmentAccess.fullGym);
 
-    final ranked = matcher.rank(a, MockPlans.all);
+    final ranked = matcher.rank(a, MockPlans.all, l);
     expect(ranked.first.plan.id, 'plan_upperlower4');
     expect(ranked.first.reasons, isNotEmpty);
   });
@@ -32,7 +36,7 @@ void main() {
       ..clear()
       ..add(EquipmentAccess.bodyweight);
 
-    final ranked = matcher.rank(a, MockPlans.all);
+    final ranked = matcher.rank(a, MockPlans.all, l);
     expect(ranked.first.plan.id, 'plan_home3');
     // A full-gym plan must not win when there's no gym access.
     expect(ranked.first.plan.equipment.contains(EquipmentAccess.fullGym),
