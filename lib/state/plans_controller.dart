@@ -83,4 +83,67 @@ class PlansController extends ChangeNotifier {
       return e.message;
     }
   }
+
+  /// Edit an existing plan (fields + full exercise list). Returns null on
+  /// success, else an error message.
+  Future<String?> updatePlan({
+    required String planId,
+    required String name,
+    String description = '',
+    int daysPerWeek = 3,
+    int weeks = 8,
+    required List<PlanExercise> exercises,
+  }) async {
+    try {
+      await _client.put('/api/app/trainer/plans/$planId', {
+        'name': name,
+        'description': description,
+        'daysPerWeek': daysPerWeek,
+        'weeks': weeks,
+        'exercises': exercises.map((e) => e.toJson()).toList(),
+      });
+      await load();
+      return null;
+    } on ApiException catch (e) {
+      return e.message;
+    }
+  }
+
+  /// Delete a plan. Returns null on success, else an error message.
+  Future<String?> deletePlan(String planId) async {
+    try {
+      await _client.delete('/api/app/trainer/plans/$planId');
+      await load();
+      return null;
+    } on ApiException catch (e) {
+      return e.message;
+    }
+  }
+
+  /// The members a plan is actively assigned to
+  /// (each row: {id, fullName, assignedAt}).
+  Future<List<Map<String, dynamic>>> assignees(String planId) async {
+    try {
+      final j = await _client.get('/api/app/trainer/plans/$planId/assignees')
+          as Map<String, dynamic>;
+      return (j['rows'] as List).cast<Map<String, dynamic>>();
+    } catch (_) {
+      return [];
+    }
+  }
+
+  /// Remove a member's active assignment of a plan.
+  Future<String?> unassign(String planId, String memberId) async {
+    try {
+      await _client.post(
+        '/api/app/trainer/plans/$planId/unassign',
+        {'memberId': memberId},
+        auth: true,
+      );
+      await load();
+      return null;
+    } on ApiException catch (e) {
+      return e.message;
+    }
+  }
 }

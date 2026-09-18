@@ -56,7 +56,10 @@ class _ExDraft {
 }
 
 class CreatePlanScreen extends StatefulWidget {
-  const CreatePlanScreen({super.key});
+  const CreatePlanScreen({super.key, this.existing});
+
+  /// When non-null the screen edits this plan instead of creating a new one.
+  final TrainerPlan? existing;
 
   @override
   State<CreatePlanScreen> createState() => _CreatePlanScreenState();
@@ -71,6 +74,37 @@ class _CreatePlanScreenState extends State<CreatePlanScreen> {
   int _selectedDay = 0;
   final List<_ExDraft> _drafts = [];
   bool _saving = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // Editing an existing plan: prefill fields and its exercises.
+    final e = widget.existing;
+    if (e != null) {
+      _name.text = e.name;
+      _description.text = e.description;
+      _daysPerWeek = e.daysPerWeek;
+      _weeks = e.weeks;
+      for (final ex in e.exercises) {
+        final d = _ExDraft(
+          day: ex.day,
+          exerciseId: ex.exerciseId,
+          name: ex.name,
+          nameAr: ex.nameAr,
+          muscleGroup: ex.muscleGroup,
+        );
+        d.sets = ex.sets;
+        d.reps = ex.reps;
+        d.rest = ex.rest ?? 60;
+        if (ex.weight != null) d.weight.text = _trimNum(ex.weight!);
+        d.notes.text = ex.notes;
+        _drafts.add(d);
+      }
+    }
+  }
+
+  static String _trimNum(double v) =>
+      v == v.roundToDouble() ? v.toInt().toString() : v.toString();
 
   @override
   void dispose() {
@@ -107,13 +141,24 @@ class _CreatePlanScreenState extends State<CreatePlanScreen> {
       return;
     }
     setState(() => _saving = true);
-    final err = await context.read<PlansController>().createPlan(
-          name: _name.text.trim(),
-          description: _description.text.trim(),
-          daysPerWeek: _daysPerWeek,
-          weeks: _weeks,
-          exercises: exercises,
-        );
+    final controller = context.read<PlansController>();
+    final existing = widget.existing;
+    final err = existing != null
+        ? await controller.updatePlan(
+            planId: existing.id,
+            name: _name.text.trim(),
+            description: _description.text.trim(),
+            daysPerWeek: _daysPerWeek,
+            weeks: _weeks,
+            exercises: exercises,
+          )
+        : await controller.createPlan(
+            name: _name.text.trim(),
+            description: _description.text.trim(),
+            daysPerWeek: _daysPerWeek,
+            weeks: _weeks,
+            exercises: exercises,
+          );
     if (!mounted) return;
     setState(() => _saving = false);
     if (err != null) {
@@ -131,7 +176,9 @@ class _CreatePlanScreenState extends State<CreatePlanScreen> {
     final dayDrafts = _drafts.where((d) => d.day == _selectedDay).toList();
 
     return Scaffold(
-      appBar: AppBar(title: Text(l.createPlanTitle)),
+      appBar: AppBar(
+          title: Text(
+              widget.existing != null ? l.editPlanTitle : l.createPlanTitle)),
       body: Form(
         key: _formKey,
         child: ListView(

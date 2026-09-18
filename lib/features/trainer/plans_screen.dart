@@ -63,6 +63,52 @@ class _PlansScreenState extends State<PlansScreen> {
     );
   }
 
+  Future<void> _edit(TrainerPlan plan) async {
+    // Load the full plan (with exercises) before opening the editor.
+    final full = await context.read<PlansController>().fetchDetail(plan.id);
+    if (!mounted || full == null) return;
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => CreatePlanScreen(existing: full)),
+    );
+  }
+
+  Future<void> _delete(TrainerPlan plan) async {
+    final l = AppLocalizations.of(context);
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(l.plansDeletePlan),
+        content: Text(l.plansDeleteConfirm(plan.name)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: Text(l.actionCancel),
+          ),
+          TextButton(
+            style: TextButton.styleFrom(foregroundColor: AppColors.danger),
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: Text(l.plansDeletePlan),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    final err = await context.read<PlansController>().deletePlan(plan.id);
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(err ?? l.plansDeleted)),
+    );
+  }
+
+  Future<void> _manageAssignees(TrainerPlan plan) async {
+    await showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      isScrollControlled: true,
+      builder: (_) => _AssigneesSheet(plan: plan),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
@@ -102,6 +148,9 @@ class _PlansScreenState extends State<PlansScreen> {
                           plan: plan,
                           onTap: () => _openDetail(plan),
                           onAssign: () => _assign(plan),
+                          onEdit: () => _edit(plan),
+                          onDelete: () => _delete(plan),
+                          onManageAssignees: () => _manageAssignees(plan),
                         ),
                         const SizedBox(height: AppSpacing.sm),
                       ],
@@ -140,11 +189,20 @@ class _Empty extends StatelessWidget {
 }
 
 class _PlanCard extends StatelessWidget {
-  const _PlanCard(
-      {required this.plan, required this.onTap, required this.onAssign});
+  const _PlanCard({
+    required this.plan,
+    required this.onTap,
+    required this.onAssign,
+    required this.onEdit,
+    required this.onDelete,
+    required this.onManageAssignees,
+  });
   final TrainerPlan plan;
   final VoidCallback onTap;
   final VoidCallback onAssign;
+  final VoidCallback onEdit;
+  final VoidCallback onDelete;
+  final VoidCallback onManageAssignees;
 
   @override
   Widget build(BuildContext context) {
@@ -163,6 +221,47 @@ class _PlanCard extends StatelessWidget {
               if ((plan.assignedCount ?? 0) > 0)
                 Pill(l.plansAssignedCount(plan.assignedCount!),
                     tone: PillTone.teal),
+              PopupMenuButton<String>(
+                icon: Icon(Icons.more_vert, color: p.muted),
+                onSelected: (v) {
+                  switch (v) {
+                    case 'edit':
+                      onEdit();
+                    case 'assignees':
+                      onManageAssignees();
+                    case 'delete':
+                      onDelete();
+                  }
+                },
+                itemBuilder: (_) => [
+                  PopupMenuItem(
+                    value: 'edit',
+                    child: Row(children: [
+                      const Icon(Icons.edit_outlined, size: 18),
+                      const SizedBox(width: AppSpacing.sm),
+                      Text(l.plansEditPlan),
+                    ]),
+                  ),
+                  PopupMenuItem(
+                    value: 'assignees',
+                    child: Row(children: [
+                      const Icon(Icons.group_outlined, size: 18),
+                      const SizedBox(width: AppSpacing.sm),
+                      Text(l.plansManageAssignees),
+                    ]),
+                  ),
+                  PopupMenuItem(
+                    value: 'delete',
+                    child: Row(children: [
+                      const Icon(Icons.delete_outline,
+                          size: 18, color: AppColors.danger),
+                      const SizedBox(width: AppSpacing.sm),
+                      Text(l.plansDeletePlan,
+                          style: const TextStyle(color: AppColors.danger)),
+                    ]),
+                  ),
+                ],
+              ),
             ],
           ),
           const SizedBox(height: 4),
@@ -219,6 +318,106 @@ class _AssignSheet extends StatelessWidget {
                 trailing: const Icon(Icons.chevron_right),
                 onTap: () => Navigator.of(context).pop(c['id'] as String),
               ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Lists the members a plan is assigned to and lets the trainer unassign any.
+class _AssigneesSheet extends StatefulWidget {
+  const _AssigneesSheet({required this.plan});
+  final TrainerPlan plan;
+
+  @override
+  State<_AssigneesSheet> createState() => _AssigneesSheetState();
+}
+
+class _AssigneesSheetState extends State<_AssigneesSheet> {
+  bool _loading = true;
+  List<Map<String, dynamic>> _rows = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    final rows =
+        await context.read<PlansController>().assignees(widget.plan.id);
+    if (!mounted) return;
+    setState(() {
+      _rows = rows;
+      _loading = false;
+    });
+  }
+
+  Future<void> _unassign(Map<String, dynamic> m) async {
+    final l = AppLocalizations.of(context);
+    final err = await context
+        .read<PlansController>()
+        .unassign(widget.plan.id, m['id'] as String);
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(err ?? l.plansUnassigned)),
+    );
+    await _load();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    final p = context.palette;
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(
+            AppSpacing.screen, 0, AppSpacing.screen, AppSpacing.lg),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(l.plansAssignees, style: context.textStyles.titleLarge),
+            const SizedBox(height: AppSpacing.md),
+            Flexible(
+              child: _loading
+                  ? const Padding(
+                      padding: EdgeInsets.all(AppSpacing.lg),
+                      child: Center(child: CircularProgressIndicator()),
+                    )
+                  : _rows.isEmpty
+                      ? Padding(
+                          padding: const EdgeInsets.symmetric(
+                              vertical: AppSpacing.lg),
+                          child: Text(l.plansNoAssignees,
+                              style: context.textStyles.bodyMedium
+                                  ?.copyWith(color: p.muted)),
+                        )
+                      : ListView(
+                          shrinkWrap: true,
+                          children: [
+                            for (final m in _rows)
+                              ListTile(
+                                contentPadding: EdgeInsets.zero,
+                                leading: GradientAvatar(
+                                    initials: initialsFrom(
+                                        (m['fullName'] as String?) ?? 'Client'),
+                                    size: 40),
+                                title: Text(
+                                    (m['fullName'] as String?) ?? 'Client'),
+                                trailing: TextButton.icon(
+                                  style: TextButton.styleFrom(
+                                      foregroundColor: AppColors.danger),
+                                  onPressed: () => _unassign(m),
+                                  icon: const Icon(Icons.person_remove_alt_1,
+                                      size: 18),
+                                  label: Text(l.plansUnassign),
+                                ),
+                              ),
+                          ],
+                        ),
+            ),
           ],
         ),
       ),
