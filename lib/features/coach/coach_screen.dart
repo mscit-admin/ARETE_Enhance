@@ -51,7 +51,12 @@ class _CoachScreenState extends State<CoachScreen> {
 
   void _refresh() {
     context.read<MyPlanController>().load();
-    final coach = context.read<ProfileController>().assignedTrainer;
+    final profile = context.read<ProfileController>();
+    // If the coach link hasn't loaded yet (e.g. the member was linked after
+    // this screen first built), reload it so the coach + assigned plan appear
+    // without a re-login.
+    if (profile.assignedTrainer == null) profile.load();
+    final coach = profile.assignedTrainer;
     if (coach != null) {
       context.read<MessagingController>().load(coach.id);
     }

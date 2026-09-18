@@ -338,6 +338,9 @@ class _AppShellState extends State<AppShell> {
       final profile = context.read<ProfileController>();
       if (i == 0) {
         profile.load();
+      } else if (i == 1) {
+        // Train tab — refresh the coach-assigned plan so it shows up here.
+        context.read<MyPlanController>().load();
       } else if (i == 2) {
         context.read<NutritionController>().load();
       } else if (i == 3) {
