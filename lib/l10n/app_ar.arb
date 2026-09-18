@@ -505,5 +505,20 @@
   "mealBuilderClientLabel": "المتدرب",
   "mealBuilderPickClientTitle": "اختر متدرباً",
   "mealBuilderPickClientBody": "اختر المتدرب الذي ستُسند له خطة الوجبات هذه.",
-  "foodDrinkNoAssignedPlan": "لم يُسنِد مدرّبك خطة وجبات بعد. لا يزال بإمكانك تسجيل وجباتك أدناه."
+  "foodDrinkNoAssignedPlan": "لم يُسنِد مدرّبك خطة وجبات بعد. لا يزال بإمكانك تسجيل وجباتك أدناه.",
+  "plansEditPlan": "تعديل الخطة",
+  "plansDeletePlan": "حذف الخطة",
+  "plansDeleteConfirm": "حذف \"{name}\"؟ لا يمكن التراجع عن هذا الإجراء.",
+  "@plansDeleteConfirm": { "placeholders": { "name": { "type": "String" } } },
+  "plansDeleted": "تم حذف الخطة",
+  "editPlanTitle": "تعديل الخطة",
+  "plansManageAssignees": "إدارة الإسناد",
+  "plansAssignees": "المتدربون المُسنَدون",
+  "plansNoAssignees": "لا يوجد متدربون مُسنَدون بعد.",
+  "plansUnassign": "إلغاء الإسناد",
+  "plansUnassigned": "تم إلغاء الإسناد",
+  "trainerRemoveClient": "إزالة المتدرب",
+  "trainerRemoveClientConfirm": "إزالة {name} من قائمة متدربيك؟ سيتم إلغاء ربط الخطط التي أسندتها له.",
+  "@trainerRemoveClientConfirm": { "placeholders": { "name": { "type": "String" } } },
+  "trainerClientRemoved": "تمت إزالة المتدرب"
 }

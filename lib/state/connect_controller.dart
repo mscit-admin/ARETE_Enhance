@@ -57,6 +57,18 @@ class ConnectController extends ChangeNotifier {
     }
   }
 
+  /// Unlink one of the trainer's clients. Returns null on success, else an
+  /// error message. Refreshes the client list on success.
+  Future<String?> removeClient(String memberId) async {
+    try {
+      await _client.delete('/api/app/trainer/clients/$memberId');
+      await loadClients();
+      return null;
+    } on ApiException catch (e) {
+      return e.message;
+    }
+  }
+
   /// Load the current member's linked coach (or null).
   Future<Map<String, dynamic>?> loadCoach() async {
     try {

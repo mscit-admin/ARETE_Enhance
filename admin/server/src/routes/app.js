@@ -652,6 +652,205 @@ router.post('/trainer/plans/:id/assign', requireAuth, async (req, res) => {
   }
 });
 
+// PUT /api/app/trainer/plans/:id  (trainer) — edit a plan's fields and replace
+// its exercise list (adds/removes handled by sending the new full list).
+router.put('/trainer/plans/:id', requireAuth, async (req, res) => {
+  const uid = req.user.sub;
+  if (!(await isTrainer(uid))) {
+    return res.status(403).json({ error: 'Trainers only' });
+  }
+  const planId = req.params.id;
+  const owns = await db.query(
+    'SELECT 1 FROM plans WHERE id = $1 AND created_by = $2',
+    [planId, uid],
+  );
+  if (!owns.rowCount) return res.status(404).json({ error: 'Plan not found' });
+  const b = req.body || {};
+  const name = String(b.name || '').trim();
+  if (!name) return res.status(400).json({ error: 'A plan name is required' });
+  const exercises = Array.isArray(b.exercises) ? b.exercises : [];
+  const peHasDetail = await hasColumn('plan_exercises', 'notes');
+  const exHasMeta = await hasColumn('exercises', 'visibility');
+
+  const client = await db.pool.connect();
+  try {
+    await client.query('BEGIN');
+    await client.query(
+      `UPDATE plans SET name = $1, description = $2, days_per_week = $3,
+              weeks = $4, split = $5
+         WHERE id = $6`,
+      [
+        name,
+        String(b.description || '').trim() || null,
+        Number(b.daysPerWeek) || 3,
+        Number(b.weeks) || 8,
+        String(b.split || '').trim() || null,
+        planId,
+      ],
+    );
+    // Replace the whole exercise set so add/remove both take effect.
+    await client.query('DELETE FROM plan_exercises WHERE plan_id = $1', [planId]);
+    const posByDay = {};
+    for (const e of exercises) {
+      let exerciseId = e && e.exerciseId ? String(e.exerciseId) : null;
+      if (exerciseId) {
+        const chk = await client.query('SELECT 1 FROM exercises WHERE id = $1', [exerciseId]);
+        if (!chk.rowCount) exerciseId = null;
+      }
+      if (!exerciseId) {
+        const exName = String(e?.name || '').trim();
+        if (!exName) continue;
+        const exRow = exHasMeta
+            ? await client.query(
+                `INSERT INTO exercises (name, created_by, visibility)
+                 VALUES ($1, $2, 'private') RETURNING id`,
+                [exName, uid],
+              )
+            : await client.query(
+                `INSERT INTO exercises (name) VALUES ($1) RETURNING id`,
+                [exName],
+              );
+        exerciseId = exRow.rows[0].id;
+      }
+      const day = Number(e?.day) || 0;
+      const pos = posByDay[day] || 0;
+      posByDay[day] = pos + 1;
+      if (peHasDetail) {
+        await client.query(
+          `INSERT INTO plan_exercises
+             (plan_id, exercise_id, day_index, position, target_sets, target_reps,
+              target_weight, rest_seconds, notes)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+           ON CONFLICT (plan_id, exercise_id, day_index) DO UPDATE
+             SET position = EXCLUDED.position, target_sets = EXCLUDED.target_sets,
+                 target_reps = EXCLUDED.target_reps, target_weight = EXCLUDED.target_weight,
+                 rest_seconds = EXCLUDED.rest_seconds, notes = EXCLUDED.notes`,
+          [
+            planId, exerciseId, day, pos,
+            Number(e?.sets) || 3, Number(e?.reps) || 10,
+            e?.weight != null && e.weight !== '' ? Number(e.weight) : null,
+            e?.rest != null && e.rest !== '' ? Number(e.rest) : null,
+            String(e?.notes || '').trim() || null,
+          ],
+        );
+      } else {
+        await client.query(
+          `INSERT INTO plan_exercises
+             (plan_id, exercise_id, day_index, position, target_sets, target_reps)
+           VALUES ($1, $2, $3, $4, $5, $6)
+           ON CONFLICT (plan_id, exercise_id, day_index) DO UPDATE
+             SET position = EXCLUDED.position, target_sets = EXCLUDED.target_sets,
+                 target_reps = EXCLUDED.target_reps`,
+          [planId, exerciseId, day, pos, Number(e?.sets) || 3, Number(e?.reps) || 10],
+        );
+      }
+    }
+    await client.query('COMMIT');
+    return res.json({ plan: await planWithExercises(planId) });
+  } catch (e) {
+    await client.query('ROLLBACK');
+    return res.status(500).json({ error: 'Failed to update plan' });
+  } finally {
+    client.release();
+  }
+});
+
+// DELETE /api/app/trainer/plans/:id  (trainer) — delete a plan; cascades its
+// exercises and assignments.
+router.delete('/trainer/plans/:id', requireAuth, async (req, res) => {
+  const uid = req.user.sub;
+  try {
+    const r = await db.query(
+      'DELETE FROM plans WHERE id = $1 AND created_by = $2',
+      [req.params.id, uid],
+    );
+    if (!r.rowCount) return res.status(404).json({ error: 'Plan not found' });
+    return res.json({ ok: true });
+  } catch (e) {
+    return res.status(500).json({ error: 'Failed to delete plan' });
+  }
+});
+
+// GET /api/app/trainer/plans/:id/assignees  (trainer) — members this plan is
+// actively assigned to.
+router.get('/trainer/plans/:id/assignees', requireAuth, async (req, res) => {
+  const uid = req.user.sub;
+  try {
+    const owns = await db.query(
+      'SELECT 1 FROM plans WHERE id = $1 AND created_by = $2',
+      [req.params.id, uid],
+    );
+    if (!owns.rowCount) return res.status(404).json({ error: 'Plan not found' });
+    const { rows } = await db.query(
+      `SELECT u.id, u.full_name, a.assigned_at
+         FROM plan_assignments a JOIN users u ON u.id = a.member_id
+        WHERE a.plan_id = $1 AND a.active
+        ORDER BY a.assigned_at DESC`,
+      [req.params.id],
+    );
+    return res.json({
+      rows: rows.map((r) => ({
+        id: r.id,
+        fullName: r.full_name,
+        assignedAt: r.assigned_at,
+      })),
+    });
+  } catch (e) {
+    return res.status(500).json({ error: 'Failed to load assignees' });
+  }
+});
+
+// POST /api/app/trainer/plans/:id/unassign  (trainer) — { memberId }: retire
+// this member's active assignment of the plan.
+router.post('/trainer/plans/:id/unassign', requireAuth, async (req, res) => {
+  const uid = req.user.sub;
+  const memberId = String(req.body?.memberId || '');
+  if (!memberId) return res.status(400).json({ error: 'memberId is required' });
+  try {
+    const owns = await db.query(
+      'SELECT 1 FROM plans WHERE id = $1 AND created_by = $2',
+      [req.params.id, uid],
+    );
+    if (!owns.rowCount) return res.status(404).json({ error: 'Plan not found' });
+    await db.query(
+      `UPDATE plan_assignments SET active = false
+        WHERE plan_id = $1 AND member_id = $2 AND active`,
+      [req.params.id, memberId],
+    );
+    return res.json({ ok: true });
+  } catch (e) {
+    return res.status(500).json({ error: 'Failed to unassign' });
+  }
+});
+
+// DELETE /api/app/trainer/clients/:memberId  (trainer) — unlink a client and
+// retire the active plans this trainer assigned them.
+router.delete('/trainer/clients/:memberId', requireAuth, async (req, res) => {
+  const uid = req.user.sub;
+  const memberId = req.params.memberId;
+  try {
+    const link = await db.query(
+      'SELECT 1 FROM members WHERE user_id = $1 AND trainer_id = $2',
+      [memberId, uid],
+    );
+    if (!link.rowCount) {
+      return res.status(404).json({ error: 'That member is not your client' });
+    }
+    await db.query(
+      'UPDATE members SET trainer_id = NULL WHERE user_id = $1 AND trainer_id = $2',
+      [memberId, uid],
+    );
+    await db.query(
+      `UPDATE plan_assignments SET active = false
+        WHERE member_id = $1 AND assigned_by = $2 AND active`,
+      [memberId, uid],
+    );
+    return res.json({ ok: true });
+  } catch (e) {
+    return res.status(500).json({ error: 'Failed to remove client' });
+  }
+});
+
 // GET /api/app/my-plans  (member) — active plans assigned to me, with detail.
 router.get('/my-plans', requireAuth, async (req, res) => {
   const uid = req.user.sub;

@@ -505,5 +505,20 @@
   "mealBuilderClientLabel": "Client",
   "mealBuilderPickClientTitle": "Choisir un client",
   "mealBuilderPickClientBody": "Choisissez le client concerné par ce plan de repas.",
-  "foodDrinkNoAssignedPlan": "Votre coach n'a pas encore attribué de plan de repas. Vous pouvez tout de même enregistrer vos repas ci-dessous."
+  "foodDrinkNoAssignedPlan": "Votre coach n'a pas encore attribué de plan de repas. Vous pouvez tout de même enregistrer vos repas ci-dessous.",
+  "plansEditPlan": "Modifier le plan",
+  "plansDeletePlan": "Supprimer le plan",
+  "plansDeleteConfirm": "Supprimer « {name} » ? Cette action est irréversible.",
+  "@plansDeleteConfirm": { "placeholders": { "name": { "type": "String" } } },
+  "plansDeleted": "Plan supprimé",
+  "editPlanTitle": "Modifier le plan",
+  "plansManageAssignees": "Gérer les assignations",
+  "plansAssignees": "Membres assignés",
+  "plansNoAssignees": "Aucun membre assigné pour l'instant.",
+  "plansUnassign": "Retirer",
+  "plansUnassigned": "Assignation retirée",
+  "trainerRemoveClient": "Retirer le client",
+  "trainerRemoveClientConfirm": "Retirer {name} de vos clients ? Les plans que vous lui avez assignés seront dissociés.",
+  "@trainerRemoveClientConfirm": { "placeholders": { "name": { "type": "String" } } },
+  "trainerClientRemoved": "Client retiré"
 }

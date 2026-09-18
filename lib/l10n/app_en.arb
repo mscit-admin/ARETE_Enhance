@@ -556,5 +556,20 @@
   "mealBuilderClientLabel": "Client",
   "mealBuilderPickClientTitle": "Pick a client",
   "mealBuilderPickClientBody": "Choose which trainee this meal plan is for.",
-  "foodDrinkNoAssignedPlan": "Your coach hasn't assigned a meal plan yet. You can still log your own meals below."
+  "foodDrinkNoAssignedPlan": "Your coach hasn't assigned a meal plan yet. You can still log your own meals below.",
+  "plansEditPlan": "Edit plan",
+  "plansDeletePlan": "Delete plan",
+  "plansDeleteConfirm": "Delete \"{name}\"? This can't be undone.",
+  "@plansDeleteConfirm": { "placeholders": { "name": { "type": "String" } } },
+  "plansDeleted": "Plan deleted",
+  "editPlanTitle": "Edit plan",
+  "plansManageAssignees": "Manage assignments",
+  "plansAssignees": "Assigned members",
+  "plansNoAssignees": "No members assigned yet.",
+  "plansUnassign": "Unassign",
+  "plansUnassigned": "Assignment removed",
+  "trainerRemoveClient": "Remove client",
+  "trainerRemoveClientConfirm": "Remove {name} from your clients? Plans you assigned them will be unlinked.",
+  "@trainerRemoveClientConfirm": { "placeholders": { "name": { "type": "String" } } },
+  "trainerClientRemoved": "Client removed"
 }

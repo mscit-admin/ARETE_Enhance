@@ -60,6 +60,37 @@ class _TrainerHomeScreenState extends State<TrainerHomeScreen> {
         .join(' ');
   }
 
+  Future<void> _confirmRemove(Map<String, dynamic> c) async {
+    final l = AppLocalizations.of(context);
+    final name = (c['full_name'] as String?) ?? 'Client';
+    final id = c['id'] as String?;
+    if (id == null) return;
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(l.trainerRemoveClient),
+        content: Text(l.trainerRemoveClientConfirm(name)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: Text(l.actionCancel),
+          ),
+          TextButton(
+            style: TextButton.styleFrom(foregroundColor: AppColors.danger),
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: Text(l.trainerRemoveClient),
+          ),
+        ],
+      ),
+    );
+    if (ok != true || !mounted) return;
+    final err = await context.read<ConnectController>().removeClient(id);
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(err ?? l.trainerClientRemoved)),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final profile = context.watch<ProfileController>();
@@ -174,6 +205,7 @@ class _TrainerHomeScreenState extends State<TrainerHomeScreen> {
                   name: (c['full_name'] as String?) ?? 'Client',
                   subtitle:
                       '${_pretty(c['goal'] as String?)} · ${_pretty(c['experience'] as String?)}',
+                  onRemove: () => _confirmRemove(c),
                 ),
                 const SizedBox(height: AppSpacing.sm),
               ],
@@ -236,14 +268,20 @@ class _ShareCodeCard extends StatelessWidget {
 }
 
 class _ClientTile extends StatelessWidget {
-  const _ClientTile({required this.name, required this.subtitle});
+  const _ClientTile({
+    required this.name,
+    required this.subtitle,
+    required this.onRemove,
+  });
 
   final String name;
   final String subtitle;
+  final VoidCallback onRemove;
 
   @override
   Widget build(BuildContext context) {
     final p = context.palette;
+    final l = AppLocalizations.of(context);
     return AppCard(
       padding: const EdgeInsets.all(AppSpacing.md),
       child: Row(
@@ -261,7 +299,23 @@ class _ClientTile extends StatelessWidget {
               ],
             ),
           ),
-          Pill(AppLocalizations.of(context).trainerActive, tone: PillTone.teal),
+          Pill(l.trainerActive, tone: PillTone.teal),
+          PopupMenuButton<String>(
+            icon: Icon(Icons.more_vert, color: p.muted),
+            onSelected: (_) => onRemove(),
+            itemBuilder: (_) => [
+              PopupMenuItem(
+                value: 'remove',
+                child: Row(children: [
+                  const Icon(Icons.person_remove_alt_1,
+                      size: 18, color: AppColors.danger),
+                  const SizedBox(width: AppSpacing.sm),
+                  Text(l.trainerRemoveClient,
+                      style: const TextStyle(color: AppColors.danger)),
+                ]),
+              ),
+            ],
+          ),
         ],
       ),
     );
