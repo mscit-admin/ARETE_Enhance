@@ -571,5 +571,11 @@
   "trainerRemoveClient": "Remove client",
   "trainerRemoveClientConfirm": "Remove {name} from your clients? Plans you assigned them will be unlinked.",
   "@trainerRemoveClientConfirm": { "placeholders": { "name": { "type": "String" } } },
-  "trainerClientRemoved": "Client removed"
+  "trainerClientRemoved": "Client removed",
+  "mealPlansTitle": "Meal plans",
+  "mealPlansEmpty": "No meal plans assigned yet. Tap + to build one for a client.",
+  "mealPlanRemove": "Remove meal plan",
+  "mealPlanRemoveConfirm": "Remove {name}'s meal plan?",
+  "@mealPlanRemoveConfirm": { "placeholders": { "name": { "type": "String" } } },
+  "mealPlanRemoved": "Meal plan removed"
 }

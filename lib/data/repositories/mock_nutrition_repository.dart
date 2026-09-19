@@ -35,4 +35,23 @@ class MockNutritionRepository implements NutritionRepository {
     await Future.delayed(_latency);
     _assigned[memberId] = plan;
   }
+
+  @override
+  Future<List<Map<String, dynamic>>> assignedMembers() async {
+    await Future.delayed(_latency);
+    return _assigned.entries
+        .map((e) => <String, dynamic>{
+              'memberId': e.key,
+              'memberName': '',
+              'title': e.value.title,
+              'assignedAt': null,
+            })
+        .toList();
+  }
+
+  @override
+  Future<void> unassign(String memberId) async {
+    await Future.delayed(_latency);
+    _assigned.remove(memberId);
+  }
 }

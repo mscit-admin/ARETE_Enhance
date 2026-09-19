@@ -520,5 +520,11 @@
   "trainerRemoveClient": "إزالة المتدرب",
   "trainerRemoveClientConfirm": "إزالة {name} من قائمة متدربيك؟ سيتم إلغاء ربط الخطط التي أسندتها له.",
   "@trainerRemoveClientConfirm": { "placeholders": { "name": { "type": "String" } } },
-  "trainerClientRemoved": "تمت إزالة المتدرب"
+  "trainerClientRemoved": "تمت إزالة المتدرب",
+  "mealPlansTitle": "خطط الوجبات",
+  "mealPlansEmpty": "لا توجد خطط وجبات مُسندة بعد. اضغط + لإنشاء خطة لمتدرب.",
+  "mealPlanRemove": "حذف خطة الوجبات",
+  "mealPlanRemoveConfirm": "حذف خطة وجبات {name}؟",
+  "@mealPlanRemoveConfirm": { "placeholders": { "name": { "type": "String" } } },
+  "mealPlanRemoved": "تم حذف خطة الوجبات"
 }

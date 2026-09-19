@@ -180,6 +180,20 @@ class MealPlanBuilderController extends ChangeNotifier {
     }
   }
 
+  /// Members this coach has assigned a meal plan to (for the management list).
+  Future<List<Map<String, dynamic>>> assignedMembers() =>
+      _repo.assignedMembers();
+
+  /// Remove a member's meal plan. Returns true on success.
+  Future<bool> unassign(String memberId) async {
+    try {
+      await _repo.unassign(memberId);
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
   void clear() {
     _status = LoadStatus.idle;
     _days.clear();

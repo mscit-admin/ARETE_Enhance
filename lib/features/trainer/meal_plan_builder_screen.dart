@@ -25,7 +25,16 @@ const _slotOrder = [
 /// Coach-side weekly meal-plan builder. The coach picks a client, composes each
 /// day's meals from the food library, and assigns the plan to that member.
 class MealPlanBuilderScreen extends StatefulWidget {
-  const MealPlanBuilderScreen({super.key});
+  const MealPlanBuilderScreen({
+    super.key,
+    this.preselectMemberId,
+    this.preselectMemberName,
+  });
+
+  /// When provided, the builder opens straight into editing this member's plan
+  /// (used by the "Edit" action on the meal-plans management list).
+  final String? preselectMemberId;
+  final String? preselectMemberName;
 
   @override
   State<MealPlanBuilderScreen> createState() => _MealPlanBuilderScreenState();
@@ -38,10 +47,18 @@ class _MealPlanBuilderScreenState extends State<MealPlanBuilderScreen> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
       final c = context.read<MealPlanBuilderController>();
-      if (c.status == LoadStatus.idle) c.init();
+      if (c.status == LoadStatus.idle) await c.init();
+      if (!mounted) return;
       context.read<ConnectController>().loadClients();
+      // Deep-link: open straight into a specific member's plan for editing.
+      final id = widget.preselectMemberId;
+      if (id != null && !c.hasClient) {
+        final coachName =
+            context.read<ProfileController>().member?.fullName ?? '';
+        await c.selectClient(id, widget.preselectMemberName ?? 'Client', coachName);
+      }
     });
   }
 

@@ -12,7 +12,7 @@ import '../../shared/widgets/pill.dart';
 import '../../state/connect_controller.dart';
 import '../../state/plans_controller.dart';
 import 'create_plan_screen.dart';
-import 'meal_plan_builder_screen.dart';
+import 'meal_plans_screen.dart';
 import 'plan_detail_screen.dart';
 
 /// Trainer-side Plans tab: author plans and assign them to clients.
@@ -119,10 +119,10 @@ class _PlansScreenState extends State<PlansScreen> {
         title: Text(l.navPlans),
         actions: [
           IconButton(
-            tooltip: l.mealBuilderTitle,
+            tooltip: l.mealPlansTitle,
             icon: const Icon(Icons.restaurant_menu),
             onPressed: () => Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => const MealPlanBuilderScreen()),
+              MaterialPageRoute(builder: (_) => const MealPlansScreen()),
             ),
           ),
           IconButton(

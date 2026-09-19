@@ -13,4 +13,11 @@ abstract class NutritionRepository {
 
   /// Coach assigns (or updates) [plan] for a specific member.
   Future<void> assignPlan(String memberId, MealPlan plan);
+
+  /// Members this coach has assigned a meal plan to. Each row:
+  /// {memberId, memberName, title, assignedAt}.
+  Future<List<Map<String, dynamic>>> assignedMembers();
+
+  /// Remove the meal plan assigned to [memberId].
+  Future<void> unassign(String memberId);
 }
