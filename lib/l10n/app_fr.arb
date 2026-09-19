@@ -520,5 +520,11 @@
   "trainerRemoveClient": "Retirer le client",
   "trainerRemoveClientConfirm": "Retirer {name} de vos clients ? Les plans que vous lui avez assignés seront dissociés.",
   "@trainerRemoveClientConfirm": { "placeholders": { "name": { "type": "String" } } },
-  "trainerClientRemoved": "Client retiré"
+  "trainerClientRemoved": "Client retiré",
+  "mealPlansTitle": "Plans de repas",
+  "mealPlansEmpty": "Aucun plan de repas assigné pour l'instant. Appuyez sur + pour en créer un.",
+  "mealPlanRemove": "Retirer le plan de repas",
+  "mealPlanRemoveConfirm": "Retirer le plan de repas de {name} ?",
+  "@mealPlanRemoveConfirm": { "placeholders": { "name": { "type": "String" } } },
+  "mealPlanRemoved": "Plan de repas retiré"
 }

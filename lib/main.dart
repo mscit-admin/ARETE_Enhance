@@ -5,9 +5,9 @@ import 'app/arete_app.dart';
 import 'core/constants/enums.dart';
 import 'data/api/api_client.dart';
 import 'data/repositories/api_auth_repository.dart';
+import 'data/repositories/api_nutrition_repository.dart';
 import 'data/repositories/api_profile_repository.dart';
 import 'data/repositories/mock_coach_repository.dart';
-import 'data/repositories/mock_nutrition_repository.dart';
 import 'data/repositories/mock_progress_repository.dart';
 import 'data/repositories/mock_workout_repository.dart';
 import 'state/assessment_controller.dart';
@@ -40,7 +40,7 @@ void main() {
   final workoutRepository = MockWorkoutRepository();
   final progressRepository = MockProgressRepository();
   final coachRepository = MockCoachRepository();
-  final nutritionRepository = MockNutritionRepository();
+  final nutritionRepository = ApiNutritionRepository(apiClient);
   final authRepository = ApiAuthRepository(apiClient);
 
   final profileController = ProfileController(profileRepository);

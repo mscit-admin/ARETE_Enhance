@@ -143,6 +143,17 @@ CREATE TABLE IF NOT EXISTS plan_assignments (
   active      boolean NOT NULL DEFAULT true
 );
 
+-- A weekly meal plan a coach assigns to a member. One active plan per member
+-- (upserted on assign); the weekly structure is stored as JSON in `content`.
+CREATE TABLE IF NOT EXISTS meal_plans (
+  member_id   uuid PRIMARY KEY REFERENCES members(user_id) ON DELETE CASCADE,
+  assigned_by uuid REFERENCES trainers(user_id) ON DELETE SET NULL,
+  title       text NOT NULL DEFAULT 'Meal plan',
+  content     jsonb NOT NULL DEFAULT '{}'::jsonb,
+  assigned_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_meal_plans_assigned_by ON meal_plans(assigned_by);
+
 -- ---------- Activity ----------
 CREATE TABLE IF NOT EXISTS workout_sessions (
   id           uuid PRIMARY KEY DEFAULT gen_random_uuid(),

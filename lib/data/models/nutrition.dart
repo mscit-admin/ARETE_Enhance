@@ -65,6 +65,25 @@ class PlannedMeal {
   int get proteinG => items.fold(0, (sum, f) => sum + f.proteinG);
   int get carbsG => items.fold(0, (sum, f) => sum + f.carbsG);
   int get fatG => items.fold(0, (sum, f) => sum + f.fatG);
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'type': type.name,
+        'title': title,
+        'items': items.map((f) => f.toJson()).toList(),
+        if (note != null) 'note': note,
+      };
+
+  factory PlannedMeal.fromJson(Map<String, dynamic> json) => PlannedMeal(
+        id: json['id'] as String? ?? '',
+        type: MealType.values.byName(json['type'] as String? ?? 'breakfast'),
+        title: json['title'] as String? ?? '',
+        items: (json['items'] as List?)
+                ?.map((e) => FoodItem.fromJson(e as Map<String, dynamic>))
+                .toList() ??
+            const [],
+        note: json['note'] as String?,
+      );
 }
 
 /// The coach's plan for one weekday (1 = Monday … 7 = Sunday, matching
@@ -79,6 +98,19 @@ class DayMealPlan {
       meals.where((m) => m.type == type).toList();
 
   int get targetKcal => meals.fold(0, (sum, m) => sum + m.kcal);
+
+  Map<String, dynamic> toJson() => {
+        'weekday': weekday,
+        'meals': meals.map((m) => m.toJson()).toList(),
+      };
+
+  factory DayMealPlan.fromJson(Map<String, dynamic> json) => DayMealPlan(
+        weekday: (json['weekday'] as num?)?.toInt() ?? 1,
+        meals: (json['meals'] as List?)
+                ?.map((e) => PlannedMeal.fromJson(e as Map<String, dynamic>))
+                .toList() ??
+            const [],
+      );
 }
 
 /// A full weekly nutrition plan assigned to the member by their coach.
@@ -101,6 +133,23 @@ class MealPlan {
     }
     return null;
   }
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'title': title,
+        'coachName': coachName,
+        'days': days.map((d) => d.toJson()).toList(),
+      };
+
+  factory MealPlan.fromJson(Map<String, dynamic> json) => MealPlan(
+        id: json['id'] as String? ?? '',
+        title: json['title'] as String? ?? 'Meal plan',
+        coachName: json['coachName'] as String? ?? '',
+        days: (json['days'] as List?)
+                ?.map((e) => DayMealPlan.fromJson(e as Map<String, dynamic>))
+                .toList() ??
+            const [],
+      );
 }
 
 /// A meal the member logged themselves (picked from the library or typed in),

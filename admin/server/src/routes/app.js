@@ -1061,6 +1061,123 @@ router.post('/sessions', requireAuth, async (req, res) => {
   }
 });
 
+// ======================================================================
+//  Nutrition — a coach builds a weekly meal plan and assigns it to a member
+//  (one active plan per member; the weekly structure is stored as JSON).
+// ======================================================================
+
+// GET /api/app/meal-plans/:memberId — the member's assigned meal plan (or null).
+// Readable by the member themselves OR by their linked trainer.
+router.get('/meal-plans/:memberId', requireAuth, async (req, res) => {
+  const uid = req.user.sub;
+  const memberId = req.params.memberId;
+  try {
+    if (uid !== memberId) {
+      const link = await db.query(
+        'SELECT 1 FROM members WHERE user_id = $1 AND trainer_id = $2',
+        [memberId, uid],
+      );
+      if (!link.rowCount) return res.status(403).json({ error: 'Not allowed' });
+    }
+    const { rows } = await db.query(
+      `SELECT mp.title, mp.content, u.full_name AS coach_name
+         FROM meal_plans mp
+         LEFT JOIN users u ON u.id = mp.assigned_by
+        WHERE mp.member_id = $1`,
+      [memberId],
+    );
+    if (!rows[0]) return res.json({ plan: null });
+    const r = rows[0];
+    const days = r.content && Array.isArray(r.content.days) ? r.content.days : [];
+    return res.json({
+      plan: {
+        id: `plan_${memberId}`,
+        title: r.title,
+        coachName: r.coach_name || '',
+        days,
+      },
+    });
+  } catch (e) {
+    return res.status(500).json({ error: 'Failed to load meal plan' });
+  }
+});
+
+// GET /api/app/trainer/meal-plans — members this trainer has assigned a plan to.
+router.get('/trainer/meal-plans', requireAuth, async (req, res) => {
+  const uid = req.user.sub;
+  if (!(await isTrainer(uid))) {
+    return res.status(403).json({ error: 'Trainers only' });
+  }
+  try {
+    const { rows } = await db.query(
+      `SELECT mp.member_id, mp.title, mp.assigned_at, u.full_name
+         FROM meal_plans mp JOIN users u ON u.id = mp.member_id
+        WHERE mp.assigned_by = $1
+        ORDER BY mp.assigned_at DESC`,
+      [uid],
+    );
+    return res.json({
+      rows: rows.map((r) => ({
+        memberId: r.member_id,
+        memberName: r.full_name,
+        title: r.title,
+        assignedAt: r.assigned_at,
+      })),
+    });
+  } catch (e) {
+    return res.status(500).json({ error: 'Failed to load meal plans' });
+  }
+});
+
+// POST /api/app/trainer/meal-plans/:memberId — assign/replace a member's plan.
+// Body: { title, days } (a serialized MealPlan). Upserts one plan per member.
+router.post('/trainer/meal-plans/:memberId', requireAuth, async (req, res) => {
+  const uid = req.user.sub;
+  if (!(await isTrainer(uid))) {
+    return res.status(403).json({ error: 'Trainers only' });
+  }
+  const memberId = req.params.memberId;
+  try {
+    const link = await db.query(
+      'SELECT 1 FROM members WHERE user_id = $1 AND trainer_id = $2',
+      [memberId, uid],
+    );
+    if (!link.rowCount) {
+      return res.status(403).json({ error: 'That member is not your client' });
+    }
+    const b = req.body || {};
+    const title = String(b.title || 'Meal plan').trim() || 'Meal plan';
+    const days = Array.isArray(b.days) ? b.days : [];
+    await db.query(
+      `INSERT INTO meal_plans (member_id, assigned_by, title, content)
+       VALUES ($1, $2, $3, $4::jsonb)
+       ON CONFLICT (member_id) DO UPDATE
+         SET assigned_by = EXCLUDED.assigned_by, title = EXCLUDED.title,
+             content = EXCLUDED.content, assigned_at = now()`,
+      [memberId, uid, title, JSON.stringify({ days })],
+    );
+    await notify(memberId, 'meal_plan_assigned', title, null, {});
+    return res.json({ ok: true });
+  } catch (e) {
+    return res.status(500).json({ error: 'Failed to assign meal plan' });
+  }
+});
+
+// DELETE /api/app/trainer/meal-plans/:memberId — unassign a member's meal plan.
+router.delete('/trainer/meal-plans/:memberId', requireAuth, async (req, res) => {
+  const uid = req.user.sub;
+  try {
+    const r = await db.query(
+      'DELETE FROM meal_plans WHERE member_id = $1 AND assigned_by = $2',
+      [req.params.memberId, uid],
+    );
+    if (!r.rowCount) return res.status(404).json({ error: 'Meal plan not found' });
+    return res.json({ ok: true });
+  } catch (e) {
+    return res.status(500).json({ error: 'Failed to remove meal plan' });
+  }
+});
+
 // ---------- In-app notifications ----------
 
 // Insert a notification for a user (best-effort; never breaks the caller).
