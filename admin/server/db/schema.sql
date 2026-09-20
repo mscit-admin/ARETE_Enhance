@@ -143,16 +143,41 @@ CREATE TABLE IF NOT EXISTS plan_assignments (
   active      boolean NOT NULL DEFAULT true
 );
 
--- A weekly meal plan a coach assigns to a member. One active plan per member
--- (upserted on assign); the weekly structure is stored as JSON in `content`.
+-- One-time migration: the first meal-plan design keyed the table by member_id.
+-- Meal plans are now named templates assigned to many members (like workout
+-- plans), so drop the old per-member table if it is still in that shape. This
+-- guard makes the migration idempotent (it does nothing once migrated).
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM information_schema.columns
+     WHERE table_name = 'meal_plans' AND column_name = 'member_id'
+  ) THEN
+    DROP TABLE IF EXISTS meal_plans CASCADE;
+  END IF;
+END $$;
+
+-- A named meal-plan template a coach authors (weekly structure in `content`).
 CREATE TABLE IF NOT EXISTS meal_plans (
-  member_id   uuid PRIMARY KEY REFERENCES members(user_id) ON DELETE CASCADE,
-  assigned_by uuid REFERENCES trainers(user_id) ON DELETE SET NULL,
-  title       text NOT NULL DEFAULT 'Meal plan',
+  id          uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  name        text NOT NULL,
+  description text,
   content     jsonb NOT NULL DEFAULT '{}'::jsonb,
-  assigned_at timestamptz NOT NULL DEFAULT now()
+  created_by  uuid REFERENCES trainers(user_id) ON DELETE SET NULL,
+  created_at  timestamptz NOT NULL DEFAULT now()
 );
-CREATE INDEX IF NOT EXISTS idx_meal_plans_assigned_by ON meal_plans(assigned_by);
+-- A meal-plan template assigned to a member (multiple active allowed).
+CREATE TABLE IF NOT EXISTS meal_plan_assignments (
+  id           uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  member_id    uuid NOT NULL REFERENCES members(user_id) ON DELETE CASCADE,
+  meal_plan_id uuid NOT NULL REFERENCES meal_plans(id) ON DELETE CASCADE,
+  assigned_by  uuid REFERENCES trainers(user_id) ON DELETE SET NULL,
+  assigned_at  timestamptz NOT NULL DEFAULT now(),
+  active       boolean NOT NULL DEFAULT true
+);
+CREATE INDEX IF NOT EXISTS idx_meal_plans_created_by ON meal_plans(created_by);
+CREATE INDEX IF NOT EXISTS idx_meal_assign_member ON meal_plan_assignments(member_id);
+CREATE INDEX IF NOT EXISTS idx_meal_assign_plan ON meal_plan_assignments(meal_plan_id);
 
 -- ---------- Activity ----------
 CREATE TABLE IF NOT EXISTS workout_sessions (

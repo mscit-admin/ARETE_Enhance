@@ -2,10 +2,8 @@ import '../mock/mock_nutrition.dart';
 import '../models/nutrition.dart';
 import 'nutrition_repository.dart';
 
-/// In-memory nutrition store. Meal plans are kept per member id, so a plan the
-/// coach assigns to a client is what that member loads next — the same shape as
-/// the workout-plan assignment flow. A single instance is shared between the
-/// member's controller and the coach's builder.
+/// In-memory nutrition store for tests and offline use. A coach-assigned plan
+/// (set via [assignPlan]) is what that member loads next.
 class MockNutritionRepository implements NutritionRepository {
   static const _latency = Duration(milliseconds: 300);
 
@@ -30,28 +28,9 @@ class MockNutritionRepository implements NutritionRepository {
     return MockNutrition.weeklyPlan();
   }
 
-  @override
+  /// Test helper: simulate a coach assigning [plan] to [memberId].
   Future<void> assignPlan(String memberId, MealPlan plan) async {
     await Future.delayed(_latency);
     _assigned[memberId] = plan;
-  }
-
-  @override
-  Future<List<Map<String, dynamic>>> assignedMembers() async {
-    await Future.delayed(_latency);
-    return _assigned.entries
-        .map((e) => <String, dynamic>{
-              'memberId': e.key,
-              'memberName': '',
-              'title': e.value.title,
-              'assignedAt': null,
-            })
-        .toList();
-  }
-
-  @override
-  Future<void> unassign(String memberId) async {
-    await Future.delayed(_latency);
-    _assigned.remove(memberId);
   }
 }

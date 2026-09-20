@@ -1,23 +1,15 @@
 import '../models/nutrition.dart';
 
-/// Source of meal plans and the food library. Meal plans are assigned per
-/// member by their coach — mirroring how workout plans are assigned.
+/// Member-side source of the food library and the meal plan the coach assigned.
+/// Coach-side authoring/assignment of named meal-plan templates lives in
+/// `MealPlansController` (backed by the API), mirroring workout plans.
 abstract class NutritionRepository {
   Future<List<FoodItem>> getFoodLibrary();
 
-  /// The plan the coach has assigned to [memberId], or null if none.
+  /// The member's currently assigned meal plan, or null if none.
+  /// [memberId] is the current member (self); the server scopes by token.
   Future<MealPlan?> getAssignedPlan(String memberId);
 
-  /// A blank/starter plan the coach can begin authoring from.
+  /// A blank/starter plan a coach can begin authoring a template from.
   Future<MealPlan> starterPlan();
-
-  /// Coach assigns (or updates) [plan] for a specific member.
-  Future<void> assignPlan(String memberId, MealPlan plan);
-
-  /// Members this coach has assigned a meal plan to. Each row:
-  /// {memberId, memberName, title, assignedAt}.
-  Future<List<Map<String, dynamic>>> assignedMembers();
-
-  /// Remove the meal plan assigned to [memberId].
-  Future<void> unassign(String memberId);
 }

@@ -3,24 +3,22 @@ import 'package:flutter/foundation.dart';
 import '../core/constants/enums.dart';
 import '../data/models/nutrition.dart';
 import '../data/repositories/nutrition_repository.dart';
-import 'profile_controller.dart';
+import 'profile_controller.dart' show LoadStatus;
 
-/// Coach-side authoring of a weekly meal plan for a specific client. Mirrors the
-/// workout-plan flow: the coach picks a client, composes the week from the food
-/// library, then assigns the plan to that member.
+/// Coach-side authoring of a named weekly meal-plan **template**. The coach
+/// gives it a name, composes each day's meals from the food library, then saves
+/// it; assignment to members happens separately (mirrors the workout-plan flow).
 class MealPlanBuilderController extends ChangeNotifier {
   MealPlanBuilderController(this._repo);
 
   final NutritionRepository _repo;
 
   LoadStatus _status = LoadStatus.idle;
-  bool _saving = false;
   List<FoodItem> _library = const [];
 
-  String? _clientId;
-  String _clientName = '';
-  String _coachName = '';
+  String? _planId; // null while authoring a new template
   String _title = '';
+  String _description = '';
 
   int _selectedWeekday = DateTime.now().weekday;
 
@@ -28,16 +26,16 @@ class MealPlanBuilderController extends ChangeNotifier {
   final Map<int, Map<MealType, List<FoodItem>>> _days = {};
 
   LoadStatus get status => _status;
-  bool get saving => _saving;
   List<FoodItem> get library => _library;
   String get title => _title;
+  String get description => _description;
   int get selectedWeekday => _selectedWeekday;
-  String? get clientId => _clientId;
-  String get clientName => _clientName;
-  bool get hasClient => _clientId != null;
+  String? get planId => _planId;
+  bool get isEditing => _planId != null;
 
   /// Loads the food library. Call once when the screen opens.
   Future<void> init() async {
+    if (_status == LoadStatus.ready) return;
     _status = LoadStatus.loading;
     notifyListeners();
     try {
@@ -49,32 +47,30 @@ class MealPlanBuilderController extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Selects a client and loads their existing plan (or a starter template) into
-  /// the editable structure. [coachName] stamps the plan's author.
-  Future<void> selectClient(
-      String id, String name, String coachName) async {
-    _clientId = id;
-    _clientName = name;
-    _coachName = coachName;
-    _status = LoadStatus.loading;
+  /// Start authoring a fresh, empty template.
+  void startNew() {
+    _planId = null;
+    _title = '';
+    _description = '';
+    _days.clear();
+    _selectedWeekday = DateTime.now().weekday;
     notifyListeners();
-    try {
-      final existing = await _repo.getAssignedPlan(id);
-      final plan = existing ?? await _repo.starterPlan();
-      _title = plan.title;
-      _days.clear();
-      for (final day in plan.days) {
-        final slots = <MealType, List<FoodItem>>{};
-        for (final meal in day.meals) {
-          slots.putIfAbsent(meal.type, () => []).addAll(meal.items);
-        }
-        _days[day.weekday] = slots;
+  }
+
+  /// Load an existing template into the editable structure.
+  void loadTemplate(MealPlan plan) {
+    _planId = plan.id;
+    _title = plan.title;
+    _description = plan.description;
+    _days.clear();
+    for (final day in plan.days) {
+      final slots = <MealType, List<FoodItem>>{};
+      for (final meal in day.meals) {
+        slots.putIfAbsent(meal.type, () => []).addAll(meal.items);
       }
-      _selectedWeekday = DateTime.now().weekday;
-      _status = LoadStatus.ready;
-    } catch (_) {
-      _status = LoadStatus.error;
+      _days[day.weekday] = slots;
     }
+    _selectedWeekday = DateTime.now().weekday;
     notifyListeners();
   }
 
@@ -85,8 +81,11 @@ class MealPlanBuilderController extends ChangeNotifier {
   }
 
   void setTitle(String value) {
-    _title = value;
-    // No notify: the TextField holds its own text.
+    _title = value; // no notify: the TextField holds its own text
+  }
+
+  void setDescription(String value) {
+    _description = value;
   }
 
   List<FoodItem> foodsFor(int weekday, MealType type) =>
@@ -130,7 +129,8 @@ class MealPlanBuilderController extends ChangeNotifier {
     notifyListeners();
   }
 
-  MealPlan _build() {
+  /// Build the current draft into a [MealPlan] (for create/update).
+  MealPlan build() {
     const order = [
       MealType.breakfast,
       MealType.lunch,
@@ -145,7 +145,7 @@ class MealPlanBuilderController extends ChangeNotifier {
         final foods = slots[type];
         if (foods == null || foods.isEmpty) continue;
         meals.add(PlannedMeal(
-          id: 'm_${_clientId}_${wd}_${type.name}',
+          id: 'm_${wd}_${type.name}',
           type: type,
           title: type.label,
           items: List<FoodItem>.from(foods),
@@ -154,53 +154,21 @@ class MealPlanBuilderController extends ChangeNotifier {
       days.add(DayMealPlan(weekday: wd, meals: meals));
     }
     return MealPlan(
-      id: 'plan_${_clientId}',
+      id: _planId ?? 'new',
       title: _title.trim().isEmpty ? 'Meal plan' : _title.trim(),
-      coachName: _coachName,
+      coachName: '',
+      description: _description.trim(),
       days: days,
     );
-  }
-
-  /// Assign the current draft to the selected client. Returns false if no client
-  /// is selected or the save fails.
-  Future<bool> assign() async {
-    final id = _clientId;
-    if (id == null) return false;
-    _saving = true;
-    notifyListeners();
-    try {
-      await _repo.assignPlan(id, _build());
-      _saving = false;
-      notifyListeners();
-      return true;
-    } catch (_) {
-      _saving = false;
-      notifyListeners();
-      return false;
-    }
-  }
-
-  /// Members this coach has assigned a meal plan to (for the management list).
-  Future<List<Map<String, dynamic>>> assignedMembers() =>
-      _repo.assignedMembers();
-
-  /// Remove a member's meal plan. Returns true on success.
-  Future<bool> unassign(String memberId) async {
-    try {
-      await _repo.unassign(memberId);
-      return true;
-    } catch (_) {
-      return false;
-    }
   }
 
   void clear() {
     _status = LoadStatus.idle;
     _days.clear();
     _library = const [];
-    _clientId = null;
-    _clientName = '';
+    _planId = null;
     _title = '';
+    _description = '';
     _selectedWeekday = DateTime.now().weekday;
     notifyListeners();
   }

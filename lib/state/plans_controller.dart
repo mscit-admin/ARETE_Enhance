@@ -69,12 +69,20 @@ class PlansController extends ChangeNotifier {
     }
   }
 
-  /// Assign a plan to one of the trainer's clients.
-  Future<String?> assign(String planId, String memberId) async {
+  /// Assign a plan to one of the trainer's clients. Optionally cross-link a
+  /// meal plan that gets assigned to the same member.
+  Future<String?> assign(
+    String planId,
+    String memberId, {
+    String? mealPlanId,
+  }) async {
     try {
       await _client.post(
         '/api/app/trainer/plans/$planId/assign',
-        {'memberId': memberId},
+        {
+          'memberId': memberId,
+          if (mealPlanId != null) 'mealPlanId': mealPlanId,
+        },
         auth: true,
       );
       await load();

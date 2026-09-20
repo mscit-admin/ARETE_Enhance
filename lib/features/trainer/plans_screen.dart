@@ -4,12 +4,14 @@ import 'package:provider/provider.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_theme.dart';
+import '../../data/models/nutrition.dart';
 import '../../data/models/trainer_plan.dart';
 import '../../l10n/app_localizations.dart';
 import '../../shared/widgets/app_card.dart';
 import '../../shared/widgets/gradient_avatar.dart';
 import '../../shared/widgets/pill.dart';
 import '../../state/connect_controller.dart';
+import '../../state/meal_plans_controller.dart';
 import '../../state/plans_controller.dart';
 import 'create_plan_screen.dart';
 import 'meal_plans_screen.dart';
@@ -30,6 +32,7 @@ class _PlansScreenState extends State<PlansScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<PlansController>().load();
       context.read<ConnectController>().loadClients();
+      context.read<MealPlansController>().load();
     });
   }
 
@@ -56,7 +59,21 @@ class _PlansScreenState extends State<PlansScreen> {
       builder: (_) => _AssignSheet(clients: clients),
     );
     if (memberId == null || !mounted) return;
-    final err = await context.read<PlansController>().assign(plan.id, memberId);
+    // Optionally also assign a meal plan to the same member (cross-link).
+    String? mealPlanId;
+    final mealPlans = context.read<MealPlansController>().plans;
+    if (mealPlans.isNotEmpty) {
+      mealPlanId = await showModalBottomSheet<String?>(
+        context: context,
+        showDragHandle: true,
+        isScrollControlled: true,
+        builder: (_) => _MealLinkSheet(mealPlans: mealPlans),
+      );
+      if (!mounted) return;
+    }
+    final err = await context
+        .read<PlansController>()
+        .assign(plan.id, memberId, mealPlanId: mealPlanId);
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(err ?? l.plansAssignedOk)),
@@ -417,6 +434,60 @@ class _AssigneesSheetState extends State<_AssigneesSheet> {
                               ),
                           ],
                         ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Optional picker shown after assigning a workout plan: choose a meal plan to
+/// also assign to the same member, or skip.
+class _MealLinkSheet extends StatelessWidget {
+  const _MealLinkSheet({required this.mealPlans});
+  final List<MealPlan> mealPlans;
+
+  @override
+  Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    final p = context.palette;
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(
+            AppSpacing.screen, 0, AppSpacing.screen, AppSpacing.lg),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(l.mealLinkTitle, style: context.textStyles.titleLarge),
+            const SizedBox(height: AppSpacing.sm),
+            Text(l.mealLinkSubtitle,
+                style: context.textStyles.bodySmall?.copyWith(color: p.muted)),
+            const SizedBox(height: AppSpacing.sm),
+            Flexible(
+              child: ListView(
+                shrinkWrap: true,
+                children: [
+                  for (final mp in mealPlans)
+                    ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      leading: const Icon(Icons.restaurant_menu,
+                          color: AppColors.accent),
+                      title: Text(mp.title),
+                      trailing: const Icon(Icons.chevron_right),
+                      onTap: () => Navigator.of(context).pop(mp.id),
+                    ),
+                ],
+              ),
+            ),
+            const SizedBox(height: AppSpacing.sm),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton(
+                onPressed: () => Navigator.of(context).pop(null),
+                child: Text(l.mealLinkSkip),
+              ),
             ),
           ],
         ),

@@ -113,19 +113,26 @@ class DayMealPlan {
       );
 }
 
-/// A full weekly nutrition plan assigned to the member by their coach.
+/// A named weekly nutrition plan. Used both as a coach's template (list rows
+/// carry [assignedCount]) and as the plan a member has been assigned.
 class MealPlan {
   const MealPlan({
     required this.id,
     required this.title,
     required this.coachName,
     required this.days,
+    this.description = '',
+    this.assignedCount,
   });
 
   final String id;
   final String title;
   final String coachName;
   final List<DayMealPlan> days;
+  final String description;
+
+  /// How many members this template is assigned to (present on list rows).
+  final int? assignedCount;
 
   DayMealPlan? dayFor(int weekday) {
     for (final d in days) {
@@ -138,6 +145,7 @@ class MealPlan {
         'id': id,
         'title': title,
         'coachName': coachName,
+        if (description.isNotEmpty) 'description': description,
         'days': days.map((d) => d.toJson()).toList(),
       };
 
@@ -145,6 +153,8 @@ class MealPlan {
         id: json['id'] as String? ?? '',
         title: json['title'] as String? ?? 'Meal plan',
         coachName: json['coachName'] as String? ?? '',
+        description: json['description'] as String? ?? '',
+        assignedCount: (json['assignedCount'] as num?)?.toInt(),
         days: (json['days'] as List?)
                 ?.map((e) => DayMealPlan.fromJson(e as Map<String, dynamic>))
                 .toList() ??

@@ -577,5 +577,12 @@
   "mealPlanRemove": "Remove meal plan",
   "mealPlanRemoveConfirm": "Remove {name}'s meal plan?",
   "@mealPlanRemoveConfirm": { "placeholders": { "name": { "type": "String" } } },
-  "mealPlanRemoved": "Meal plan removed"
+  "mealPlanRemoved": "Meal plan removed",
+  "mealAssignTitle": "Assign meal plan",
+  "mealAssignSelectMembers": "Select members",
+  "mealAssignAlsoWorkout": "Also assign a workout plan (optional)",
+  "mealAssignNone": "None",
+  "mealLinkTitle": "Also assign a meal plan?",
+  "mealLinkSubtitle": "Optional — assign a meal plan to the same member.",
+  "mealLinkSkip": "Skip"
 }
