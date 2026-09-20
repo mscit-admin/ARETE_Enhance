@@ -625,10 +625,11 @@ router.post('/trainer/plans/:id/assign', requireAuth, async (req, res) => {
     if (!link.rowCount) {
       return res.status(403).json({ error: 'That member is not your client' });
     }
-    // One active plan per member: retire previous active assignments.
+    // Multiple active plans are allowed; just avoid duplicating THIS plan.
     await db.query(
-      'UPDATE plan_assignments SET active = false WHERE member_id = $1 AND active',
-      [memberId],
+      `UPDATE plan_assignments SET active = false
+        WHERE member_id = $1 AND plan_id = $2 AND active`,
+      [memberId, planId],
     );
     await db.query(
       `INSERT INTO plan_assignments (member_id, plan_id, assigned_by, active)
@@ -646,6 +647,27 @@ router.post('/trainer/plans/:id/assign', requireAuth, async (req, res) => {
       planId,
       coachId: uid,
     });
+    // Cross-link: optionally also assign a meal plan to the same member.
+    const mealPlanId = req.body?.mealPlanId ? String(req.body.mealPlanId) : null;
+    if (mealPlanId) {
+      const mp = await db.query(
+        'SELECT name FROM meal_plans WHERE id = $1 AND created_by = $2',
+        [mealPlanId, uid],
+      );
+      if (mp.rowCount) {
+        await db.query(
+          `DELETE FROM meal_plan_assignments
+            WHERE member_id = $1 AND meal_plan_id = $2 AND active`,
+          [memberId, mealPlanId],
+        );
+        await db.query(
+          `INSERT INTO meal_plan_assignments (member_id, meal_plan_id, assigned_by, active)
+           VALUES ($1, $2, $3, true)`,
+          [memberId, mealPlanId, uid],
+        );
+        await notify(memberId, 'meal_plan_assigned', mp.rows[0].name, null, {});
+      }
+    }
     return res.json({ ok: true });
   } catch (e) {
     return res.status(500).json({ error: 'Failed to assign plan' });
@@ -1062,66 +1084,63 @@ router.post('/sessions', requireAuth, async (req, res) => {
 });
 
 // ======================================================================
-//  Nutrition — a coach builds a weekly meal plan and assigns it to a member
-//  (one active plan per member; the weekly structure is stored as JSON).
+//  Nutrition — a coach authors named meal-plan templates and assigns them to
+//  members (multiple active allowed). The weekly structure is JSON in content.
 // ======================================================================
 
-// GET /api/app/meal-plans/:memberId — the member's assigned meal plan (or null).
-// Readable by the member themselves OR by their linked trainer.
-router.get('/meal-plans/:memberId', requireAuth, async (req, res) => {
+// Shape a meal-plan template row for the app (title = the plan's name).
+async function mealPlanJson(id) {
+  const p = await db.query(
+    'SELECT id, name, description, content FROM meal_plans WHERE id = $1',
+    [id],
+  );
+  if (!p.rows[0]) return null;
+  const r = p.rows[0];
+  const days = r.content && Array.isArray(r.content.days) ? r.content.days : [];
+  return { id: r.id, title: r.name, description: r.description || '', coachName: '', days };
+}
+
+// POST /api/app/trainer/meal-plans — create a named meal-plan template.
+router.post('/trainer/meal-plans', requireAuth, async (req, res) => {
   const uid = req.user.sub;
-  const memberId = req.params.memberId;
+  if (!(await isTrainer(uid))) return res.status(403).json({ error: 'Trainers only' });
+  const b = req.body || {};
+  const name = String(b.name || b.title || '').trim();
+  if (!name) return res.status(400).json({ error: 'A plan name is required' });
+  const days = Array.isArray(b.days) ? b.days : [];
   try {
-    if (uid !== memberId) {
-      const link = await db.query(
-        'SELECT 1 FROM members WHERE user_id = $1 AND trainer_id = $2',
-        [memberId, uid],
-      );
-      if (!link.rowCount) return res.status(403).json({ error: 'Not allowed' });
-    }
-    const { rows } = await db.query(
-      `SELECT mp.title, mp.content, u.full_name AS coach_name
-         FROM meal_plans mp
-         LEFT JOIN users u ON u.id = mp.assigned_by
-        WHERE mp.member_id = $1`,
-      [memberId],
+    const r = await db.query(
+      `INSERT INTO meal_plans (name, description, content, created_by)
+       VALUES ($1, $2, $3::jsonb, $4) RETURNING id`,
+      [name, String(b.description || '').trim() || null, JSON.stringify({ days }), uid],
     );
-    if (!rows[0]) return res.json({ plan: null });
-    const r = rows[0];
-    const days = r.content && Array.isArray(r.content.days) ? r.content.days : [];
-    return res.json({
-      plan: {
-        id: `plan_${memberId}`,
-        title: r.title,
-        coachName: r.coach_name || '',
-        days,
-      },
-    });
+    return res.status(201).json({ plan: await mealPlanJson(r.rows[0].id) });
   } catch (e) {
-    return res.status(500).json({ error: 'Failed to load meal plan' });
+    return res.status(500).json({ error: 'Failed to create meal plan' });
   }
 });
 
-// GET /api/app/trainer/meal-plans — members this trainer has assigned a plan to.
+// GET /api/app/trainer/meal-plans — this coach's meal-plan templates.
 router.get('/trainer/meal-plans', requireAuth, async (req, res) => {
   const uid = req.user.sub;
-  if (!(await isTrainer(uid))) {
-    return res.status(403).json({ error: 'Trainers only' });
-  }
+  if (!(await isTrainer(uid))) return res.status(403).json({ error: 'Trainers only' });
   try {
     const { rows } = await db.query(
-      `SELECT mp.member_id, mp.title, mp.assigned_at, u.full_name
-         FROM meal_plans mp JOIN users u ON u.id = mp.member_id
-        WHERE mp.assigned_by = $1
-        ORDER BY mp.assigned_at DESC`,
+      `SELECT mp.id, mp.name, mp.description,
+              count(DISTINCT a.id) FILTER (WHERE a.active)::int AS assigned_count
+         FROM meal_plans mp
+         LEFT JOIN meal_plan_assignments a ON a.meal_plan_id = mp.id
+        WHERE mp.created_by = $1
+        GROUP BY mp.id
+        ORDER BY mp.created_at DESC`,
       [uid],
     );
     return res.json({
       rows: rows.map((r) => ({
-        memberId: r.member_id,
-        memberName: r.full_name,
-        title: r.title,
-        assignedAt: r.assigned_at,
+        id: r.id,
+        title: r.name,
+        description: r.description || '',
+        assignedCount: r.assigned_count,
       })),
     });
   } catch (e) {
@@ -1129,54 +1148,201 @@ router.get('/trainer/meal-plans', requireAuth, async (req, res) => {
   }
 });
 
-// POST /api/app/trainer/meal-plans/:memberId — assign/replace a member's plan.
-// Body: { title, days } (a serialized MealPlan). Upserts one plan per member.
-router.post('/trainer/meal-plans/:memberId', requireAuth, async (req, res) => {
+// GET /api/app/trainer/meal-plans/:id — a template's full detail.
+router.get('/trainer/meal-plans/:id', requireAuth, async (req, res) => {
   const uid = req.user.sub;
-  if (!(await isTrainer(uid))) {
-    return res.status(403).json({ error: 'Trainers only' });
-  }
-  const memberId = req.params.memberId;
   try {
-    const link = await db.query(
-      'SELECT 1 FROM members WHERE user_id = $1 AND trainer_id = $2',
-      [memberId, uid],
+    const owns = await db.query(
+      'SELECT 1 FROM meal_plans WHERE id = $1 AND created_by = $2',
+      [req.params.id, uid],
     );
-    if (!link.rowCount) {
-      return res.status(403).json({ error: 'That member is not your client' });
-    }
+    if (!owns.rowCount) return res.status(404).json({ error: 'Meal plan not found' });
+    return res.json({ plan: await mealPlanJson(req.params.id) });
+  } catch (e) {
+    return res.status(500).json({ error: 'Failed to load meal plan' });
+  }
+});
+
+// PUT /api/app/trainer/meal-plans/:id — edit a template (name + weekly content).
+router.put('/trainer/meal-plans/:id', requireAuth, async (req, res) => {
+  const uid = req.user.sub;
+  try {
+    const owns = await db.query(
+      'SELECT 1 FROM meal_plans WHERE id = $1 AND created_by = $2',
+      [req.params.id, uid],
+    );
+    if (!owns.rowCount) return res.status(404).json({ error: 'Meal plan not found' });
     const b = req.body || {};
-    const title = String(b.title || 'Meal plan').trim() || 'Meal plan';
+    const name = String(b.name || b.title || '').trim();
+    if (!name) return res.status(400).json({ error: 'A plan name is required' });
     const days = Array.isArray(b.days) ? b.days : [];
     await db.query(
-      `INSERT INTO meal_plans (member_id, assigned_by, title, content)
-       VALUES ($1, $2, $3, $4::jsonb)
-       ON CONFLICT (member_id) DO UPDATE
-         SET assigned_by = EXCLUDED.assigned_by, title = EXCLUDED.title,
-             content = EXCLUDED.content, assigned_at = now()`,
-      [memberId, uid, title, JSON.stringify({ days })],
+      `UPDATE meal_plans SET name = $1, description = $2, content = $3::jsonb
+        WHERE id = $4`,
+      [name, String(b.description || '').trim() || null, JSON.stringify({ days }), req.params.id],
     );
-    await notify(memberId, 'meal_plan_assigned', title, null, {});
+    return res.json({ plan: await mealPlanJson(req.params.id) });
+  } catch (e) {
+    return res.status(500).json({ error: 'Failed to update meal plan' });
+  }
+});
+
+// DELETE /api/app/trainer/meal-plans/:id — delete a template (cascades assignments).
+router.delete('/trainer/meal-plans/:id', requireAuth, async (req, res) => {
+  const uid = req.user.sub;
+  try {
+    const r = await db.query(
+      'DELETE FROM meal_plans WHERE id = $1 AND created_by = $2',
+      [req.params.id, uid],
+    );
+    if (!r.rowCount) return res.status(404).json({ error: 'Meal plan not found' });
     return res.json({ ok: true });
+  } catch (e) {
+    return res.status(500).json({ error: 'Failed to delete meal plan' });
+  }
+});
+
+// POST /api/app/trainer/meal-plans/:id/assign — assign to one or more members.
+// Body: { memberIds: [...] } (or { memberId }); optional { workoutPlanId } to
+// also assign a workout plan to the same members (cross-link).
+router.post('/trainer/meal-plans/:id/assign', requireAuth, async (req, res) => {
+  const uid = req.user.sub;
+  if (!(await isTrainer(uid))) return res.status(403).json({ error: 'Trainers only' });
+  const planId = req.params.id;
+  const b = req.body || {};
+  const memberIds = Array.isArray(b.memberIds)
+    ? b.memberIds.map(String)
+    : b.memberId
+      ? [String(b.memberId)]
+      : [];
+  if (!memberIds.length) return res.status(400).json({ error: 'memberIds is required' });
+  try {
+    const own = await db.query(
+      'SELECT name FROM meal_plans WHERE id = $1 AND created_by = $2',
+      [planId, uid],
+    );
+    if (!own.rowCount) return res.status(404).json({ error: 'Meal plan not found' });
+    const workoutPlanId = b.workoutPlanId ? String(b.workoutPlanId) : null;
+    let workoutName = null;
+    if (workoutPlanId) {
+      const wp = await db.query(
+        'SELECT name FROM plans WHERE id = $1 AND created_by = $2',
+        [workoutPlanId, uid],
+      );
+      if (wp.rowCount) workoutName = wp.rows[0].name;
+    }
+    let assigned = 0;
+    for (const memberId of memberIds) {
+      const link = await db.query(
+        'SELECT 1 FROM members WHERE user_id = $1 AND trainer_id = $2',
+        [memberId, uid],
+      );
+      if (!link.rowCount) continue; // silently skip anyone who isn't a client
+      await db.query(
+        `DELETE FROM meal_plan_assignments
+          WHERE member_id = $1 AND meal_plan_id = $2 AND active`,
+        [memberId, planId],
+      );
+      await db.query(
+        `INSERT INTO meal_plan_assignments (member_id, meal_plan_id, assigned_by, active)
+         VALUES ($1, $2, $3, true)`,
+        [memberId, planId, uid],
+      );
+      await notify(memberId, 'meal_plan_assigned', own.rows[0].name, null, {});
+      if (workoutName) {
+        await db.query(
+          `DELETE FROM plan_assignments
+            WHERE member_id = $1 AND plan_id = $2 AND active`,
+          [memberId, workoutPlanId],
+        );
+        await db.query(
+          `INSERT INTO plan_assignments (member_id, plan_id, assigned_by, active)
+           VALUES ($1, $2, $3, true)`,
+          [memberId, workoutPlanId, uid],
+        );
+        await notify(memberId, 'plan_assigned', workoutName, null, { planId: workoutPlanId });
+      }
+      assigned += 1;
+    }
+    return res.json({ ok: true, assigned });
   } catch (e) {
     return res.status(500).json({ error: 'Failed to assign meal plan' });
   }
 });
 
-// DELETE /api/app/trainer/meal-plans/:memberId — unassign a member's meal plan.
-router.delete('/trainer/meal-plans/:memberId', requireAuth, async (req, res) => {
+// GET /api/app/trainer/meal-plans/:id/assignees — members this plan is assigned to.
+router.get('/trainer/meal-plans/:id/assignees', requireAuth, async (req, res) => {
   const uid = req.user.sub;
   try {
-    const r = await db.query(
-      'DELETE FROM meal_plans WHERE member_id = $1 AND assigned_by = $2',
-      [req.params.memberId, uid],
+    const owns = await db.query(
+      'SELECT 1 FROM meal_plans WHERE id = $1 AND created_by = $2',
+      [req.params.id, uid],
     );
-    if (!r.rowCount) return res.status(404).json({ error: 'Meal plan not found' });
-    return res.json({ ok: true });
+    if (!owns.rowCount) return res.status(404).json({ error: 'Meal plan not found' });
+    const { rows } = await db.query(
+      `SELECT u.id, u.full_name, a.assigned_at
+         FROM meal_plan_assignments a JOIN users u ON u.id = a.member_id
+        WHERE a.meal_plan_id = $1 AND a.active
+        ORDER BY a.assigned_at DESC`,
+      [req.params.id],
+    );
+    return res.json({
+      rows: rows.map((r) => ({ id: r.id, fullName: r.full_name, assignedAt: r.assigned_at })),
+    });
   } catch (e) {
-    return res.status(500).json({ error: 'Failed to remove meal plan' });
+    return res.status(500).json({ error: 'Failed to load assignees' });
   }
 });
+
+// POST /api/app/trainer/meal-plans/:id/unassign — { memberId }.
+router.post('/trainer/meal-plans/:id/unassign', requireAuth, async (req, res) => {
+  const uid = req.user.sub;
+  const memberId = String(req.body?.memberId || '');
+  if (!memberId) return res.status(400).json({ error: 'memberId is required' });
+  try {
+    const owns = await db.query(
+      'SELECT 1 FROM meal_plans WHERE id = $1 AND created_by = $2',
+      [req.params.id, uid],
+    );
+    if (!owns.rowCount) return res.status(404).json({ error: 'Meal plan not found' });
+    await db.query(
+      `UPDATE meal_plan_assignments SET active = false
+        WHERE meal_plan_id = $1 AND member_id = $2 AND active`,
+      [req.params.id, memberId],
+    );
+    return res.json({ ok: true });
+  } catch (e) {
+    return res.status(500).json({ error: 'Failed to unassign' });
+  }
+});
+
+// GET /api/app/my-meal-plan — the member's most-recent assigned meal plan (or null).
+router.get('/my-meal-plan', requireAuth, async (req, res) => {
+  const uid = req.user.sub;
+  try {
+    const { rows } = await db.query(
+      `SELECT mp.id, mp.name, mp.content, u.full_name AS coach_name
+         FROM meal_plan_assignments a
+         JOIN meal_plans mp ON mp.id = a.meal_plan_id
+         LEFT JOIN trainers t ON t.user_id = a.assigned_by
+         LEFT JOIN users u ON u.id = t.user_id
+        WHERE a.member_id = $1 AND a.active
+        ORDER BY a.assigned_at DESC
+        LIMIT 1`,
+      [uid],
+    );
+    if (!rows[0]) return res.json({ plan: null });
+    const r = rows[0];
+    const days = r.content && Array.isArray(r.content.days) ? r.content.days : [];
+    return res.json({
+      plan: { id: r.id, title: r.name, coachName: r.coach_name || '', days },
+    });
+  } catch (e) {
+    return res.status(500).json({ error: 'Failed to load meal plan' });
+  }
+});
+
+
 
 // ---------- In-app notifications ----------
 

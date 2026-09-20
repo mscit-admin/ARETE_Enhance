@@ -1,7 +1,6 @@
 import 'package:arete/core/constants/enums.dart';
 import 'package:arete/data/repositories/mock_nutrition_repository.dart';
 import 'package:arete/data/repositories/mock_profile_repository.dart';
-import 'package:arete/state/meal_plan_builder_controller.dart';
 import 'package:arete/state/nutrition_controller.dart';
 import 'package:arete/state/profile_controller.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -48,12 +47,8 @@ void main() {
       final profile = await _loadedProfile();
       final memberId = profile.member!.id;
 
-      // Coach builds from the starter template and assigns to the member.
-      final builder = MealPlanBuilderController(repo);
-      await builder.init();
-      await builder.selectClient(memberId, 'Trainee', 'Coach');
-      final ok = await builder.assign();
-      expect(ok, isTrue);
+      // Coach assigns a meal plan to this member.
+      await repo.assignPlan(memberId, await repo.starterPlan());
 
       // Member now loads their assigned plan.
       final member = NutritionController(repo, profile);
@@ -76,10 +71,8 @@ void main() {
       final repo = MockNutritionRepository();
       final profile = await _loadedProfile();
 
-      final builder = MealPlanBuilderController(repo);
-      await builder.init();
-      await builder.selectClient('someone_else', 'Other', 'Coach');
-      await builder.assign();
+      // A plan assigned to a different member must not appear for this one.
+      await repo.assignPlan('someone_else', await repo.starterPlan());
 
       final member = NutritionController(repo, profile);
       await member.load();

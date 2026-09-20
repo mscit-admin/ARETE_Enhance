@@ -19,6 +19,7 @@ import 'state/help_controller.dart';
 import 'state/hydration_controller.dart';
 import 'state/locale_controller.dart';
 import 'state/meal_plan_builder_controller.dart';
+import 'state/meal_plans_controller.dart';
 import 'state/messaging_controller.dart';
 import 'state/my_plan_controller.dart';
 import 'state/notifications_controller.dart';
@@ -52,6 +53,7 @@ void main() {
       NutritionController(nutritionRepository, profileController);
   final mealPlanBuilderController =
       MealPlanBuilderController(nutritionRepository);
+  final mealPlansController = MealPlansController(apiClient);
   final assessmentController = AssessmentController();
 
   final authController = AuthController(
@@ -73,6 +75,7 @@ void main() {
       notificationsController.clear();
       nutritionController.clear();
       mealPlanBuilderController.clear();
+      mealPlansController.clear();
       assessmentController.clearSelectedPlan();
     },
   )..bootstrap();
@@ -116,6 +119,7 @@ void main() {
         ChangeNotifierProvider.value(value: notificationsController),
         ChangeNotifierProvider.value(value: nutritionController),
         ChangeNotifierProvider.value(value: mealPlanBuilderController),
+        ChangeNotifierProvider.value(value: mealPlansController),
         ChangeNotifierProvider(
           create: (_) => MessagingController(apiClient),
         ),

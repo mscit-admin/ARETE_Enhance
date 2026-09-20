@@ -526,5 +526,12 @@
   "mealPlanRemove": "Retirer le plan de repas",
   "mealPlanRemoveConfirm": "Retirer le plan de repas de {name} ?",
   "@mealPlanRemoveConfirm": { "placeholders": { "name": { "type": "String" } } },
-  "mealPlanRemoved": "Plan de repas retiré"
+  "mealPlanRemoved": "Plan de repas retiré",
+  "mealAssignTitle": "Assigner le plan de repas",
+  "mealAssignSelectMembers": "Sélectionner des membres",
+  "mealAssignAlsoWorkout": "Assigner aussi un plan d'entraînement (facultatif)",
+  "mealAssignNone": "Aucun",
+  "mealLinkTitle": "Assigner aussi un plan de repas ?",
+  "mealLinkSubtitle": "Facultatif — assigner un plan de repas au même membre.",
+  "mealLinkSkip": "Ignorer"
 }
