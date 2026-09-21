@@ -21,9 +21,11 @@ dependencies:
   shared_preferences: ^2.2.3
   crypto: ^3.0.3
   http: ^1.2.2
-  # In-app update: read the installed app version and open the download link.
+  # In-app update: read the installed build, download the new APK in the
+  # background, and hand it to the system installer (no browser hand-off).
   package_info_plus: ^8.0.2
-  url_launcher: ^6.3.0
+  path_provider: ^2.1.4
+  open_filex: ^4.5.0
   qr_flutter: ^4.1.0
   # A modern build is required: 5.x throws a native NPE on current toolchains,
   # and 6.x can fail to start the camera on some devices ("unexpected error").

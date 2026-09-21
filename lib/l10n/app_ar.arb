@@ -534,9 +534,8 @@
   "mealLinkTitle": "إسناد خطة وجبات أيضاً؟",
   "mealLinkSubtitle": "اختياري — إسناد خطة وجبات لنفس المتدرب.",
   "mealLinkSkip": "تخطٍّ",
-  "updateAvailableTitle": "يتوفّر تحديث",
-  "updateAvailableBody": "تتوفّر نسخة أحدث ({version}). حدّث الآن للحصول على أحدث الميزات والإصلاحات.",
-  "@updateAvailableBody": { "placeholders": { "version": { "type": "String" } } },
-  "updateNow": "تحديث",
-  "updateLater": "لاحقاً"
+  "updateDownloading": "جارٍ تنزيل التحديث…",
+  "updateReady": "التحديث جاهز للتثبيت",
+  "updateInstall": "تثبيت",
+  "updateFailed": "تعذّر تنزيل التحديث — ستتم إعادة المحاولة لاحقاً."
 }
