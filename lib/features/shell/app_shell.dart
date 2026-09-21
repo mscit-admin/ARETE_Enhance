@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/constants/enums.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_theme.dart';
+import '../../core/update/update_service.dart';
 import '../../l10n/app_localizations.dart';
 import '../help/guided_tour.dart';
 import '../help/tour_keys.dart';
@@ -45,12 +47,46 @@ class _AppShellState extends State<AppShell> {
   int _index = 0;
   bool _introHandled = false;
   bool _tourRunning = false;
+  bool _updateChecked = false;
 
   @override
   void initState() {
     super.initState();
     // Let the account drawer replay the guided tour on demand.
     TourLauncher.register(() => _runTour());
+    // Offer an in-app update if a newer build has been published.
+    WidgetsBinding.instance.addPostFrameCallback((_) => _checkForUpdate());
+  }
+
+  /// Checks GitHub Releases for a newer APK and, if found, offers to open the
+  /// direct download link so the user can update without reinstalling manually.
+  Future<void> _checkForUpdate() async {
+    if (_updateChecked) return;
+    _updateChecked = true;
+    final info = await UpdateService().check();
+    if (!mounted || info == null) return;
+    final l = AppLocalizations.of(context);
+    final go = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(l.updateAvailableTitle),
+        content: Text(l.updateAvailableBody(info.versionName)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: Text(l.updateLater),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: Text(l.updateNow),
+          ),
+        ],
+      ),
+    );
+    if (go == true) {
+      await launchUrl(Uri.parse(info.downloadUrl),
+          mode: LaunchMode.externalApplication);
+    }
   }
 
   @override

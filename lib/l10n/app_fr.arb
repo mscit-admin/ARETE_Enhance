@@ -533,5 +533,10 @@
   "mealAssignNone": "Aucun",
   "mealLinkTitle": "Assigner aussi un plan de repas ?",
   "mealLinkSubtitle": "Facultatif — assigner un plan de repas au même membre.",
-  "mealLinkSkip": "Ignorer"
+  "mealLinkSkip": "Ignorer",
+  "updateAvailableTitle": "Mise à jour disponible",
+  "updateAvailableBody": "Une version plus récente ({version}) est disponible. Mettez à jour pour obtenir les dernières fonctionnalités et corrections.",
+  "@updateAvailableBody": { "placeholders": { "version": { "type": "String" } } },
+  "updateNow": "Mettre à jour",
+  "updateLater": "Plus tard"
 }
