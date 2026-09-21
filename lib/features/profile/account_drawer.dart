@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_theme.dart';
+import '../../core/update/update_flow.dart';
 import '../../l10n/app_localizations.dart';
 import '../../shared/widgets/gradient_avatar.dart';
 import '../../state/auth_controller.dart';
@@ -128,6 +129,19 @@ class AccountDrawer extends StatelessWidget {
                   MaterialPageRoute(
                       builder: (_) => const ExerciseLibraryScreen()),
                 );
+              },
+            ),
+            const Divider(height: 1),
+            ListTile(
+              leading: const Icon(Icons.system_update),
+              title: Text(l.updateMenuItem),
+              onTap: () {
+                // Resolve the root messenger + strings before closing the
+                // drawer, then run the check so its progress snackbars show
+                // over the main screen.
+                final messenger = ScaffoldMessenger.of(context);
+                Navigator.of(context).pop();
+                runUpdateCheck(messenger, l);
               },
             ),
             const Divider(height: 1),

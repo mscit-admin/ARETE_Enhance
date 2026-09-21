@@ -585,8 +585,11 @@
   "mealLinkTitle": "Also assign a meal plan?",
   "mealLinkSubtitle": "Optional — assign a meal plan to the same member.",
   "mealLinkSkip": "Skip",
+  "updateMenuItem": "Check for updates",
+  "updateChecking": "Checking for updates…",
+  "updateUpToDate": "You're on the latest version",
   "updateDownloading": "Downloading update…",
   "updateReady": "Update ready to install",
   "updateInstall": "Install",
-  "updateFailed": "Couldn't download the update — it'll try again next time."
+  "updateFailed": "Couldn't download the update — please try again."
 }
