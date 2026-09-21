@@ -1,7 +1,10 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:http/http.dart' as http;
+import 'package:open_filex/open_filex.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+import 'package:path_provider/path_provider.dart';
 
 /// Details of an available app update.
 class UpdateInfo {
@@ -77,6 +80,60 @@ class UpdateService {
       );
     } catch (_) {
       return null;
+    }
+  }
+
+  /// Streams the APK to local storage in the background, reporting progress in
+  /// the range 0.0–1.0 as bytes arrive. Returns the saved file path, or null if
+  /// the download fails. Never throws — the caller just skips installing.
+  ///
+  /// This replaces the old "open the browser to download" flow: the bytes are
+  /// fetched silently inside the app, so there is no visible browser hand-off.
+  Future<String?> download(
+    UpdateInfo info, {
+    void Function(double progress)? onProgress,
+  }) async {
+    try {
+      final req = http.Request('GET', Uri.parse(info.downloadUrl))
+        ..followRedirects = true;
+      final res = await _http.send(req);
+      if (res.statusCode != 200) return null;
+
+      final dir = await getTemporaryDirectory();
+      final file = File('${dir.path}/arete-update-${info.latestBuild}.apk');
+      final sink = file.openWrite();
+      final total = res.contentLength ?? 0;
+      var received = 0;
+      try {
+        await for (final chunk in res.stream) {
+          sink.add(chunk);
+          received += chunk.length;
+          if (total > 0) onProgress?.call(received / total);
+        }
+      } finally {
+        await sink.close();
+      }
+      // A partial/empty file is not a usable APK.
+      if (await file.length() < 1024) return null;
+      return file.path;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// Hands the downloaded APK to Android's package installer. This shows the
+  /// single system install confirmation (unavoidable for a sideloaded app) and
+  /// nothing else — no browser, no extra screens. Returns true if the installer
+  /// opened. Never throws.
+  Future<bool> install(String filePath) async {
+    try {
+      final res = await OpenFilex.open(
+        filePath,
+        type: 'application/vnd.android.package-archive',
+      );
+      return res.type == ResultType.done;
+    } catch (_) {
+      return false;
     }
   }
 }

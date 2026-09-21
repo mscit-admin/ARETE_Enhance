@@ -99,6 +99,11 @@ jobs:
           if ! grep -q "android.permission.CAMERA" "$MANIFEST"; then
             sed -i 's#<application#<uses-permission android:name="android.permission.CAMERA"/>\n    <application#' "$MANIFEST"
           fi
+          # REQUEST_INSTALL_PACKAGES lets the in-app updater hand the downloaded
+          # APK straight to the system installer (background update, no browser).
+          if ! grep -q "REQUEST_INSTALL_PACKAGES" "$MANIFEST"; then
+            sed -i 's#<application#<uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES"/>\n    <application#' "$MANIFEST"
+          fi
           # mobile_scanner's camera preview can render black under Flutter's
           # Impeller renderer on Android; disable Impeller so the live camera
           # shows reliably. (Inserted as an <application> child before <activity>.)

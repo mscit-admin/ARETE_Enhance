@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/constants/enums.dart';
 import '../../core/theme/app_colors.dart';
@@ -58,35 +57,71 @@ class _AppShellState extends State<AppShell> {
     WidgetsBinding.instance.addPostFrameCallback((_) => _checkForUpdate());
   }
 
-  /// Checks GitHub Releases for a newer APK and, if found, offers to open the
-  /// direct download link so the user can update without reinstalling manually.
+  /// Checks GitHub Releases for a newer APK and, if one exists, downloads it
+  /// quietly in the background and then offers to install with a single tap.
+  ///
+  /// There is deliberately no blocking dialog and no browser hand-off — the
+  /// download runs inside the app behind an unobtrusive progress bar, so the
+  /// screen no longer "flashes" through the browser and the OS download UI.
+  /// The only system prompt is Android's own install confirmation, which
+  /// cannot be avoided for a sideloaded app.
   Future<void> _checkForUpdate() async {
     if (_updateChecked) return;
     _updateChecked = true;
-    final info = await UpdateService().check();
+    final service = UpdateService();
+    final info = await service.check();
     if (!mounted || info == null) return;
+
     final l = AppLocalizations.of(context);
-    final go = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(l.updateAvailableTitle),
-        content: Text(l.updateAvailableBody(info.versionName)),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(false),
-            child: Text(l.updateLater),
+    final messenger = ScaffoldMessenger.of(context);
+    final progress = ValueNotifier<double>(0);
+
+    // A subtle, non-blocking progress bar while the APK downloads in the
+    // background. It stays until we replace it, without stealing focus.
+    messenger.showSnackBar(
+      SnackBar(
+        duration: const Duration(days: 1),
+        content: ValueListenableBuilder<double>(
+          valueListenable: progress,
+          builder: (_, p, __) => Row(
+            children: [
+              Expanded(child: Text(l.updateDownloading)),
+              const SizedBox(width: 12),
+              SizedBox(
+                width: 90,
+                child: LinearProgressIndicator(
+                  value: p > 0 ? p : null,
+                  backgroundColor: Colors.white24,
+                ),
+              ),
+            ],
           ),
-          ElevatedButton(
-            onPressed: () => Navigator.of(ctx).pop(true),
-            child: Text(l.updateNow),
-          ),
-        ],
+        ),
       ),
     );
-    if (go == true) {
-      await launchUrl(Uri.parse(info.downloadUrl),
-          mode: LaunchMode.externalApplication);
+
+    final path =
+        await service.download(info, onProgress: (p) => progress.value = p);
+    progress.dispose();
+    if (!mounted) return;
+    messenger.hideCurrentSnackBar();
+    if (path == null) {
+      messenger.showSnackBar(SnackBar(content: Text(l.updateFailed)));
+      return;
     }
+
+    // Ready — one tap launches the system installer. Non-blocking so the user
+    // can keep using the app and install when convenient.
+    messenger.showSnackBar(
+      SnackBar(
+        duration: const Duration(seconds: 12),
+        content: Text(l.updateReady),
+        action: SnackBarAction(
+          label: l.updateInstall,
+          onPressed: () => service.install(path),
+        ),
+      ),
+    );
   }
 
   @override
