@@ -15,6 +15,9 @@ jobs:
   build-apk:
     name: Build APK
     runs-on: ubuntu-latest
+    # Allow the workflow to publish a GitHub Release (for in-app updates).
+    permissions:
+      contents: write
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -102,6 +105,11 @@ jobs:
           if ! grep -q "EnableImpeller" "$MANIFEST"; then
             sed -i 's#<activity#<meta-data android:name="io.flutter.embedding.android.EnableImpeller" android:value="false" />\n        <activity#' "$MANIFEST"
           fi
+          # url_launcher (Android 11+ package visibility): declare the browser
+          # VIEW intent so the app can open the update download link.
+          if ! grep -q "<queries>" "$MANIFEST"; then
+            sed -i 's#<application#<queries>\n    <intent>\n      <action android:name="android.intent.action.VIEW" />\n      <data android:scheme="https" />\n    </intent>\n  </queries>\n    <application#' "$MANIFEST"
+          fi
           echo "----- network_security_config.xml -----"
           cat android/app/src/main/res/xml/network_security_config.xml
           echo "----- AndroidManifest.xml permissions + impeller -----"
@@ -135,8 +143,11 @@ jobs:
       - name: Build debug APK
         run: flutter build apk --debug
 
+      # Stamp the APK with a monotonically increasing version code (the run
+      # number) so the in-app updater can tell a newer build from the installed
+      # one. build-name stays the marketing version from pubspec.
       - name: Build release APK
-        run: flutter build apk --release
+        run: flutter build apk --release --build-name=0.1.0 --build-number=${{ github.run_number }}
 
       - name: Upload debug APK
         uses: actions/upload-artifact@v4
@@ -151,3 +162,16 @@ jobs:
           name: arete-release-apk
           path: build/app/outputs/flutter-apk/app-release.apk
           if-no-files-found: error
+
+      # Publish a GitHub Release with the release APK so the app can offer an
+      # in-app update (direct download link). Runs only on a real push to the
+      # deploy branch, not on pull requests.
+      - name: Publish release for in-app update
+        if: github.event_name == 'push'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ github.run_number }}
+          name: Build ${{ github.run_number }}
+          body: "Automated build ${{ github.run_number }} from ${{ github.ref_name }}."
+          make_latest: true
+          files: build/app/outputs/flutter-apk/app-release.apk
