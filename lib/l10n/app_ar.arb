@@ -534,8 +534,11 @@
   "mealLinkTitle": "إسناد خطة وجبات أيضاً؟",
   "mealLinkSubtitle": "اختياري — إسناد خطة وجبات لنفس المتدرب.",
   "mealLinkSkip": "تخطٍّ",
+  "updateMenuItem": "التحقق من التحديثات",
+  "updateChecking": "جارٍ التحقق من التحديثات…",
+  "updateUpToDate": "أنت على أحدث إصدار",
   "updateDownloading": "جارٍ تنزيل التحديث…",
   "updateReady": "التحديث جاهز للتثبيت",
   "updateInstall": "تثبيت",
-  "updateFailed": "تعذّر تنزيل التحديث — ستتم إعادة المحاولة لاحقاً."
+  "updateFailed": "تعذّر تنزيل التحديث — يُرجى المحاولة مرة أخرى."
 }
